@@ -15,9 +15,10 @@ Precisa de Docker rodando e do [Supabase CLI](https://supabase.com/docs/guides/c
 
 ```bash
 npm install
-supabase start          # sobe Postgres, Auth, Storage e Edge Functions
-./scripts/seed-fotos.sh # placeholders para os veículos de demonstração
-npm run dev             # http://localhost:8080
+supabase start                # sobe Postgres, Auth, Storage e Edge Functions
+./scripts/criar-admin-local.sh # admin@revenda.local / revenda123
+./scripts/seed-fotos.sh        # placeholders dos veículos de demonstração
+npm run dev                    # http://localhost:8080
 ```
 
 O `supabase start` imprime a `anon key`. Coloque-a no `.env`:
@@ -37,11 +38,14 @@ Endereços úteis:
 | Supabase Studio | http://127.0.0.1:54323 |
 | E-mails de teste (Inbucket) | http://127.0.0.1:54324 |
 
-Crie o primeiro usuário em `/admin/login` pelo "Primeiro acesso" — ele vira
-admin automaticamente. Para recomeçar do zero:
+O `criar-admin-local.sh` já deixa um administrador pronto. Se preferir criar
+pela tela, use "Primeiro acesso" em `/admin/login`: o primeiro usuário do
+projeto vira admin automaticamente.
+
+Para recomeçar do zero — o reset apaga também os usuários:
 
 ```bash
-supabase db reset && ./scripts/seed-fotos.sh
+supabase db reset && ./scripts/criar-admin-local.sh && ./scripts/seed-fotos.sh
 ```
 
 ---
@@ -169,7 +173,9 @@ histórico, e personalização da revenda.
 
 ## O que falta
 
-- Rotina mensal de sincronização da base FIPE (hoje o seed traz uma amostra)
+- Rotina mensal de sincronização da base FIPE. O seed já traz 33 marcas,
+  221 modelos e 445 versões do mercado brasileiro — suficiente para operar,
+  mas é uma fotografia, não uma base que se atualiza sozinha
 - Importação em lote por CSV e feed XML para portais (fases 2 e 3 do escopo)
 - Tela de gestão de usuários: hoje o papel de um novo vendedor é liberado
   inserindo a linha em `user_roles` pelo Studio
