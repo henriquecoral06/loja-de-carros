@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { useConfig } from "@/hooks/useConfig";
 import { useVeiculos } from "@/hooks/useVeiculos";
 import VeiculoCard from "@/components/VeiculoCard";
+import CarrosselBanners from "@/components/CarrosselBanners";
 import { linkWhatsApp } from "@/lib/utils";
 import { useTituloPagina } from "@/hooks/useTituloPagina";
 
@@ -19,41 +20,12 @@ export default function Home() {
   useTituloPagina(null);
   const destaques = (data?.veiculos ?? []).slice(0, 8);
   const diferenciais = linhas(config?.diferenciais);
-  const provas = linhas(config?.provas_numeros, 3);
 
   return (
     <>
-      {/* Faixa escura de abertura */}
-      <section className="band-dark relative overflow-hidden">
-        {config?.banner_url && (
-          <img src={config.banner_url} alt="" aria-hidden="true"
-            className="absolute inset-0 h-full w-full object-cover opacity-30" />
-        )}
-        <div className="site-container site-section relative">
-          <div className="max-w-[46rem]">
-            <h1 className="t-display-xl text-[var(--s-on-dark)]">
-              {config?.texto_home ?? "Seminovos revisados, com procedência e garantia."}
-            </h1>
-            {config?.oferta_principal && (
-              <p className="t-body-md mt-6 max-w-[38rem] text-[var(--s-on-dark-soft)]">{config.oferta_principal}</p>
-            )}
-            <div className="mt-10 flex flex-wrap gap-3">
-              <Link to="/estoque" className="s-btn s-btn-primary">Ver o estoque</Link>
-              <Link to="/contato" className="s-btn s-btn-on-dark">Falar com a gente</Link>
-            </div>
-          </div>
-
-          {provas.length > 0 && (
-            <dl className="mt-16 grid gap-px border-t border-white/15 sm:grid-cols-3">
-              {provas.map((p) => (
-                <div key={p} className="pt-6">
-                  <dd className="t-title-md text-[var(--s-on-dark)]">{p}</dd>
-                </div>
-              ))}
-            </dl>
-          )}
-        </div>
-      </section>
+      {/* Abertura: só o carrossel. Sem texto e sem provas por cima —
+          a imagem fala sozinha, e é o lojista que a troca pelo painel. */}
+      <CarrosselBanners />
 
       {/* Faixa clara: grade de veículos */}
       <section className="site-container site-section">

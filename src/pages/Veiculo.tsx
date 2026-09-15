@@ -103,11 +103,11 @@ export default function Veiculo() {
               {galeria.length > 1 && (
                 <>
                   <button onClick={() => mover(-1)} aria-label="Foto anterior"
-                    className="absolute left-0 top-1/2 grid h-12 w-12 -translate-y-1/2 place-items-center bg-[var(--s-canvas)]/90 text-[var(--s-ink)] hover:bg-[var(--s-canvas)]">
+                    className="absolute left-0 top-1/2 grid h-12 w-12 -translate-y-1/2 place-items-center bg-white/90 text-[var(--s-ink)] hover:bg-white">
                     <CaretLeft size={18} weight="bold" />
                   </button>
                   <button onClick={() => mover(1)} aria-label="Próxima foto"
-                    className="absolute right-0 top-1/2 grid h-12 w-12 -translate-y-1/2 place-items-center bg-[var(--s-canvas)]/90 text-[var(--s-ink)] hover:bg-[var(--s-canvas)]">
+                    className="absolute right-0 top-1/2 grid h-12 w-12 -translate-y-1/2 place-items-center bg-white/90 text-[var(--s-ink)] hover:bg-white">
                     <CaretRight size={18} weight="bold" />
                   </button>
                   <span className="t-caption absolute bottom-0 right-0 bg-[var(--s-ink)] px-2.5 py-1.5 text-[var(--s-on-dark)]">

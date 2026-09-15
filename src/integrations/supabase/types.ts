@@ -55,6 +55,15 @@ export interface VeiculoPublico {
   created_at: string;
 }
 
+export interface Banner {
+  id: string;
+  url: string;
+  alt: string;
+  link: string | null;
+  ordem: number;
+  ativo: boolean;
+}
+
 export interface Config {
   id: boolean;
   nome: string;
@@ -69,6 +78,7 @@ export interface Config {
   latitude: number | null;
   longitude: number | null;
   logo_url: string | null;
+  favicon_url: string | null;
   banner_url: string | null;
   cor_primaria: string;
   cor_primaria_fg: string;

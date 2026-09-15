@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useConfig } from "@/hooks/useConfig";
 import { TONS } from "@/lib/banner";
 import { Button, Field, Input, SegmentedControl, Select, Textarea } from "@/components/ui";
+import UploadImagem from "@/components/admin/UploadImagem";
 
 type Aba = "identidade" | "posicionamento" | "contato" | "medicao";
 
@@ -92,17 +93,23 @@ export default function Configuracao() {
 
             <fieldset className="rounded-ds-lg border border-hairline bg-surface p-5">
               <legend className="px-2 text-label-lg text-ink">Marca</legend>
-              <p className="mb-4 text-caption text-mute">
-                Cores em HSL, no formato <code className="rounded-ds-xs bg-ink/[0.06] px-1 font-mono text-[12px]">191 78% 21%</code>.
-                O site muda assim que você salvar.
+              <p className="mb-5 max-w-[56ch] text-caption text-mute">
+                Arquivos e cores da loja. Cores em HSL, no formato{" "}
+                <code className="rounded-ds-xs bg-ink/[0.06] px-1 font-mono text-[12px]">191 78% 21%</code>.
+                O site muda assim que você salvar — inclusive a faixa escura da
+                home, que é derivada da cor principal.
               </p>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Field id="logo_url" label="URL do logo">
-                  <Input id="logo_url" value={form.logo_url ?? ""} onChange={(e) => campo("logo_url", e.target.value)} />
-                </Field>
-                <Field id="banner_url" label="URL do banner da home">
-                  <Input id="banner_url" value={form.banner_url ?? ""} onChange={(e) => campo("banner_url", e.target.value)} />
-                </Field>
+              <div className="grid gap-5 sm:grid-cols-2">
+                <UploadImagem
+                  label="Logotipo" pasta="logo" formato="largo"
+                  valor={form.logo_url}
+                  onChange={(url) => campo("logo_url", url)}
+                  hint="PNG ou SVG com fundo transparente. Sem logo, o site escreve o nome da revenda." />
+                <UploadImagem
+                  label="Favicon" pasta="favicon"
+                  valor={form.favicon_url}
+                  onChange={(url) => campo("favicon_url", url)}
+                  hint="Quadrado, 512×512. É o ícone da aba do navegador." />
                 {[
                   ["cor_primaria", "Cor principal"],
                   ["cor_primaria_fg", "Texto sobre a cor principal"],

@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useConfig } from "@/hooks/useConfig";
 import { FORMATOS, TONS, hslParaHex, montarPrompt, type Estilo } from "@/lib/banner";
 import { Badge, Button, Card, Field, SegmentedControl, Select, Textarea } from "@/components/ui";
+import GestaoBanners from "@/components/admin/GestaoBanners";
 
 export default function BannerPrompt() {
   const { data: config } = useConfig();
@@ -65,9 +66,19 @@ export default function BannerPrompt() {
     <div className="p-5 pb-16 md:p-6">
       <h1 className="text-heading-xl text-ink">Banner da home</h1>
       <p className="mt-1 max-w-[64ch] text-body-sm text-mute">
-        Monta o pedido de imagem a partir do cadastro do negócio. Copie e cole em
-        qualquer gerador de imagem; depois suba o arquivo e cole a URL em{" "}
-        <Link to="/admin/config" className="font-medium text-ink hover:underline">O negócio → Marca</Link>.
+        A home abre com um carrossel destas imagens, sem texto por cima.
+      </p>
+
+      <div className="mt-7 max-w-5xl">
+        <GestaoBanners />
+      </div>
+
+      <hr className="my-10 max-w-5xl border-hairline" />
+
+      <h2 className="text-heading-md text-ink">Gerador de prompt</h2>
+      <p className="mt-1 max-w-[64ch] text-body-sm text-mute">
+        Monta o pedido de imagem a partir do cadastro do negócio. Copie, cole em
+        qualquer gerador de imagem e envie o resultado acima.
       </p>
 
       {faltando.length > 0 && (

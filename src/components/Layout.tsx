@@ -37,10 +37,15 @@ export default function Layout() {
       </a>
 
       <header className="sticky top-0 z-40 border-b border-[var(--s-hairline)] bg-[var(--s-canvas)]">
-        <div className="site-container flex h-16 items-center justify-between gap-6">
+        {/* Largura total de propósito: o menu acompanha a borda da tela,
+            não a caixa de 1440px do conteúdo. */}
+        <div className="flex h-16 w-full items-center justify-between gap-6 px-6 lg:px-12">
           <Link to="/" className="flex h-16 items-center gap-2.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--s-primary)]">
+            {/* Logo do lojista vem em qualquer proporção: teto de altura e
+                de largura para um arquivo largo não empurrar o menu. */}
             {config?.logo_url
-              ? <img src={config.logo_url} alt={config.nome} className="h-8 w-auto" />
+              ? <img src={config.logo_url} alt={config.nome}
+                  className="max-h-10 w-auto max-w-[200px] object-contain" />
               : <span className="t-title-md text-[var(--s-ink)]">{config?.nome ?? "Revenda"}</span>}
           </Link>
 
@@ -72,7 +77,7 @@ export default function Layout() {
 
       {menuAberto && (
         <div id="menu-mobile" className="fixed inset-0 top-16 z-40 bg-[var(--s-canvas)] md:hidden">
-          <nav aria-label="Principal (celular)" className="site-container flex flex-col py-6">
+          <nav aria-label="Principal (celular)" className="flex flex-col px-6 py-6">
             {rotas.map((r) => (
               <NavLink key={r.para} to={r.para} end={r.para === "/"}
                 className="t-title-md border-b border-[var(--s-hairline)] py-4 text-[var(--s-ink)]">
@@ -93,7 +98,9 @@ export default function Layout() {
       <footer className="band-soft border-t border-[var(--s-hairline)]">
         <div className="site-container grid gap-10 py-14 md:grid-cols-4">
           <div>
-            <p className="t-title-md text-[var(--s-ink)]">{config?.nome}</p>
+            {config?.logo_url
+              ? <img src={config.logo_url} alt={config.nome} className="max-h-10 w-auto max-w-[180px] object-contain" />
+              : <p className="t-title-md text-[var(--s-ink)]">{config?.nome}</p>}
             {config?.endereco && (
               <p className="t-body-sm mt-3 text-[var(--s-body)]">
                 {config.endereco}<br />{[config.cidade, config.uf].filter(Boolean).join(" · ")}

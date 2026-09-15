@@ -43,7 +43,16 @@ export function TemaDaRevenda() {
     raiz.style.setProperty("--ring", config.cor_primaria);
     raiz.style.setProperty("--accent", config.cor_destaque);
 
-    if (config.meta_title) document.title = config.meta_title;
+    if (config.favicon_url) {
+      let icone = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
+      if (!icone) {
+        icone = document.createElement("link");
+        icone.rel = "icon";
+        document.head.appendChild(icone);
+      }
+      icone.href = config.favicon_url;
+    }
+
     const descricao = document.querySelector('meta[name="description"]');
     if (descricao && config.meta_description) descricao.setAttribute("content", config.meta_description);
   }, [config]);

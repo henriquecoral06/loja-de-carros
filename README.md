@@ -18,6 +18,7 @@ npm install
 supabase start                # sobe Postgres, Auth, Storage e Edge Functions
 ./scripts/criar-admin-local.sh # admin@revenda.local / revenda123
 ./scripts/seed-fotos.sh        # placeholders dos veículos de demonstração
+./scripts/seed-banners.sh      # banners de demonstração do carrossel
 npm run dev                    # http://localhost:8080
 ```
 
@@ -56,7 +57,7 @@ mesmo voltar ao estado inicial, ou quando precisar validar que as migrações
 rodam limpas num banco vazio:
 
 ```bash
-supabase db reset && ./scripts/criar-admin-local.sh && ./scripts/seed-fotos.sh
+supabase db reset && ./scripts/criar-admin-local.sh && ./scripts/seed-fotos.sh && ./scripts/seed-banners.sh
 ```
 
 As fotos ficam no storage e as linhas em `veiculo_fotos`; o reset leva as duas.
@@ -156,6 +157,27 @@ O projeto tem duas peles, e elas não se misturam:
 | Tipografia | Inter 700 / 300 | Geist |
 | Raio | 0px em tudo | Escala `.ds-app` |
 | Tema | Claro sempre | Claro e escuro |
+
+### A home é o carrossel
+
+A primeira seção do site é só imagem: um carrossel de banners, sem texto e sem
+botão por cima. Quem remixa sobe as imagens em **Banner** no painel, arrasta a
+ordem e a home inteira muda de cara sem tocar em código. Sem nenhum banner, a
+home abre numa faixa na cor da marca com o nome da loja — o estado do template
+recém-remixado.
+
+Como não há texto visível na abertura, duas coisas viram obrigação e não
+detalhe:
+
+- a página ainda precisa de um `h1`, então ele existe escondido (`sr-only`),
+  montado com o nome da loja e o que ela vende;
+- o **texto alternativo de cada banner é campo do cadastro**, porque é a única
+  descrição que sobra para o leitor de tela e para o Google. O painel avisa
+  quando um banner ativo está sem descrição.
+
+Logo e favicon também são upload pelo painel, direto para o bucket `marca` —
+nada de colar URL nem hospedar imagem em outro lugar. Trocar o logo atualiza o
+site na hora.
 
 ### Como a paleta do site é derivada
 
