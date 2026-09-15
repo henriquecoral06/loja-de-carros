@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { Share2, MessageCircle } from "lucide-react";
+import { ShareNetwork, WhatsappLogo } from "@phosphor-icons/react";
 import { useVeiculo, useFotos, useVeiculos } from "@/hooks/useVeiculos";
 import { useConfig } from "@/hooks/useConfig";
 import { moeda, numero, tituloVeiculo, linkWhatsApp } from "@/lib/utils";
@@ -156,12 +156,12 @@ export default function Veiculo() {
               {config?.whatsapp && (
                 <a href={linkWhatsApp(config.whatsapp, mensagem)} target="_blank" rel="noopener noreferrer"
                   className="flex w-full items-center justify-center gap-2 rounded-md bg-[hsl(var(--whatsapp))] px-4 py-3 font-semibold text-white">
-                  <MessageCircle className="h-4 w-4" /> Falar no WhatsApp
+                  <WhatsappLogo className="h-4 w-4" /> Falar no WhatsApp
                 </a>
               )}
               <button onClick={compartilhar}
                 className="flex w-full items-center justify-center gap-2 rounded-md border px-4 py-2.5 text-sm font-medium">
-                <Share2 className="h-4 w-4" /> Compartilhar
+                <ShareNetwork className="h-4 w-4" /> Compartilhar
               </button>
             </div>
           </div>

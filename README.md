@@ -131,6 +131,27 @@ Na Vercel ou Netlify o mesmo efeito sai com um rewrite por `User-Agent`.
 
 ---
 
+## Dois padrões visuais, de propósito
+
+O projeto tem duas peles, e elas não se misturam:
+
+| | Site público | Portal (`/admin`) |
+|---|---|---|
+| Identidade | Da revenda: cores, logo e textos vindos da tabela `config` | Conversão Extrema — ver [`docs/DESIGN-SYSTEM.md`](docs/DESIGN-SYSTEM.md) |
+| Tokens | shadcn em HSL (`--primary`, `--background`), sobrescritos em runtime | `--c-*` em canais RGB, em `src/styles/design-system.css` |
+| Tipografia | A fonte da revenda | Geist |
+| Densidade | Padrão | Escopo `.ds-app`: raio menor, tipografia um degrau abaixo, campo de 36px |
+
+Quem remixa o projeto troca as cores do **site** pelo painel, sem tocar em código.
+O **portal** é o produto e não muda de loja para loja — por isso ele é o único que
+segue o design system.
+
+O tema claro/escuro vive na classe `dark` do `<html>`, com script anti-flash no
+`index.html`. O toggle fica no portal, mas a classe é global: o site público já
+tem paleta escura definida e acompanha.
+
+---
+
 ## Como os papéis são separados
 
 A anon key vai embutida no bundle. Quem segura o acesso é a RLS — e ela é

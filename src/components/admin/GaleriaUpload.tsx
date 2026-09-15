@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Star, Trash2, ArrowLeft, ArrowRight } from "lucide-react";
+import { ArrowLeft, ArrowRight, Star, Trash } from "@phosphor-icons/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -110,7 +110,7 @@ export default function GaleriaUpload({ veiculoId }: { veiculoId: string }) {
               <button onClick={() => mover(f.id, 1)} disabled={i === (fotos?.length ?? 0) - 1} title="Mover para frente"
                 className="rounded p-1 text-white disabled:opacity-30"><ArrowRight className="h-3.5 w-3.5" /></button>
               <button onClick={() => confirm("Remover esta foto?") && remover(f)} title="Remover"
-                className="rounded p-1 text-white"><Trash2 className="h-3.5 w-3.5" /></button>
+                className="rounded p-1 text-white"><Trash className="h-3.5 w-3.5" /></button>
             </div>
           </div>
         ))}

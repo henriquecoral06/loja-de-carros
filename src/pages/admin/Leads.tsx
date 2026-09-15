@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { MessageCircle, Clock } from "lucide-react";
+import { Clock, WhatsappLogo } from "@phosphor-icons/react";
 import { useLeads, useAtualizarLead, useInteracoes, useRegistrarInteracao } from "@/hooks/useAdmin";
 import { supabase } from "@/integrations/supabase/client";
 import { linkWhatsApp } from "@/lib/utils";
+import { Badge, Button, Select, Textarea } from "@/components/ui";
 
 const COLUNAS = [
   { valor: "novo", rotulo: "Novo" },
@@ -57,40 +58,41 @@ function Detalhe({ lead, aoFechar }: { lead: any; aoFechar: () => void }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-black/40" onClick={aoFechar}>
-      <div className="h-full w-full max-w-md overflow-y-auto bg-background p-6" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex justify-end bg-ink/40 backdrop-blur-[1px]" onClick={aoFechar}>
+      <div className="h-full w-full max-w-md overflow-y-auto border-l border-hairline bg-canvas p-6" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h2 className="font-display text-xl font-bold">{lead.nome}</h2>
-            <p className="text-sm text-muted-foreground">{lead.whatsapp}{lead.email && ` · ${lead.email}`}</p>
+            <h2 className="text-heading-md text-ink">{lead.nome}</h2>
+            <p className="text-body-sm text-mute">{lead.whatsapp}{lead.email && ` · ${lead.email}`}</p>
           </div>
-          <button onClick={aoFechar} aria-label="Fechar" className="rounded p-1 text-2xl leading-none hover:bg-muted">×</button>
+          <button onClick={aoFechar} aria-label="Fechar" className="ds-focus rounded-ds-sm p-1 text-2xl leading-none text-mute hover:bg-ink/[0.05] hover:text-ink">×</button>
         </div>
 
         <a href={linkWhatsApp(lead.whatsapp, `Olá ${lead.nome}! Sou da revenda.`)}
           target="_blank" rel="noreferrer"
-          className="mt-4 flex items-center justify-center gap-2 rounded-md bg-[hsl(var(--whatsapp))] px-4 py-2.5 font-semibold text-white">
-          <MessageCircle className="h-4 w-4" /> Abrir conversa
+          className="shiny-brand ds-focus mt-4 flex h-11 items-center justify-center gap-2 text-label-lg">
+          <span className="shiny-dots" aria-hidden="true" />
+          <span className="shiny-cta-content"><WhatsappLogo size={17} weight="fill" /> Abrir conversa</span>
         </a>
 
         <div className="mt-5 space-y-3">
           <div>
-            <label htmlFor="status" className="text-sm font-medium">Etapa</label>
-            <select id="status" value={lead.status} className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm"
+            <label htmlFor="status" className="text-label-md tracking-label text-body">Etapa</label>
+            <Select id="status" value={lead.status} className="mt-1"
               onChange={(e) => atualizar.mutate({ id: lead.id, dados: { status: e.target.value } })}>
               {COLUNAS.map((c) => <option key={c.valor} value={c.valor}>{c.rotulo}</option>)}
-            </select>
+            </Select>
           </div>
 
           {lead.status === "perdido" && (
             <div>
-              <label htmlFor="motivo" className="text-sm font-medium">Motivo da perda</label>
-              <select id="motivo" value={lead.motivo_perda ?? ""} className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm"
+              <label htmlFor="motivo" className="text-label-md tracking-label text-body">Motivo da perda</label>
+              <Select id="motivo" value={lead.motivo_perda ?? ""} className="mt-1"
                 onChange={(e) => atualizar.mutate({ id: lead.id, dados: { motivo_perda: e.target.value } })}>
                 <option value="">Selecione</option>
                 {MOTIVOS.map((m) => <option key={m.valor} value={m.valor}>{m.rotulo}</option>)}
-              </select>
-              <p className="mt-1 text-xs text-muted-foreground">
+              </Select>
+              <p className="mt-1 text-caption text-faint">
                 É esse campo que revela se o problema é preço ou atendimento.
               </p>
             </div>
@@ -98,39 +100,38 @@ function Detalhe({ lead, aoFechar }: { lead: any; aoFechar: () => void }) {
         </div>
 
         {lead.mensagem && (
-          <div className="mt-5 rounded-md bg-muted p-3 text-sm">
-            <p className="text-xs font-semibold text-muted-foreground">Mensagem original</p>
+          <div className="mt-5 rounded-ds-md border border-hairline bg-ink/[0.03] p-3 text-body-sm">
+            <p className="text-eyebrow text-mute">Mensagem original</p>
             <p className="mt-1">{lead.mensagem}</p>
           </div>
         )}
 
         <div className="mt-6">
-          <label htmlFor="nota" className="text-sm font-medium">Registrar contato</label>
+          <label htmlFor="nota" className="text-label-md tracking-label text-body">Registrar contato</label>
           <textarea id="nota" rows={3} value={texto} onChange={(e) => setTexto(e.target.value)}
-            placeholder="O que foi combinado?" className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm" />
+            placeholder="O que foi combinado?" className="mt-1" />
           <div className="mt-2 flex gap-2">
-            <button disabled={!texto.trim()} onClick={() => { registrar.mutate({ leadId: lead.id, texto }); setTexto(""); }}
-              className="flex-1 rounded-md border px-3 py-2 text-sm font-medium disabled:opacity-50">
+            <Button variant="secondary" className="flex-1" disabled={!texto.trim()}
+              onClick={() => { registrar.mutate({ leadId: lead.id, texto }); setTexto(""); }}>
               Salvar nota
-            </button>
-            <button disabled={!texto.trim() || enviandoZap} onClick={enviarPeloWhatsApp}
-              className="flex-1 rounded-md bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50">
+            </Button>
+            <Button className="flex-1" disabled={!texto.trim() || enviandoZap} onClick={enviarPeloWhatsApp}>
               {enviandoZap ? "Enviando…" : "Enviar no WhatsApp"}
-            </button>
+            </Button>
           </div>
-          {avisoZap && <p className="mt-2 text-xs text-destructive">{avisoZap}</p>}
+          {avisoZap && <p className="mt-2 text-caption text-danger-deep">{avisoZap}</p>}
         </div>
 
         <div className="mt-6">
-          <h3 className="text-sm font-semibold">Histórico</h3>
+          <h3 className="text-label-lg text-ink">Histórico</h3>
           <ul className="mt-2 space-y-2">
             {(interacoes ?? []).length === 0 && (
-              <li className="text-sm text-muted-foreground">Nenhum contato registrado ainda.</li>
+              <li className="text-body-sm text-faint">Nenhum contato registrado ainda.</li>
             )}
             {(interacoes ?? []).map((i: any) => (
-              <li key={i.id} className="rounded-md border p-3 text-sm">
-                <p className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <Clock className="h-3 w-3" />
+              <li key={i.id} className="rounded-ds-md border border-hairline bg-surface p-3 text-body-sm">
+                <p className="flex items-center gap-1.5 text-caption text-faint">
+                  <Clock size={12} />
                   {new Date(i.created_at).toLocaleString("pt-BR")} · {i.canal.replace("_", " ")}
                 </p>
                 <p className="mt-1">{i.texto}</p>
@@ -148,21 +149,21 @@ export default function Leads() {
   const atualizar = useAtualizarLead();
   const [aberto, setAberto] = useState<any>(null);
 
-  if (isLoading) return <div className="p-6 text-muted-foreground">Carregando…</div>;
+  if (isLoading) return <div className="p-6 text-body-sm text-mute">Carregando…</div>;
 
   const atual = aberto ? (leads ?? []).find((l: any) => l.id === aberto.id) ?? aberto : null;
 
   return (
-    <div className="p-6">
-      <h1 className="font-display text-2xl font-bold">Leads</h1>
-      <p className="mt-1 text-sm text-muted-foreground">
-        {leads?.length ?? 0} no total · arraste pelo seletor de etapa dentro do lead
+    <div className="p-5 md:p-6">
+      <h1 className="text-heading-xl text-ink">Leads</h1>
+      <p className="mt-1 text-body-sm text-mute">
+        {leads?.length ?? 0} no total · abra um lead para mudar a etapa
       </p>
 
       {!leads?.length ? (
-        <div className="mt-8 rounded-lg border border-dashed p-12 text-center">
-          <p className="font-display font-semibold">Nenhum lead ainda.</p>
-          <p className="mt-1 text-sm text-muted-foreground">
+        <div className="mt-8 rounded-ds-lg border border-dashed border-hairline-strong p-12 text-center">
+          <p className="text-heading-sm text-ink">Nenhum lead ainda.</p>
+          <p className="mt-1 text-body-sm text-mute">
             Envie o formulário de um veículo no site para ver um aparecer aqui.
           </p>
         </div>
@@ -171,22 +172,23 @@ export default function Leads() {
           {COLUNAS.map((coluna) => {
             const daColuna = (leads ?? []).filter((l: any) => l.status === coluna.valor);
             return (
-              <div key={coluna.valor} className="min-w-[220px] rounded-lg bg-muted/50 p-2">
-                <p className="px-1 pb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              <div key={coluna.valor} className="min-w-[220px] rounded-ds-lg border border-hairline bg-ink/[0.02] p-2">
+                <p className="px-1.5 pb-2 text-eyebrow text-mute">
                   {coluna.rotulo} · {daColuna.length}
                 </p>
                 <ul className="space-y-2">
                   {daColuna.map((l: any) => (
                     <li key={l.id}>
                       <button onClick={() => setAberto(l)}
-                        className="w-full rounded-md border bg-card p-3 text-left text-sm hover:shadow-sm">
-                        <p className="font-medium">{l.nome}</p>
-                        <p className="text-xs text-muted-foreground">{l.whatsapp}</p>
-                        <p className={`mt-1 text-xs ${
-                          l.status === "novo" && !l.primeira_resposta_em ? "font-semibold text-destructive" : "text-muted-foreground"}`}>
-                          há {desde(l.created_at)}
-                          {l.status === "novo" && !l.primeira_resposta_em && " · sem resposta"}
-                        </p>
+                        className="card-glow ds-focus w-full rounded-ds-md border border-hairline bg-surface p-3 text-left transition-colors hover:border-hairline-strong">
+                        <p className="text-body-sm font-medium text-ink">{l.nome}</p>
+                        <p className="text-caption text-faint">{l.whatsapp}</p>
+                        <div className="mt-1.5 flex items-center gap-1.5">
+                          <span className="text-caption text-faint">há {desde(l.created_at)}</span>
+                          {l.status === "novo" && !l.primeira_resposta_em && (
+                            <Badge tone="danger">sem resposta</Badge>
+                          )}
+                        </div>
                       </button>
                     </li>
                   ))}

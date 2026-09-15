@@ -3,6 +3,7 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useConfig } from "@/hooks/useConfig";
+import { Button } from "@/components/ui";
 
 export default function Login() {
   const { session, carregando } = useAuth();
@@ -48,47 +49,47 @@ export default function Login() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted/40 p-6">
-      <div className="w-full max-w-sm">
-        <h1 className="font-display text-2xl font-bold text-center">{config?.nome ?? "Painel"}</h1>
-        <p className="mt-1 text-center text-sm text-muted-foreground">
+    <div className="ds-app relative flex min-h-screen items-center justify-center bg-canvas p-6 font-geist antialiased">
+      <div className="ds-dot-grid" aria-hidden="true" />
+      <div className="relative w-full max-w-sm">
+        <h1 className="text-center text-heading-md text-ink">{config?.nome ?? "Portal"}</h1>
+        <p className="mt-1 text-center text-body-sm text-mute">
           {modo === "entrar" ? "Acesse o painel da revenda" : "Crie seu acesso"}
         </p>
 
-        <form onSubmit={enviar} className="mt-6 space-y-4 rounded-lg border bg-card p-6">
+        <form onSubmit={enviar} className="premium-card mt-6 space-y-4 p-6">
           {modo === "criar" && (
             <div>
-              <label htmlFor="nome" className="text-sm font-medium">Nome</label>
+              <label htmlFor="nome" className="mb-1.5 block text-label-md tracking-label text-body">Nome</label>
               <input id="nome" name="nome" required
-                className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm" />
+                className="ds-field" />
             </div>
           )}
           <div>
-            <label htmlFor="email" className="text-sm font-medium">E-mail</label>
+            <label htmlFor="email" className="mb-1.5 block text-label-md tracking-label text-body">E-mail</label>
             <input id="email" name="email" type="email" required autoComplete="email"
-              className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm" />
+              className="ds-field" />
           </div>
           <div>
-            <label htmlFor="senha" className="text-sm font-medium">Senha</label>
+            <label htmlFor="senha" className="mb-1.5 block text-label-md tracking-label text-body">Senha</label>
             <input id="senha" name="senha" type="password" required minLength={6}
               autoComplete={modo === "entrar" ? "current-password" : "new-password"}
-              className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm" />
+              className="ds-field" />
           </div>
 
-          {erro && <p className="text-sm text-destructive">{erro}</p>}
+          {erro && <p className="text-body-sm text-danger-deep">{erro}</p>}
 
-          <button type="submit" disabled={enviando}
-            className="w-full rounded-md bg-primary px-4 py-2.5 font-semibold text-primary-foreground disabled:opacity-60">
-            {enviando ? "Aguarde..." : modo === "entrar" ? "Entrar" : "Criar acesso"}
-          </button>
+          <Button type="submit" size="lg" disabled={enviando} className="w-full">
+            {enviando ? "Aguarde…" : modo === "entrar" ? "Entrar" : "Criar acesso"}
+          </Button>
 
           <button type="button" onClick={() => { setModo(modo === "entrar" ? "criar" : "entrar"); setErro(""); }}
-            className="w-full text-center text-sm text-muted-foreground hover:underline">
+            className="ds-focus w-full rounded-ds-sm text-center text-body-sm text-mute hover:text-ink">
             {modo === "entrar" ? "Primeiro acesso? Criar conta" : "Já tenho conta"}
           </button>
         </form>
 
-        <p className="mt-4 text-center text-xs text-muted-foreground">
+        <p className="relative mt-4 text-center text-caption text-faint">
           O primeiro usuário criado vira administrador automaticamente.
         </p>
       </div>

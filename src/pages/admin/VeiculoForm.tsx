@@ -1,32 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft } from "@phosphor-icons/react";
 import {
   useVeiculoAdmin, useSalvarVeiculo, useBaseFipe, useOpcionais, useOpcionaisDoVeiculo,
 } from "@/hooks/useAdmin";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import GaleriaUpload from "@/components/admin/GaleriaUpload";
+import { Button, Field as Campo, Input, Select, Textarea } from "@/components/ui";
 
 const CAMBIOS = ["Manual", "Automático", "Automatizado", "CVT"];
 const COMBUSTIVEIS = ["Flex", "Gasolina", "Etanol", "Diesel", "Híbrido", "Elétrico"];
 const CARROCERIAS = ["Hatch", "Sedã", "SUV", "Picape", "Minivan", "Cupê", "Conversível", "Perua"];
-
-const classeInput = "mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm";
-
-/**
- * Precisa viver fora do componente. Declarado lá dentro, cada render
- * produz um tipo novo e o React remonta o input — o foco se perde a
- * cada tecla digitada e o formulário fica impossível de preencher.
- */
-function Campo({ id, rotulo, children }: { id: string; rotulo: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <label htmlFor={id} className="text-sm font-medium">{rotulo}</label>
-      {children}
-    </div>
-  );
-}
 
 const gerarSlug = (texto: string) =>
   texto.normalize("NFD").replace(/[̀-ͯ]/g, "")
@@ -138,117 +123,117 @@ export default function VeiculoForm() {
     }
   }
 
-  if (!novo && isLoading) return <div className="p-6 text-muted-foreground">Carregando…</div>;
+  if (!novo && isLoading) return <div className="p-6 text-body-sm text-mute">Carregando…</div>;
 
   return (
-    <form onSubmit={enviar} className="p-6 pb-24">
-      <Link to="/admin/veiculos" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:underline">
+    <form onSubmit={enviar} className="p-5 pb-24 md:p-6">
+      <Link to="/admin/veiculos" className="ds-focus inline-flex items-center gap-1.5 rounded-ds-xs text-body-sm text-mute hover:text-ink">
         <ArrowLeft className="h-4 w-4" /> Voltar ao estoque
       </Link>
-      <h1 className="mt-2 font-display text-2xl font-bold">
+      <h1 className="mt-2 text-heading-xl text-ink">
         {novo ? "Cadastrar veículo" : "Editar veículo"}
       </h1>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_320px]">
         <div className="space-y-6">
-          <fieldset className="rounded-lg border bg-card p-5">
-            <legend className="px-2 text-sm font-semibold">Identificação</legend>
-            <p className="mb-3 text-xs text-muted-foreground">
+          <fieldset className="rounded-ds-lg border border-hairline bg-surface p-5">
+            <legend className="px-2 text-label-lg text-ink">Identificação</legend>
+            <p className="mb-3 text-caption text-mute">
               Marca, modelo e versão vêm da base FIPE. É isso que mantém os filtros do site funcionando.
             </p>
             <div className="grid gap-4 sm:grid-cols-3">
-              <Campo id="marca" rotulo="Marca">
-                <select id="marca" value={marcaId} className={classeInput}
+              <Campo id="marca" label="Marca">
+                <Select id="marca" value={marcaId} 
                   onChange={(e) => { setMarcaId(e.target.value); setModeloId(""); campo("versao_id", ""); }}>
                   <option value="">Selecione</option>
                   {fipe?.marcas.map((m: any) => <option key={m.id} value={m.id}>{m.nome}</option>)}
-                </select>
+                </Select>
               </Campo>
-              <Campo id="modelo" rotulo="Modelo">
-                <select id="modelo" value={modeloId} disabled={!marcaId} className={classeInput}
+              <Campo id="modelo" label="Modelo">
+                <Select id="modelo" value={modeloId} disabled={!marcaId} 
                   onChange={(e) => { setModeloId(e.target.value); campo("versao_id", ""); }}>
                   <option value="">Selecione</option>
                   {modelos.map((m: any) => <option key={m.id} value={m.id}>{m.nome}</option>)}
-                </select>
+                </Select>
               </Campo>
-              <Campo id="versao" rotulo="Versão">
-                <select id="versao" value={form.versao_id ?? ""} disabled={!modeloId} className={classeInput}
+              <Campo id="versao" label="Versão">
+                <Select id="versao" value={form.versao_id ?? ""} disabled={!modeloId} 
                   onChange={(e) => campo("versao_id", e.target.value)}>
                   <option value="">Selecione</option>
                   {versoes.map((v: any) => <option key={v.id} value={v.id}>{v.nome}</option>)}
-                </select>
+                </Select>
               </Campo>
             </div>
             <div className="mt-4 grid gap-4 sm:grid-cols-3">
-              <Campo id="ano_fab" rotulo="Ano de fabricação">
-                <input id="ano_fab" type="number" value={form.ano_fabricacao} className={classeInput}
+              <Campo id="ano_fab" label="Ano de fabricação">
+                <Input id="ano_fab" type="number" value={form.ano_fabricacao} 
                   onChange={(e) => campo("ano_fabricacao", e.target.value)} />
               </Campo>
-              <Campo id="ano_mod" rotulo="Ano do modelo">
-                <input id="ano_mod" type="number" value={form.ano_modelo} className={classeInput}
+              <Campo id="ano_mod" label="Ano do modelo">
+                <Input id="ano_mod" type="number" value={form.ano_modelo} 
                   onChange={(e) => campo("ano_modelo", e.target.value)} />
               </Campo>
-              <Campo id="codigo" rotulo="Código interno">
-                <input id="codigo" value={form.codigo_interno ?? ""} className={classeInput}
+              <Campo id="codigo" label="Código interno">
+                <Input id="codigo" value={form.codigo_interno ?? ""} 
                   onChange={(e) => campo("codigo_interno", e.target.value)} />
               </Campo>
             </div>
           </fieldset>
 
-          <fieldset className="rounded-lg border bg-card p-5">
-            <legend className="px-2 text-sm font-semibold">Ficha técnica</legend>
+          <fieldset className="rounded-ds-lg border border-hairline bg-surface p-5">
+            <legend className="px-2 text-label-lg text-ink">Ficha técnica</legend>
             <div className="grid gap-4 sm:grid-cols-3">
-              <Campo id="km" rotulo="Quilometragem">
-                <input id="km" type="number" value={form.km} className={classeInput}
+              <Campo id="km" label="Quilometragem">
+                <Input id="km" type="number" value={form.km} 
                   onChange={(e) => campo("km", e.target.value)} />
               </Campo>
-              <Campo id="cambio" rotulo="Câmbio">
-                <select id="cambio" value={form.cambio} className={classeInput}
+              <Campo id="cambio" label="Câmbio">
+                <Select id="cambio" value={form.cambio} 
                   onChange={(e) => campo("cambio", e.target.value)}>
                   {CAMBIOS.map((c) => <option key={c}>{c}</option>)}
-                </select>
+                </Select>
               </Campo>
-              <Campo id="combustivel" rotulo="Combustível">
-                <select id="combustivel" value={form.combustivel} className={classeInput}
+              <Campo id="combustivel" label="Combustível">
+                <Select id="combustivel" value={form.combustivel} 
                   onChange={(e) => campo("combustivel", e.target.value)}>
                   {COMBUSTIVEIS.map((c) => <option key={c}>{c}</option>)}
-                </select>
+                </Select>
               </Campo>
-              <Campo id="cor" rotulo="Cor">
-                <input id="cor" required value={form.cor ?? ""} className={classeInput}
+              <Campo id="cor" label="Cor">
+                <Input id="cor" required value={form.cor ?? ""} 
                   onChange={(e) => campo("cor", e.target.value)} />
               </Campo>
-              <Campo id="carroceria" rotulo="Carroceria">
-                <select id="carroceria" value={form.carroceria} className={classeInput}
+              <Campo id="carroceria" label="Carroceria">
+                <Select id="carroceria" value={form.carroceria} 
                   onChange={(e) => campo("carroceria", e.target.value)}>
                   {CARROCERIAS.map((c) => <option key={c}>{c}</option>)}
-                </select>
+                </Select>
               </Campo>
-              <Campo id="portas" rotulo="Portas">
-                <input id="portas" type="number" min={2} max={5} value={form.portas} className={classeInput}
+              <Campo id="portas" label="Portas">
+                <Input id="portas" type="number" min={2} max={5} value={form.portas} 
                   onChange={(e) => campo("portas", e.target.value)} />
               </Campo>
-              <Campo id="motor" rotulo="Motor">
-                <input id="motor" value={form.motor ?? ""} placeholder="2.0 16V" className={classeInput}
+              <Campo id="motor" label="Motor">
+                <Input id="motor" value={form.motor ?? ""} placeholder="2.0 16V" 
                   onChange={(e) => campo("motor", e.target.value)} />
               </Campo>
-              <Campo id="potencia" rotulo="Potência (cv)">
-                <input id="potencia" type="number" value={form.potencia_cv ?? ""} className={classeInput}
+              <Campo id="potencia" label="Potência (cv)">
+                <Input id="potencia" type="number" value={form.potencia_cv ?? ""} 
                   onChange={(e) => campo("potencia_cv", e.target.value)} />
               </Campo>
             </div>
           </fieldset>
 
-          <fieldset className="rounded-lg border bg-card p-5">
-            <legend className="px-2 text-sm font-semibold">Procedência</legend>
-            <div className="flex flex-wrap gap-4">
+          <fieldset className="rounded-ds-lg border border-hairline bg-surface p-5">
+            <legend className="px-2 text-label-lg text-ink">Procedência</legend>
+            <div className="flex flex-wrap gap-x-5 gap-y-2.5">
               {[
                 ["unico_dono", "Único dono"], ["ipva_pago", "IPVA pago"],
                 ["licenciado", "Licenciado"], ["laudo_cautelar", "Laudo cautelar"],
                 ["manual_chave", "Manual e chave reserva"], ["blindado", "Blindado"],
               ].map(([chave, rotulo]) => (
-                <label key={chave} htmlFor={chave} className="flex items-center gap-2 text-sm">
-                  <input id={chave} type="checkbox" checked={!!form[chave]}
+                <label key={chave} htmlFor={chave} className="flex items-center gap-2 whitespace-nowrap text-body-sm text-body">
+                  <Input id={chave} type="checkbox" checked={!!form[chave]}
                     onChange={(e) => campo(chave, e.target.checked)} />
                   {rotulo}
                 </label>
@@ -256,12 +241,12 @@ export default function VeiculoForm() {
             </div>
           </fieldset>
 
-          <fieldset className="rounded-lg border bg-card p-5">
-            <legend className="px-2 text-sm font-semibold">Opcionais</legend>
-            <div className="grid gap-2 sm:grid-cols-3">
+          <fieldset className="rounded-ds-lg border border-hairline bg-surface p-5">
+            <legend className="px-2 text-label-lg text-ink">Opcionais</legend>
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
               {(opcionais ?? []).map((o: any) => (
-                <label key={o.id} htmlFor={`op-${o.id}`} className="flex items-center gap-2 text-sm">
-                  <input id={`op-${o.id}`} type="checkbox" checked={selecionados.includes(o.id)}
+                <label key={o.id} htmlFor={`op-${o.id}`} className="flex items-center gap-2 whitespace-nowrap text-body-sm text-body">
+                  <Input id={`op-${o.id}`} type="checkbox" checked={selecionados.includes(o.id)}
                     onChange={(e) => setSelecionados((s) =>
                       e.target.checked ? [...s, o.id] : s.filter((x) => x !== o.id))} />
                   {o.nome}
@@ -270,94 +255,93 @@ export default function VeiculoForm() {
             </div>
           </fieldset>
 
-          <fieldset className="rounded-lg border bg-card p-5">
-            <legend className="px-2 text-sm font-semibold">Descrição</legend>
-            <textarea id="descricao" rows={5} value={form.descricao ?? ""} className={classeInput}
+          <fieldset className="rounded-ds-lg border border-hairline bg-surface p-5">
+            <legend className="px-2 text-label-lg text-ink">Descrição</legend>
+            <Textarea id="descricao" rows={5} value={form.descricao ?? ""}
               placeholder="Conte o que faz esse carro valer a visita."
               onChange={(e) => campo("descricao", e.target.value)} />
           </fieldset>
 
           {!novo && (
-            <fieldset className="rounded-lg border bg-card p-5">
-              <legend className="px-2 text-sm font-semibold">Galeria</legend>
+            <fieldset className="rounded-ds-lg border border-hairline bg-surface p-5">
+              <legend className="px-2 text-label-lg text-ink">Galeria</legend>
               <GaleriaUpload veiculoId={id!} />
             </fieldset>
           )}
           {novo && (
-            <p className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
+            <p className="rounded-ds-lg border border-dashed border-hairline-strong p-4 text-body-sm text-mute">
               Salve o cadastro para liberar o envio de fotos.
             </p>
           )}
         </div>
 
         <aside className="space-y-4 lg:sticky lg:top-6 lg:self-start">
-          <fieldset className="rounded-lg border bg-card p-5">
-            <legend className="px-2 text-sm font-semibold">Publicação</legend>
-            <Campo id="status" rotulo="Status">
-              <select id="status" value={form.status} className={classeInput}
+          <fieldset className="rounded-ds-lg border border-hairline bg-surface p-5">
+            <legend className="px-2 text-label-lg text-ink">Publicação</legend>
+            <Campo id="status" label="Status">
+              <Select id="status" value={form.status} 
                 onChange={(e) => campo("status", e.target.value)}>
                 <option value="rascunho">Rascunho (não publica)</option>
                 <option value="disponivel">Disponível</option>
                 <option value="reservado">Reservado</option>
                 <option value="vendido">Vendido</option>
                 <option value="oculto">Oculto</option>
-              </select>
+              </Select>
             </Campo>
-            <label htmlFor="destaque" className="mt-3 flex items-center gap-2 text-sm">
-              <input id="destaque" type="checkbox" checked={!!form.destaque}
+            <label htmlFor="destaque" className="mt-3 flex items-center gap-2 text-body-sm text-body">
+              <Input id="destaque" type="checkbox" checked={!!form.destaque}
                 onChange={(e) => campo("destaque", e.target.checked)} />
               Destacar na home
             </label>
-            <Campo id="ordem" rotulo="Ordem">
-              <input id="ordem" type="number" value={form.ordem ?? 0} className={classeInput}
+            <Campo id="ordem" label="Ordem">
+              <Input id="ordem" type="number" value={form.ordem ?? 0} 
                 onChange={(e) => campo("ordem", e.target.value)} />
             </Campo>
           </fieldset>
 
-          <fieldset className="rounded-lg border bg-card p-5">
-            <legend className="px-2 text-sm font-semibold">Preço</legend>
-            <Campo id="preco" rotulo="Preço de venda">
-              <input id="preco" type="number" step="0.01" required value={form.preco ?? ""} className={classeInput}
+          <fieldset className="rounded-ds-lg border border-hairline bg-surface p-5">
+            <legend className="px-2 text-label-lg text-ink">Preço</legend>
+            <Campo id="preco" label="Preço de venda">
+              <Input id="preco" type="number" step="0.01" required value={form.preco ?? ""} 
                 onChange={(e) => campo("preco", e.target.value)} />
             </Campo>
-            <Campo id="promo" rotulo="Preço promocional">
-              <input id="promo" type="number" step="0.01" value={form.preco_promocional ?? ""} className={classeInput}
+            <Campo id="promo" label="Preço promocional">
+              <Input id="promo" type="number" step="0.01" value={form.preco_promocional ?? ""} 
                 onChange={(e) => campo("preco_promocional", e.target.value)} />
             </Campo>
-            <Campo id="fipe" rotulo="Valor FIPE">
-              <input id="fipe" type="number" step="0.01" value={form.valor_fipe ?? ""} className={classeInput}
+            <Campo id="fipe" label="Valor FIPE">
+              <Input id="fipe" type="number" step="0.01" value={form.valor_fipe ?? ""} 
                 onChange={(e) => campo("valor_fipe", e.target.value)} />
             </Campo>
-            <label htmlFor="sob_consulta" className="mt-3 flex items-center gap-2 text-sm">
-              <input id="sob_consulta" type="checkbox" checked={!!form.preco_sob_consulta}
+            <label htmlFor="sob_consulta" className="mt-3 flex items-center gap-2 text-body-sm text-body">
+              <Input id="sob_consulta" type="checkbox" checked={!!form.preco_sob_consulta}
                 onChange={(e) => campo("preco_sob_consulta", e.target.checked)} />
               Preço sob consulta
             </label>
           </fieldset>
 
           {isAdmin && (
-            <fieldset className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-5">
-              <legend className="px-2 text-sm font-semibold">Interno</legend>
-              <p className="mb-3 text-xs text-muted-foreground">
+            <fieldset className="rounded-ds-lg border border-warning-soft/40 bg-warning-soft/[0.07] p-5">
+              <legend className="px-2 text-label-lg text-ink">Interno</legend>
+              <p className="mb-3 text-caption text-mute">
                 Visível só para administradores. Nunca aparece no site.
               </p>
-              <Campo id="custo" rotulo="Preço de custo">
-                <input id="custo" type="number" step="0.01" value={form.preco_custo ?? ""} className={classeInput}
+              <Campo id="custo" label="Preço de custo">
+                <Input id="custo" type="number" step="0.01" value={form.preco_custo ?? ""} 
                   onChange={(e) => campo("preco_custo", e.target.value)} />
               </Campo>
-              <Campo id="placa" rotulo="Placa">
-                <input id="placa" value={form.placa ?? ""} className={classeInput}
+              <Campo id="placa" label="Placa">
+                <Input id="placa" value={form.placa ?? ""} 
                   onChange={(e) => campo("placa", e.target.value)} />
               </Campo>
             </fieldset>
           )}
 
-          {erro && <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{erro}</p>}
+          {erro && <p className="rounded-ds-md bg-danger-soft/20 p-3 text-body-sm text-danger-deep">{erro}</p>}
 
-          <button type="submit" disabled={salvar.isPending}
-            className="w-full rounded-md bg-primary px-4 py-3 font-semibold text-primary-foreground disabled:opacity-60">
+          <Button type="submit" size="lg" disabled={salvar.isPending} className="w-full">
             {salvar.isPending ? "Salvando…" : novo ? "Cadastrar veículo" : "Salvar alterações"}
-          </button>
+          </Button>
         </aside>
       </div>
     </form>

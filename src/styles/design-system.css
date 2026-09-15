@@ -1,0 +1,349 @@
+/* =====================================================================
+   Conversão Extrema — Design System
+   Padrão visual do PORTAL (painel). O site público não usa estes tokens:
+   ele segue a identidade visual de cada revenda, carregada do banco.
+
+   Portado de Tailwind 4 (@theme) para Tailwind 3: os tokens viram CSS
+   variables e os utilitários compilam para var(--...), que é o que
+   permite o escopo .ds-app reapontar raio e tipografia sem que nenhum
+   componente saiba disso.
+   ===================================================================== */
+
+/* ---------------------------------------------------------------------
+   Tokens semânticos — canais RGB, para permitir opacidade (bg-ink/5)
+   --------------------------------------------------------------------- */
+:root {
+  --c-canvas: 250 250 250;   --c-surface: 255 255 255;  --c-elevated: 245 245 245;
+  --c-ink: 23 23 23;         --c-body: 38 38 38;        --c-mute: 82 82 82;
+  --c-faint: 161 161 161;    --c-hairline: 236 236 236; --c-hairline-strong: 212 212 212;
+  --c-inverse: 23 23 23;     --c-on-inverse: 255 255 255;
+
+  --brand-grad-from: #10b981; /* emerald-500 */
+  --brand-grad-to:   #34d399; /* emerald-400 */
+
+  /* Pares soft/deep — fundo e texto de selo */
+  --c-emerald-soft: 209 250 229;  --c-emerald-deep: 4 120 87;
+  --c-success-soft: 209 250 229;  --c-success-deep: 4 120 87;
+  --c-warning-soft: 254 243 199;  --c-warning-deep: 180 83 9;
+  --c-danger-soft:  254 226 226;  --c-danger-deep:  185 28 28;
+  --c-info-soft:    219 234 254;  --c-info-deep:    29 78 216;
+
+  /* Paleta categórica de gráfico — ordem fixa, nunca ciclada */
+  --chart-1: #2a78d6;  --chart-2: #eb6834;  --chart-3: #1baf7a;
+
+  /* Grade de pontos: raio menor no claro para não competir com o conteúdo */
+  --dot-r: 0.75px;  --dot-r-fade: 1.2px;
+
+  /* Escala tipográfica nomeada */
+  --fs-display-2xl: 72px; --lh-display-2xl: 1.0;  --tr-display-2xl: -0.04em;
+  --fs-display-xl: 60px;  --lh-display-xl: 1.02;  --tr-display-xl: -0.035em;
+  --fs-display-lg: 48px;  --lh-display-lg: 1.05;  --tr-display-lg: -0.03em;
+  --fs-heading-xl: 40px;  --lh-heading-xl: 1.1;   --tr-heading-xl: -0.022em;
+  --fs-heading-lg: 32px;  --lh-heading-lg: 1.15;  --tr-heading-lg: -0.02em;
+  --fs-heading-md: 24px;  --lh-heading-md: 1.25;  --tr-heading-md: -0.017em;
+  --fs-heading-sm: 20px;  --lh-heading-sm: 1.3;   --tr-heading-sm: -0.013em;
+  --fs-body-xl: 20px;     --fs-body-lg: 18px;     --fs-body-md: 16px;  --fs-body-sm: 14px;
+  --fs-label-lg: 15px;    --fs-label-md: 13px;    --fs-caption: 12px;
+  --tr-eyebrow: 0.14em;   --fw-eyebrow: 400;
+  --tr-label: 0.04em;
+
+  /* Raio */
+  --radius-xs: 4px;  --radius-sm: 8px;  --radius-md: 12px;
+  --radius-lg: 16px; --radius-xl: 24px; --radius-2xl: 32px; --radius-3xl: 40px;
+
+  /* Forma do campo — pílula na landing */
+  --ds-input-h: 44px; --ds-input-r: 9999px; --ds-input-px: 18px;
+
+  /* Motion */
+  --dur-fast: 150ms; --dur-normal: 200ms; --dur-slow: 300ms; --dur-slower: 500ms;
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out-soft: cubic-bezier(0.65, 0, 0.35, 1);
+
+  /* Brilho de borda dos cards */
+  --card-glow-core: rgba(16, 185, 129, 0.55);
+  --card-glow-edge: rgba(16, 185, 129, 0.18);
+}
+
+.dark {
+  --c-canvas: 10 10 10;      --c-surface: 23 23 23;     --c-elevated: 38 38 38;
+  --c-ink: 250 250 250;      --c-body: 209 209 209;     --c-mute: 168 168 168;
+  --c-faint: 115 115 115;    --c-hairline: 38 38 38;    --c-hairline-strong: 64 64 64;
+  --c-inverse: 250 250 250;  --c-on-inverse: 10 10 10;
+
+  /* O par escuro não é o claro invertido: sobre fundo escuro o "deep"
+     legível é o passo 400. Com o passo de origem o texto ficava mais
+     escuro que o próprio fundo do selo. */
+  --c-emerald-soft: 16 185 129;   --c-emerald-deep: 52 211 153;
+  --c-success-soft: 16 185 129;   --c-success-deep: 52 211 153;
+  --c-warning-soft: 245 166 35;   --c-warning-deep: 251 191 36;
+  --c-danger-soft:  239 68 68;    --c-danger-deep:  248 113 113;
+  --c-info-soft:    59 130 246;   --c-info-deep:    96 165 250;
+
+  --chart-1: #3987e5;  --chart-2: #d95926;  --chart-3: #199e70;
+
+  --dot-r: 1px;  --dot-r-fade: 1.6px;
+}
+
+/* No escuro o fundo do selo é o próprio matiz a 16% */
+.dark .badge-soft-bg { background-color: rgb(var(--badge-hue) / 0.16); }
+
+/* ---------------------------------------------------------------------
+   .ds-app — escopo de densidade de aplicação
+   Aplicado no shell do portal. Reaponta raio, tipografia (um degrau
+   abaixo) e forma do campo. Nenhum componente muda: todos compilam
+   para var(--...). Mesmo mecanismo do .dark.
+   --------------------------------------------------------------------- */
+.ds-app {
+  --radius-sm: 6px;  --radius-md: 8px;  --radius-lg: 12px;  --radius-xl: 16px;
+
+  --fs-heading-xl: 28px;  --fs-heading-lg: 22px;
+  --fs-heading-md: 18px;  --fs-heading-sm: 15px;
+  --fs-body-lg: 15px;     --fs-body-md: 14px;
+
+  --ds-input-h: 36px;  --ds-input-r: var(--radius-md);  --ds-input-px: 12px;
+
+  /* Eyebrow muda de caráter: rótulo de UI, não ornamento de marketing */
+  --tr-eyebrow: 0.06em;  --fw-eyebrow: 600;
+}
+
+/* ---------------------------------------------------------------------
+   Tipografia
+   --------------------------------------------------------------------- */
+.text-display-2xl { font-size: var(--fs-display-2xl); line-height: var(--lh-display-2xl); letter-spacing: var(--tr-display-2xl); font-weight: 600; }
+.text-display-xl  { font-size: var(--fs-display-xl);  line-height: var(--lh-display-xl);  letter-spacing: var(--tr-display-xl);  font-weight: 600; }
+.text-display-lg  { font-size: var(--fs-display-lg);  line-height: var(--lh-display-lg);  letter-spacing: var(--tr-display-lg);  font-weight: 600; }
+.text-heading-xl  { font-size: var(--fs-heading-xl);  line-height: var(--lh-heading-xl);  letter-spacing: var(--tr-heading-xl);  font-weight: 600; }
+.text-heading-lg  { font-size: var(--fs-heading-lg);  line-height: var(--lh-heading-lg);  letter-spacing: var(--tr-heading-lg);  font-weight: 600; }
+.text-heading-md  { font-size: var(--fs-heading-md);  line-height: var(--lh-heading-md);  letter-spacing: var(--tr-heading-md);  font-weight: 600; }
+.text-heading-sm  { font-size: var(--fs-heading-sm);  line-height: var(--lh-heading-sm);  letter-spacing: var(--tr-heading-sm);  font-weight: 600; }
+.text-body-xl { font-size: var(--fs-body-xl); line-height: 1.6; }
+.text-body-lg { font-size: var(--fs-body-lg); line-height: 1.6; }
+.text-body-md { font-size: var(--fs-body-md); line-height: 1.6; }
+.text-body-sm { font-size: var(--fs-body-sm); line-height: 1.55; }
+.text-label-lg { font-size: var(--fs-label-lg); line-height: 1.2; letter-spacing: -0.006em; font-weight: 500; }
+.text-label-md { font-size: var(--fs-label-md); line-height: 1.2; font-weight: 500; }
+.text-caption  { font-size: var(--fs-caption);  line-height: 1.4; }
+
+.text-eyebrow {
+  font-size: 12px; line-height: 1;
+  text-transform: uppercase;
+  letter-spacing: var(--tr-eyebrow);
+  font-weight: var(--fw-eyebrow);
+}
+/* tracking-label é o de UI. tracking-eyebrow (0.14em) é decorativo:
+   em 12px espalha 1.7px por caractere e lê como enfeite. */
+.tracking-label { letter-spacing: var(--tr-label); }
+
+/* ---------------------------------------------------------------------
+   Raio
+   --------------------------------------------------------------------- */
+.rounded-ds-xs  { border-radius: var(--radius-xs); }
+.rounded-ds-sm  { border-radius: var(--radius-sm); }
+.rounded-ds-md  { border-radius: var(--radius-md); }
+.rounded-ds-lg  { border-radius: var(--radius-lg); }
+.rounded-ds-xl  { border-radius: var(--radius-xl); }
+.rounded-ds-2xl { border-radius: var(--radius-2xl); }
+
+/* ---------------------------------------------------------------------
+   Gradiente da marca — 100% esmeralda, só no trecho destacado
+   --------------------------------------------------------------------- */
+.text-brand-gradient {
+  background-image: linear-gradient(to right, var(--brand-grad-from), var(--brand-grad-to));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.hover-text-shine {
+  background-image: linear-gradient(110deg,
+    var(--brand-grad-from) 0%, var(--brand-grad-to) 40%,
+    #a7f3d0 50%,
+    var(--brand-grad-to) 60%, var(--brand-grad-from) 100%);
+  background-size: 250% auto; background-position: 100% center;
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  transition: background-position 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.hover-text-shine:hover { background-position: 0% center; }
+.bg-brand-gradient { background-image: linear-gradient(to right, var(--brand-grad-from), var(--brand-grad-to)); }
+.fill-brand-gradient, .fill-brand-gradient path { fill: url(#brand-gradient); }
+
+/* ---------------------------------------------------------------------
+   Botões
+   inherits:false é ESSENCIAL: o ângulo anima a 60fps e só o próprio
+   botão o usa. Com herança ligada, todo descendente era re-estilizado a
+   cada frame e o WebKit descartava a camada mascarada dos pontos.
+   --------------------------------------------------------------------- */
+@property --gradient-angle { syntax: "<angle>"; initial-value: 0deg; inherits: false; }
+@property --gradient-angle-offset { syntax: "<angle>"; initial-value: 0deg; inherits: false; }
+
+@keyframes border-spin { to { --gradient-angle: 360deg; } }
+
+.shiny-cta {
+  --gradient-angle: 0deg;
+  position: relative; overflow: hidden; isolation: isolate;
+  border-radius: 9999px; color: #fff;
+  background: linear-gradient(#1c2421, #0a0a0a) padding-box,
+    conic-gradient(from var(--gradient-angle),
+      transparent 0%, #047857 5%, #10b981 15%, #047857 30%, transparent 40%, transparent 100%) border-box;
+  border: 1px solid transparent;
+  box-shadow: inset 0 1px 1px rgba(255,255,255,0.15), inset 0 -2px 6px rgba(0,0,0,0.2),
+    0 12px 24px -8px rgba(0,0,0,0.5);
+  transition: box-shadow 300ms ease, transform 300ms ease;
+  animation: border-spin 2.5s linear infinite;
+}
+.shiny-cta:hover {
+  box-shadow: inset 0 1px 1px rgba(255,255,255,0.25), inset 0 -2px 6px rgba(0,0,0,0.25),
+    0 16px 32px -8px rgba(16,185,129,0.6);
+}
+.shiny-cta:active { transform: translateY(1px); }
+
+.shiny-brand {
+  --gradient-angle: 0deg;
+  position: relative; overflow: hidden; isolation: isolate;
+  border-radius: 9999px; color: #fff;
+  background: linear-gradient(#10b981, #047857) padding-box,
+    conic-gradient(from var(--gradient-angle),
+      transparent 0%, #ffffff 5%, #ffffff 15%, #d1fae5 30%, transparent 40%, transparent 100%) border-box;
+  border: 1px solid transparent;
+  box-shadow: inset 0 1px 1px rgba(255,255,255,0.25), 0 12px 24px -8px rgba(16,185,129,0.45);
+  transition: box-shadow 300ms ease, transform 300ms ease;
+  animation: border-spin 2.5s linear infinite;
+}
+.shiny-brand:hover { box-shadow: inset 0 1px 1px rgba(255,255,255,0.35), 0 16px 32px -8px rgba(16,185,129,0.6); }
+.shiny-brand:active { transform: translateY(1px); }
+
+/* Pontos: grade 5px, ponto de 0.5px centrado em 0.5px 0.5px para cair
+   DENTRO de um pixel, e visíveis só numa faixa diagonal de 125°. */
+.shiny-dots {
+  position: absolute; inset: 0; z-index: 1;
+  pointer-events: none; border-radius: inherit;
+  background-size: 5px 5px;
+  --dots-mask: linear-gradient(125deg,
+    transparent 54%, rgba(0,0,0,0.85) 66%, rgba(0,0,0,0.85) 74%, transparent 85%);
+  -webkit-mask-image: var(--dots-mask); mask-image: var(--dots-mask);
+}
+.shiny-cta .shiny-dots   { background-image: radial-gradient(circle at 0.5px 0.5px, rgba(16,185,129,0.6) 0.5px, transparent 0); }
+.shiny-brand .shiny-dots { background-image: radial-gradient(circle at 0.5px 0.5px, rgba(255,255,255,0.5) 0.5px, transparent 0); }
+
+.shiny-cta-content {
+  position: relative; z-index: 2;
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+}
+
+/* Secundário — repouso claro: pílula branca; escuro: transparente com anel */
+.ds-btn-secondary {
+  position: relative; overflow: hidden;
+  background: linear-gradient(to bottom, #fff, #fafafa);
+  color: #171717;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.05), inset 0 1px 1px #fff, 0 8px 20px -4px rgba(0,0,0,0.12);
+}
+.dark .ds-btn-secondary {
+  background: transparent; color: rgb(var(--c-ink));
+  box-shadow: inset 0 0 0 1px rgb(var(--c-hairline-strong));
+}
+/* No escuro o hover preenche de branco com texto escuro — espelha o
+   estado de repouso do tema claro. */
+.dark .ds-btn-secondary:hover { background: #fff; color: #171717; box-shadow: none; }
+
+.ds-btn-secondary::after {
+  content: ''; position: absolute; inset: 0;
+  border-radius: inherit; padding: 1px;
+  background: conic-gradient(from var(--gradient-angle),
+    transparent 0%, #047857 5%, #10b981 15%, #047857 30%, transparent 40%, transparent 100%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  opacity: 0; transition: opacity 300ms ease;
+  pointer-events: none;
+  animation: border-spin 2.5s linear infinite;
+}
+.ds-btn-secondary:hover::after { opacity: 1; }
+
+/* ---------------------------------------------------------------------
+   Superfícies
+   A definição vem da borda hairline de 1px, nunca de sombra.
+   --------------------------------------------------------------------- */
+.premium-card {
+  position: relative; overflow: hidden;
+  border-radius: var(--radius-xl);
+  border: 1px solid rgb(var(--c-hairline));
+  background-color: rgb(var(--c-surface));
+  box-shadow: none;
+  transition: box-shadow 300ms ease, transform 300ms ease;
+}
+.premium-card:hover { transform: translateY(-2px); }
+.dark .premium-card { background: transparent; box-shadow: none; }
+
+.premium-card::after {
+  content: ''; position: absolute; inset: 0;
+  border-radius: inherit; pointer-events: none;
+  opacity: 0; transition: opacity 400ms ease;
+  background: radial-gradient(260px circle at var(--spot-x, 50%) var(--spot-y, 50%),
+    rgba(16,185,129,0.14), transparent 68%);
+}
+.premium-card:hover::after { opacity: 1; }
+
+/* Brilho de borda — anel de 1px ancorado no cursor, sem bloom externo:
+   no sistema a superfície é definida pelo contorno, então o que acende
+   é o contorno. .card-glow é o opt-in para superfícies flat. */
+.premium-card::before,
+.card-glow::before {
+  content: ''; position: absolute; inset: 0;
+  border-radius: inherit; padding: 1px;
+  background: radial-gradient(var(--card-glow-size, 220px) circle at var(--spot-x, 50%) var(--spot-y, 50%),
+    var(--card-glow-core), var(--card-glow-edge) 45%, transparent 72%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  opacity: 0; transition: opacity 400ms ease;
+  pointer-events: none;
+}
+.premium-card:hover::before,
+.card-glow:hover::before { opacity: 1; }
+.card-glow { position: relative; }
+
+/* ---------------------------------------------------------------------
+   Grade de pontos — camada fixa atrás da página INTEIRA
+   --------------------------------------------------------------------- */
+.ds-dot-grid {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background-image: radial-gradient(circle, rgb(var(--c-ink) / 0.05) var(--dot-r), transparent var(--dot-r-fade));
+  background-size: 24px 24px;
+}
+
+/* ---------------------------------------------------------------------
+   Campos
+   --------------------------------------------------------------------- */
+.ds-field {
+  height: var(--ds-input-h);
+  border-radius: var(--ds-input-r);
+  padding-inline: var(--ds-input-px);
+  background-color: rgb(var(--c-surface));
+  border: 1px solid rgb(var(--c-hairline-strong));
+  color: rgb(var(--c-ink));
+  font-size: var(--fs-body-sm);
+  width: 100%;
+  transition: border-color var(--dur-fast) ease, box-shadow var(--dur-fast) ease;
+}
+.ds-field::placeholder { color: rgb(var(--c-faint)); }
+.ds-field:focus {
+  outline: none;
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgb(16 185 129 / 0.15);
+}
+textarea.ds-field { height: auto; padding-block: 10px; border-radius: var(--radius-md); }
+
+.ds-app input[type="checkbox"],
+.ds-app input[type="radio"] {
+  accent-color: #10b981;
+  width: 15px; height: 15px;
+  flex-shrink: 0;
+}
+
+.ds-focus:focus-visible {
+  outline: 2px solid #10b981;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shiny-cta, .shiny-brand, .ds-btn-secondary::after { animation: none; }
+}

@@ -1,7 +1,8 @@
 import { Link, NavLink, Outlet } from "react-router-dom";
-import { MessageCircle } from "lucide-react";
+import { WhatsappLogo } from "@phosphor-icons/react";
 import { useConfig } from "@/hooks/useConfig";
 import { linkWhatsApp, cn } from "@/lib/utils";
+import BannerCookies from "@/components/BannerCookies";
 
 const rotas = [
   { para: "/", rotulo: "Início" },
@@ -43,13 +44,15 @@ export default function Layout() {
               target="_blank" rel="noopener noreferrer"
               className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
             >
-              <MessageCircle className="h-4 w-4" /> WhatsApp
+              <WhatsappLogo className="h-4 w-4" /> WhatsApp
             </a>
           )}
         </div>
       </header>
 
       <main className="flex-1"><Outlet /></main>
+
+      <BannerCookies />
 
       <footer className="border-t bg-muted/40 mt-16">
         <div className="container py-10 grid gap-8 md:grid-cols-3 text-sm">
@@ -95,7 +98,7 @@ export default function Layout() {
           aria-label="Falar no WhatsApp"
           className="fixed bottom-5 right-5 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-[hsl(var(--whatsapp))] text-white shadow-lg"
         >
-          <MessageCircle className="h-6 w-6" />
+          <WhatsappLogo className="h-6 w-6" />
         </a>
       )}
     </div>

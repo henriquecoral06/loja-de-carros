@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useConfig } from "@/hooks/useConfig";
+import { Button, Input, Textarea } from "@/components/ui";
 
 /**
  * Identidade da revenda. Tudo aqui é lido em runtime pelo site, e é por
@@ -17,7 +18,7 @@ export default function Configuracao() {
   useEffect(() => { if (config) setForm(config as any); }, [config]);
 
   const campo = (chave: string, valor: any) => { setForm((f) => ({ ...f, [chave]: valor })); setSalvo(false); };
-  const classeInput = "mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm";
+  
 
   async function salvar(e: React.FormEvent) {
     e.preventDefault();
@@ -44,32 +45,32 @@ export default function Configuracao() {
   ];
 
   return (
-    <form onSubmit={salvar} className="p-6 pb-24">
-      <h1 className="font-display text-2xl font-bold">A revenda</h1>
-      <p className="mt-1 text-sm text-muted-foreground">
+    <form onSubmit={salvar} className="p-5 pb-24 md:p-6">
+      <h1 className="text-heading-xl text-ink">A revenda</h1>
+      <p className="mt-1 text-body-sm text-mute">
         Estes dados alimentam o site inteiro. Nada disso está escrito no código.
       </p>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
-        <fieldset className="rounded-lg border bg-card p-5">
-          <legend className="px-2 text-sm font-semibold">Dados e contato</legend>
+        <fieldset className="rounded-ds-lg border border-hairline bg-surface p-5">
+          <legend className="px-2 text-label-lg text-ink">Dados e contato</legend>
           <div className="grid gap-4 sm:grid-cols-2">
             {campos.map(([chave, rotulo, apoio]) => (
               <div key={chave} className={chave === "endereco" ? "sm:col-span-2" : ""}>
-                <label htmlFor={chave} className="text-sm font-medium">{rotulo}</label>
-                <input id={chave} value={form[chave] ?? ""} className={classeInput}
+                <label htmlFor={chave} className="text-label-md tracking-label text-body">{rotulo}</label>
+                <Input id={chave} value={form[chave] ?? ""} className="ds-field mt-1"
                   onChange={(e) => campo(chave, e.target.value)} />
-                {apoio && <p className="mt-1 text-xs text-muted-foreground">{apoio}</p>}
+                {apoio && <p className="mt-1 text-caption text-faint">{apoio}</p>}
               </div>
             ))}
           </div>
         </fieldset>
 
         <div className="space-y-6">
-          <fieldset className="rounded-lg border bg-card p-5">
-            <legend className="px-2 text-sm font-semibold">Identidade visual</legend>
-            <p className="mb-3 text-xs text-muted-foreground">
-              Cores em HSL, no formato <code className="rounded bg-muted px-1">191 78% 21%</code>.
+          <fieldset className="rounded-ds-lg border border-hairline bg-surface p-5">
+            <legend className="px-2 text-label-lg text-ink">Identidade visual</legend>
+            <p className="mb-3 text-caption text-mute">
+              Cores em HSL, no formato <code className="rounded-ds-xs bg-ink/[0.06] px-1 font-mono text-[12px]">191 78% 21%</code>.
               A mudança aparece no site assim que você salvar.
             </p>
             {[
@@ -78,29 +79,29 @@ export default function Configuracao() {
               ["cor_destaque", "Cor de destaque"],
             ].map(([chave, rotulo]) => (
               <div key={chave} className="mt-3">
-                <label htmlFor={chave} className="text-sm font-medium">{rotulo}</label>
+                <label htmlFor={chave} className="text-label-md tracking-label text-body">{rotulo}</label>
                 <div className="mt-1 flex items-center gap-2">
-                  <input id={chave} value={form[chave] ?? ""} className="flex-1 rounded-md border bg-background px-3 py-2 text-sm"
+                  <Input id={chave} value={form[chave] ?? ""} className="ds-field"
                     onChange={(e) => campo(chave, e.target.value)} />
-                  <span className="h-9 w-9 flex-shrink-0 rounded border"
+                  <span className="h-9 w-9 flex-shrink-0 rounded-ds-sm border border-hairline-strong"
                     style={{ background: `hsl(${form[chave] ?? "0 0% 100%"})` }} />
                 </div>
               </div>
             ))}
           </fieldset>
 
-          <fieldset className="rounded-lg border bg-card p-5">
-            <legend className="px-2 text-sm font-semibold">Textos do site</legend>
-            <label htmlFor="texto_home" className="text-sm font-medium">Chamada da home</label>
-            <textarea id="texto_home" rows={2} value={form.texto_home ?? ""} className={classeInput}
+          <fieldset className="rounded-ds-lg border border-hairline bg-surface p-5">
+            <legend className="px-2 text-label-lg text-ink">Textos do site</legend>
+            <label htmlFor="texto_home" className="text-label-md tracking-label text-body">Chamada da home</label>
+            <Textarea id="texto_home" rows={2} value={form.texto_home ?? ""} className="ds-field mt-1"
               onChange={(e) => campo("texto_home", e.target.value)} />
-            <label htmlFor="texto_sobre" className="mt-3 block text-sm font-medium">Sobre a revenda</label>
-            <textarea id="texto_sobre" rows={4} value={form.texto_sobre ?? ""} className={classeInput}
+            <label htmlFor="texto_sobre" className="mt-3 block text-label-md tracking-label text-body">Sobre a revenda</label>
+            <Textarea id="texto_sobre" rows={4} value={form.texto_sobre ?? ""} className="ds-field mt-1"
               onChange={(e) => campo("texto_sobre", e.target.value)} />
           </fieldset>
 
-          <fieldset className="rounded-lg border bg-card p-5">
-            <legend className="px-2 text-sm font-semibold">SEO e medição</legend>
+          <fieldset className="rounded-ds-lg border border-hairline bg-surface p-5">
+            <legend className="px-2 text-label-lg text-ink">SEO e medição</legend>
             {[
               ["meta_title", "Título do site"],
               ["meta_description", "Descrição"],
@@ -108,8 +109,8 @@ export default function Configuracao() {
               ["meta_pixel_id", "Meta Pixel"],
             ].map(([chave, rotulo]) => (
               <div key={chave} className="mt-3">
-                <label htmlFor={chave} className="text-sm font-medium">{rotulo}</label>
-                <input id={chave} value={form[chave] ?? ""} className={classeInput}
+                <label htmlFor={chave} className="text-label-md tracking-label text-body">{rotulo}</label>
+                <Input id={chave} value={form[chave] ?? ""} className="ds-field mt-1"
                   onChange={(e) => campo(chave, e.target.value)} />
               </div>
             ))}
@@ -117,13 +118,11 @@ export default function Configuracao() {
         </div>
       </div>
 
-      {erro && <p className="mt-4 rounded-md bg-destructive/10 p-3 text-sm text-destructive">{erro}</p>}
+      {erro && <p className="mt-4 rounded-ds-md bg-danger-soft/20 p-3 text-body-sm text-danger-deep">{erro}</p>}
 
       <div className="mt-6 flex items-center gap-3">
-        <button type="submit" className="rounded-md bg-primary px-6 py-2.5 font-semibold text-primary-foreground">
-          Salvar
-        </button>
-        {salvo && <span className="text-sm text-[hsl(var(--whatsapp))]">Salvo.</span>}
+        <Button type="submit" size="lg">Salvar</Button>
+        {salvo && <span className="text-body-sm text-emerald-deep">Salvo.</span>}
       </div>
     </form>
   );

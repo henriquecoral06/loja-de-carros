@@ -4,7 +4,6 @@ import { AuthProvider } from "@/hooks/useAuth";
 import Layout from "@/components/Layout";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { TemaDaRevenda } from "@/components/TemaDaRevenda";
-import BannerCookies from "@/components/BannerCookies";
 
 import Home from "@/pages/Home";
 import Estoque from "@/pages/Estoque";
@@ -53,7 +52,6 @@ export default function App() {
               <Route path="config" element={<Configuracao />} />
             </Route>
           </Routes>
-          <BannerCookies />
         </AuthProvider>
       </BrowserRouter>
     </QueryClientProvider>
