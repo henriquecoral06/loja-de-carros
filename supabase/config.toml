@@ -1,0 +1,13 @@
+project_id = "revenda-veiculos"
+
+[functions.registrar-lead]
+# Formulário público do site: sem JWT.
+verify_jwt = false
+
+[functions.seo]
+# Consumida por robôs de indexação e de prévia de link.
+verify_jwt = false
+
+[functions.notificar-whatsapp]
+# Usada pelo painel: exige usuário autenticado.
+verify_jwt = true

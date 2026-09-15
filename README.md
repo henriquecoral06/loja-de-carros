@@ -1,0 +1,132 @@
+# Revenda de Veículos
+
+Site de estoque + CRM de leads para revendas de automóveis. Feito para ser
+**remixado**: cada loja clona o projeto, aponta para o próprio Supabase e
+configura a identidade visual pelo painel, sem editar código.
+
+Stack: **Vite + React + TypeScript + Tailwind + shadcn/ui + Supabase** — a
+mesma que o Lovable gera e entende, para que o projeto continue editável lá.
+
+---
+
+## Como remixar para uma nova loja
+
+1. **Remix no Lovable** (ou fork deste repositório).
+2. **Crie um projeto novo no Supabase.** Um projeto por loja: os dados de uma
+   revenda nunca ficam no banco da outra.
+3. **Rode as migrações** — `supabase/migrations/` na ordem. Pelo CLI:
+   ```bash
+   supabase link --project-ref SEU_REF && supabase db push
+   ```
+4. **Preencha o `.env`** a partir de `.env.example` (só as chaves `VITE_`).
+5. **Crie o primeiro usuário** pelo Supabase Auth. Ele vira `admin`
+   automaticamente; os seguintes entram sem papel e precisam ser liberados.
+6. **Troque os dados da loja** na tabela `config` e apague os veículos
+   `DEMO-001` e `DEMO-002` do seed.
+7. **Configure os secrets das edge functions** (abaixo).
+
+---
+
+## Secrets das edge functions
+
+Em *Supabase → Settings → Edge Functions → Secrets*. Nenhum deles vai para o
+navegador — a anon key é a única chave que o bundle carrega.
+
+| Secret | Para quê |
+|---|---|
+| `EVOLUTION_API_URL` | URL da sua instância da Evolution API |
+| `EVOLUTION_API_KEY` | Chave da instância |
+| `EVOLUTION_INSTANCE` | Nome da instância conectada |
+| `WHATSAPP_NOTIFICACAO` | Número que recebe o aviso de lead novo (`5511999999999`) |
+| `SITE_URL` | Domínio público, usado no sitemap e nas tags OG |
+
+### Sobre a Evolution API
+
+A Evolution conecta um WhatsApp comum por QR code, **fora dos termos da Meta**.
+Consequências reais, assumidas no projeto:
+
+- o número pode ser bloqueado pelo WhatsApp;
+- a integração quebra quando o protocolo muda;
+- não existe SLA nem suporte.
+
+Por isso `enviarWhatsApp()` nunca lança exceção para cima: a falha é registrada
+e o fluxo continua. **Um lead jamais é perdido porque a notificação falhou.**
+Use um chip dedicado, não o número principal da loja.
+
+---
+
+## Prévia de link no WhatsApp e SEO
+
+O stack é uma SPA: o HTML inicial vem vazio. O Googlebot executa JavaScript,
+mas **o robô que gera a prévia de link do WhatsApp não executa**. Sem tratar
+isso, colar o link de um carro no WhatsApp mostra um card vazio.
+
+Quem resolve é a edge function `seo`, que devolve HTML com as tags Open Graph e
+o schema.org já preenchidos. Falta só rotear os robôs até ela. Exemplo com
+Cloudflare Worker no domínio da loja:
+
+```js
+const ROBOS = /facebookexternalhit|WhatsApp|Twitterbot|Slackbot|TelegramBot|LinkedInBot|Discordbot/i;
+const FUNCAO = "https://SEU-PROJETO.supabase.co/functions/v1/seo";
+
+export default {
+  async fetch(request) {
+    const url = new URL(request.url);
+    const ua = request.headers.get("user-agent") || "";
+
+    if (url.pathname === "/sitemap.xml" || url.pathname === "/robots.txt") {
+      return fetch(`${FUNCAO}${url.pathname}`);
+    }
+    if (ROBOS.test(ua) && url.pathname.startsWith("/carros/")) {
+      const slug = url.pathname.replace("/carros/", "");
+      return fetch(`${FUNCAO}?slug=${encodeURIComponent(slug)}`);
+    }
+    return fetch(request); // visitante humano recebe o SPA
+  },
+};
+```
+
+Na Vercel ou Netlify o mesmo efeito sai com um rewrite por `User-Agent`.
+
+---
+
+## Como os papéis são separados
+
+A anon key vai embutida no bundle. Quem segura o acesso é a RLS — e ela é
+herdada por todo mundo que remixar, então mexa com cuidado.
+
+| Objeto | Quem lê |
+|---|---|
+| `veiculos_publicos` (view) | Todos. Sem `preco_custo`, `placa` e `chassi` |
+| `veiculos_vendedor` (view) | Staff autenticado, sem dados de custo |
+| `veiculos_admin` (view) | Só admin — para vendedor volta vazia |
+| `veiculos` (tabela) | `SELECT` só para admin; vendedor escreve mas não lê |
+| `leads` | Admin vê todos; vendedor vê só os dele |
+
+Dois detalhes que não são preciosismo:
+
+- **Papel fica em `user_roles`, nunca em `profiles`.** Papel numa tabela que o
+  próprio usuário edita é escalada de privilégio.
+- **O corte admin/vendedor não sai de `GRANT`**, porque os dois logam como o
+  mesmo papel Postgres (`authenticated`). Quem separa é o filtro dentro da view.
+- Vendedor não tem `SELECT` na tabela `veiculos`. Ao atualizar um veículo pelo
+  painel, não peça retorno: `.update(...)` sem `.select()`.
+
+---
+
+## O que já está construído
+
+- Schema completo com RLS, views por papel, auditoria, storage e seed
+- Edge functions: captura de lead, WhatsApp via Evolution, SEO/sitemap
+- Site público: home, estoque com filtros na URL, página do veículo, contato, 404
+- Tema carregado do banco em runtime
+
+## O que falta (gerar no Lovable)
+
+- Painel administrativo: CRUD de veículos, upload de fotos, kanban de leads
+- Dashboard com as métricas da seção 09 do escopo
+- Tela de personalização da revenda
+- Rotina mensal de sincronização da FIPE
+- Páginas de privacidade e termos + banner de cookies
+
+O escopo completo está em [`docs/ESCOPO.md`](docs/ESCOPO.md).
