@@ -42,20 +42,16 @@ export default function BannerCookies() {
   if (decisao !== null) return null;
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-[60] border-t bg-card p-4 shadow-lg">
-      <div className="container flex flex-col items-start gap-3 sm:flex-row sm:items-center">
-        <p className="flex-1 text-sm text-muted-foreground">
+    <div role="region" aria-label="Aviso de cookies"
+      className="fixed inset-x-0 bottom-0 z-[60] border-t border-[var(--s-hairline-strong)] bg-[var(--s-canvas)]">
+      <div className="site-container flex flex-col items-start gap-4 py-6 sm:flex-row sm:items-center">
+        <p className="t-body-sm flex-1 text-[var(--s-body)]">
           Usamos cookies para medir a audiência do site. Você escolhe.{" "}
           <Link to="/privacidade" className="underline">Política de privacidade</Link>.
         </p>
-        <div className="flex gap-2">
-          <button onClick={() => decidir("recusado")} className="rounded-md border px-4 py-2 text-sm font-medium">
-            Recusar
-          </button>
-          <button onClick={() => decidir("aceito")}
-            className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">
-            Aceitar
-          </button>
+        <div className="flex w-full gap-2 sm:w-auto">
+          <button onClick={() => decidir("recusado")} className="s-btn s-btn-secondary flex-1 sm:flex-none">Recusar</button>
+          <button onClick={() => decidir("aceito")} className="s-btn s-btn-primary flex-1 sm:flex-none">Aceitar</button>
         </div>
       </div>
     </div>

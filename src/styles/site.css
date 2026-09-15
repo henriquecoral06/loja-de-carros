@@ -1,0 +1,211 @@
+/* =====================================================================
+   Site público — linguagem visual derivada do sistema BMW corporativo.
+
+   O documento do BMW fixa a marca em azul #1c69d4 e diz, com todas as
+   letras, para não usar outra cor de ação. Aqui a instrução do cliente
+   vence: o que herdamos do BMW é a GRAMÁTICA — retângulo de 0px, o
+   contraste 700/300, a faixa escura de herói, ausência total de sombra,
+   ritmo de seção em 80px, link em caixa alta com tracking. A PALETA vem
+   do cadastro de cada revenda, e as variações escuras são derivadas do
+   matiz da marca pela mesma proporção que o BMW usa entre o azul e o
+   #1a2129 (ver TemaDaRevenda).
+
+   Isto é separado do design system do portal de propósito: o portal é o
+   produto e não muda de loja para loja; o site é a marca do lojista.
+   ===================================================================== */
+
+:root {
+  /* Superfícies — claro sempre. O sistema BMW não tem modo escuro, e um
+     site de vitrine não deve mudar de cor porque o dono do painel
+     apertou um botão do outro lado do sistema. */
+  --s-canvas: #ffffff;
+  --s-surface-soft: #f7f7f7;
+  --s-surface-card: #fafafa;
+  --s-surface-strong: #ebebeb;
+
+  /* Derivadas da marca em runtime; estes são apenas o fallback. */
+  --s-primary: #1c69d4;
+  --s-primary-active: #0653b6;
+  --s-on-primary: #ffffff;
+  --s-surface-dark: #1a2129;
+  --s-surface-dark-elevated: #262e38;
+
+  /* Texto — neutros do BMW, nunca preto puro. */
+  --s-ink: #262626;
+  --s-body: #3c3c3c;
+  --s-body-strong: #1a1a1a;
+  --s-muted: #6b6b6b;
+  /* 2.6:1 sobre o canvas — reprova o mínimo de 4.5:1. Só para
+     texto DESABILITADO e placeholder, nunca para conteúdo. */
+  --s-muted-soft: #9a9a9a;
+  --s-on-dark: #ffffff;
+  --s-on-dark-soft: #bbbbbb;
+
+  --s-hairline: #e6e6e6;
+  --s-hairline-strong: #cccccc;
+
+  --s-success: #22c55e;
+  --s-warning: #f59e0b;
+  --s-error: #dc2626;
+
+  --s-section: 80px;
+  --s-max: 1440px;
+
+  /* BMW Type Next Latin é licenciada. Inter 700/300 é o substituto que o
+     próprio documento indica, com tracking em 0. */
+  --s-font: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* O site não acompanha o tema do portal: a classe .dark no <html> não
+   reescreve nenhum token daqui. */
+
+/* Primeira visita, sem cor em cache: a cor de marca chega depois da
+   primeira pintura. Sem isto o visitante vê a cor de fallback animar
+   até a cor real. */
+[data-marca="pendente"] .site *,
+[data-marca="pendente"] .site *::before,
+[data-marca="pendente"] .site *::after { transition: none !important; }
+
+.site {
+  background: var(--s-canvas);
+  color: var(--s-body);
+  font-family: var(--s-font);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Tudo daqui para baixo entra na camada `components` do Tailwind.
+   Sem isso `.s-btn` (0,2,0) vence `.hidden` (0,1,0) e um botão
+   marcado para sumir no celular continua aparecendo. Na camada certa,
+   qualquer utilitário passa por cima do componente, que é a ordem que
+   o Tailwind espera. */
+@layer components {
+
+/* ---------------------------------------------------------------------
+   Tipografia — 700 de display contra 300 de corpo é a assinatura.
+   Peso 500 não existe no sistema. Tracking fica em 0: a fonte trabalha
+   num corpo largo e apertar lê como outra marca.
+   --------------------------------------------------------------------- */
+.site .t-display-xl { font-size: clamp(40px, 6vw, 64px); font-weight: 700; line-height: 1.05; }
+.site .t-display-lg { font-size: clamp(32px, 4.6vw, 48px); font-weight: 700; line-height: 1.1; }
+.site .t-display-md { font-size: clamp(26px, 3.4vw, 32px); font-weight: 700; line-height: 1.15; }
+.site .t-display-sm { font-size: 24px; font-weight: 700; line-height: 1.25; }
+.site .t-title-lg   { font-size: 20px; font-weight: 700; line-height: 1.3; }
+.site .t-title-md   { font-size: 18px; font-weight: 700; line-height: 1.4; }
+.site .t-title-sm   { font-size: 16px; font-weight: 700; line-height: 1.4; }
+.site .t-body-md    { font-size: 16px; font-weight: 300; line-height: 1.55; }
+.site .t-body-sm    { font-size: 14px; font-weight: 300; line-height: 1.55; }
+.site .t-caption    { font-size: 12px; font-weight: 400; line-height: 1.4; letter-spacing: 0.5px; }
+.site .t-label      { font-size: 13px; font-weight: 700; line-height: 1.3; letter-spacing: 1.5px; text-transform: uppercase; }
+.site .t-nav        { font-size: 14px; font-weight: 400; line-height: 1.4; letter-spacing: 0.3px; }
+
+/* ---------------------------------------------------------------------
+   Estrutura
+   --------------------------------------------------------------------- */
+.site-container { width: 100%; max-width: var(--s-max); margin-inline: auto; padding-inline: 24px; }
+@media (min-width: 1024px) { .site-container { padding-inline: 48px; } }
+
+.site-section { padding-block: 56px; }
+@media (min-width: 768px) { .site-section { padding-block: var(--s-section); } }
+
+/* Faixa escura: o único bloco de alto contraste da página. A alternância
+   claro → escuro → claro é o que dá ritmo, já que não há sombra nenhuma. */
+.band-dark { background: var(--s-surface-dark); color: var(--s-on-dark); }
+.band-dark .t-body-md, .band-dark .t-body-sm { color: var(--s-on-dark-soft); }
+.band-soft { background: var(--s-surface-soft); }
+
+/* ---------------------------------------------------------------------
+   Botões — retangulares, 0px. É a assinatura corporativa.
+   --------------------------------------------------------------------- */
+.s-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+  height: 48px; padding-inline: 32px;
+  font-size: 14px; font-weight: 700; letter-spacing: 0.5px; line-height: 1;
+  border-radius: 0; border: 1px solid transparent;
+  transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease;
+  cursor: pointer; text-align: center;
+}
+.s-btn:focus-visible { outline: 2px solid var(--s-primary); outline-offset: 2px; }
+.s-btn:disabled { background: #d6d6d6; color: var(--s-muted); cursor: not-allowed; }
+
+.s-btn-primary { background: var(--s-primary); color: var(--s-on-primary); }
+.s-btn-primary:hover:not(:disabled) { background: var(--s-primary-active); }
+
+.s-btn-secondary { background: var(--s-canvas); color: var(--s-ink); border-color: var(--s-hairline-strong); }
+.s-btn-secondary:hover { border-color: var(--s-ink); }
+
+.s-btn-on-dark { background: transparent; color: var(--s-on-dark); border-color: var(--s-on-dark); }
+.s-btn-on-dark:hover { background: var(--s-on-dark); color: var(--s-ink); }
+
+/* Link em caixa alta com chevron — o "LEARN MORE" do sistema. */
+.s-link {
+  /* O texto tem 13px; sem padding o alvo fica com 20px de altura e some
+     no dedo. O padding vertical não desloca o bloco porque o link é
+     inline-flex. */
+  display: inline-flex; align-items: center; gap: 6px;
+  padding-block: 8px;
+  font-size: 13px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
+  color: var(--s-ink);
+}
+.s-link::after { content: "›"; font-size: 16px; line-height: 1; transition: transform 150ms ease; }
+.s-link:hover::after { transform: translateX(3px); }
+.band-dark .s-link { color: var(--s-on-dark); }
+
+/* ---------------------------------------------------------------------
+   Cards — placa branca, foto sobre cinza claro, sem borda e sem sombra.
+   A profundidade vem do contraste de blocos e da fotografia.
+   --------------------------------------------------------------------- */
+.s-card { background: var(--s-canvas); border-radius: 0; }
+.s-card-photo { background: var(--s-surface-card); border-radius: 0; overflow: hidden; }
+
+/* ---------------------------------------------------------------------
+   Chips de filtro — retângulo; ativo inverte para tinta cheia.
+   --------------------------------------------------------------------- */
+.s-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 14px; border: 1px solid var(--s-hairline-strong);
+  background: var(--s-canvas); color: var(--s-ink);
+  font-size: 12px; font-weight: 400; letter-spacing: 0.5px;
+  border-radius: 0; cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease;
+}
+.s-chip:hover { border-color: var(--s-ink); }
+.s-chip[aria-pressed="true"] { background: var(--s-ink); color: var(--s-on-dark); border-color: var(--s-ink); }
+.s-chip:focus-visible { outline: 2px solid var(--s-primary); outline-offset: 2px; }
+
+/* ---------------------------------------------------------------------
+   Campos — 48px, 0px, contorno hairline que engrossa para tinta no foco.
+   --------------------------------------------------------------------- */
+.s-field {
+  width: 100%; height: 48px; padding: 14px 16px;
+  background: var(--s-canvas); color: var(--s-ink);
+  border: 1px solid var(--s-hairline-strong); border-radius: 0;
+  font-family: var(--s-font); font-size: 16px; font-weight: 300; line-height: 1.2;
+  transition: border-color 150ms ease;
+}
+.site textarea.field { height: auto; line-height: 1.55; }
+.s-field::placeholder { color: var(--s-muted-soft); }
+.s-field:focus { outline: none; border-color: var(--s-ink); border-width: 2px; padding: 13px 15px; }
+.s-field:disabled { background: var(--s-surface-soft); color: var(--s-muted-soft); }
+.site select.field { appearance: none; padding-right: 40px; cursor: pointer; }
+
+.site label { color: var(--s-ink); }
+
+/* Célula de especificação — valor em cima, rótulo em caixa alta embaixo. */
+.s-spec { padding: 24px 0; border-top: 1px solid var(--s-hairline); }
+.s-spec dt { font-size: 13px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--s-muted); }
+.s-spec dd { margin: 6px 0 0; font-size: 24px; font-weight: 700; line-height: 1.25; color: var(--s-ink); }
+
+/* Aba de categoria — sublinhado de 2px na ativa. */
+.s-tab {
+  padding: 12px 0; border-bottom: 2px solid transparent;
+  font-size: 13px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
+  color: var(--s-muted); background: none; cursor: pointer;
+}
+.s-tab[aria-selected="true"] { color: var(--s-ink); border-bottom-color: var(--s-ink); }
+
+
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .site *, .site *::before, .site *::after { transition-duration: 1ms !important; }
+}

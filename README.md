@@ -150,10 +150,30 @@ O projeto tem duas peles, e elas não se misturam:
 
 | | Site público | Portal (`/admin`) |
 |---|---|---|
-| Identidade | Da revenda: cores, logo e textos vindos da tabela `config` | Conversão Extrema — ver [`docs/DESIGN-SYSTEM.md`](docs/DESIGN-SYSTEM.md) |
-| Tokens | shadcn em HSL (`--primary`, `--background`), sobrescritos em runtime | `--c-*` em canais RGB, em `src/styles/design-system.css` |
-| Tipografia | A fonte da revenda | Geist |
-| Densidade | Padrão | Escopo `.ds-app`: raio menor, tipografia um degrau abaixo, campo de 36px |
+| Gramática | Corporativa-automotiva — ver [`docs/DESIGN-SITE.md`](docs/DESIGN-SITE.md) | Conversão Extrema — ver [`docs/DESIGN-SYSTEM.md`](docs/DESIGN-SYSTEM.md) |
+| Paleta | Derivada da cor de marca em `config` | Fixa: esmeralda |
+| Tokens | `--s-*`, em `src/styles/site.css` | `--c-*` em canais RGB, em `src/styles/design-system.css` |
+| Tipografia | Inter 700 / 300 | Geist |
+| Raio | 0px em tudo | Escala `.ds-app` |
+| Tema | Claro sempre | Claro e escuro |
+
+### Como a paleta do site é derivada
+
+O documento do site fixa a marca em azul e manda não usar outra cor de ação.
+Aqui a instrução do cliente vence: o que herdamos é a **gramática** — retângulo
+de 0px, contraste 700/300, faixa escura de herói, zero sombra, ritmo de 80px,
+link em caixa alta. A **paleta** vem do cadastro de cada revenda.
+
+O truque está em `src/lib/cores.ts`: o sistema original não traz uma cor, traz
+uma *relação* entre cores. O azul corporativo é `hsl(217 77% 47%)` e a faixa
+escura é `hsl(214 21% 13%)` — mesmo matiz, saturação em 28% da original,
+luminosidade travada em 13%. `faixaEscura()` reproduz essa proporção sobre a
+cor de qualquer revenda, e é isso que faz o site parecer daquela loja sem
+perder a gramática.
+
+As cores ficam em cache no `localStorage` e são aplicadas pelo script
+anti-flash antes da primeira pintura. Sem isso o site pintava com a cor de
+fallback e animava até a cor da marca na frente do visitante.
 
 Quem remixa o projeto troca as cores do **site** pelo painel, sem tocar em código.
 O **portal** é o produto e não muda de loja para loja — por isso ele é o único que

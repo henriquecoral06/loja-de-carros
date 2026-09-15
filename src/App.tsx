@@ -4,6 +4,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import Layout from "@/components/Layout";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { TemaDaRevenda } from "@/components/TemaDaRevenda";
+import RolarAoTopo from "@/components/RolarAoTopo";
 
 import Home from "@/pages/Home";
 import Estoque from "@/pages/Estoque";
@@ -31,6 +32,7 @@ export default function App() {
       <BrowserRouter>
         <AuthProvider>
           <TemaDaRevenda />
+          <RolarAoTopo />
           <Routes>
             <Route element={<Layout />}>
               <Route path="/" element={<Home />} />

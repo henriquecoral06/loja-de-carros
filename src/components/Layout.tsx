@@ -1,7 +1,8 @@
-import { Link, NavLink, Outlet } from "react-router-dom";
-import { WhatsappLogo } from "@phosphor-icons/react";
+import { useEffect, useState } from "react";
+import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
+import { List, WhatsappLogo, X } from "@phosphor-icons/react";
 import { useConfig } from "@/hooks/useConfig";
-import { linkWhatsApp, cn } from "@/lib/utils";
+import { linkWhatsApp } from "@/lib/utils";
 import BannerCookies from "@/components/BannerCookies";
 
 const rotas = [
@@ -13,94 +14,142 @@ const rotas = [
 
 export default function Layout() {
   const { data: config } = useConfig();
+  const { pathname } = useLocation();
+  const [menuAberto, setMenuAberto] = useState(false);
+
+  // O menu do celular abre como folha de tela cheia e precisa fechar ao
+  // navegar, senão cobre a página que acabou de abrir.
+  useEffect(() => { setMenuAberto(false); }, [pathname]);
+  useEffect(() => {
+    document.body.style.overflow = menuAberto ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
+  }, [menuAberto]);
+
+  const zap = config?.whatsapp
+    ? linkWhatsApp(config.whatsapp, `Olá! Vim pelo site da ${config.nome}.`)
+    : null;
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <header className="sticky top-0 z-40 bg-background/95 backdrop-blur border-b">
-        <div className="container flex items-center justify-between h-16 gap-4">
-          <Link to="/" className="flex items-center gap-2 font-display font-bold text-lg">
+    <div className="site flex min-h-screen flex-col">
+      <a href="#conteudo"
+        className="s-btn s-btn-primary sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[60]">
+        Ir para o conteúdo
+      </a>
+
+      <header className="sticky top-0 z-40 border-b border-[var(--s-hairline)] bg-[var(--s-canvas)]">
+        <div className="site-container flex h-16 items-center justify-between gap-6">
+          <Link to="/" className="flex h-16 items-center gap-2.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--s-primary)]">
             {config?.logo_url
-              ? <img src={config.logo_url} alt={config.nome} className="h-9 w-auto" />
-              : <span>{config?.nome ?? "Revenda"}</span>}
+              ? <img src={config.logo_url} alt={config.nome} className="h-8 w-auto" />
+              : <span className="t-title-md text-[var(--s-ink)]">{config?.nome ?? "Revenda"}</span>}
           </Link>
 
-          <nav className="hidden md:flex items-center gap-1">
+          <nav aria-label="Principal" className="hidden items-center gap-8 md:flex">
             {rotas.map((r) => (
-              <NavLink
-                key={r.para}
-                to={r.para}
+              <NavLink key={r.para} to={r.para} end={r.para === "/"}
                 className={({ isActive }) =>
-                  cn("px-3 py-2 text-sm rounded-md transition-colors hover:bg-muted",
-                     isActive && "text-primary font-semibold")}
-              >
+                  `t-nav flex h-16 items-center transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--s-primary)] ${
+                    isActive ? "text-[var(--s-primary)]" : "text-[var(--s-ink)] hover:text-[var(--s-primary)]"}`}>
                 {r.rotulo}
               </NavLink>
             ))}
           </nav>
 
-          {config?.whatsapp && (
-            <a
-              href={linkWhatsApp(config.whatsapp, `Olá! Vim pelo site da ${config.nome}.`)}
-              target="_blank" rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
-            >
-              <WhatsappLogo className="h-4 w-4" /> WhatsApp
-            </a>
-          )}
+          <div className="flex items-center gap-2">
+            {zap && (
+              <a href={zap} target="_blank" rel="noopener noreferrer" className="s-btn s-btn-primary hidden sm:inline-flex">
+                <WhatsappLogo size={17} weight="fill" /> WhatsApp
+              </a>
+            )}
+            <button type="button" onClick={() => setMenuAberto((v) => !v)}
+              aria-expanded={menuAberto} aria-controls="menu-mobile" aria-label="Menu"
+              className="grid h-12 w-12 place-items-center text-[var(--s-ink)] md:hidden">
+              {menuAberto ? <X size={22} /> : <List size={22} />}
+            </button>
+          </div>
         </div>
       </header>
 
-      <main className="flex-1"><Outlet /></main>
+      {menuAberto && (
+        <div id="menu-mobile" className="fixed inset-0 top-16 z-40 bg-[var(--s-canvas)] md:hidden">
+          <nav aria-label="Principal (celular)" className="site-container flex flex-col py-6">
+            {rotas.map((r) => (
+              <NavLink key={r.para} to={r.para} end={r.para === "/"}
+                className="t-title-md border-b border-[var(--s-hairline)] py-4 text-[var(--s-ink)]">
+                {r.rotulo}
+              </NavLink>
+            ))}
+            {zap && (
+              <a href={zap} target="_blank" rel="noopener noreferrer" className="s-btn s-btn-primary mt-6">
+                <WhatsappLogo size={17} weight="fill" /> Falar no WhatsApp
+              </a>
+            )}
+          </nav>
+        </div>
+      )}
 
-      <BannerCookies />
+      <main id="conteudo" className="flex-1"><Outlet /></main>
 
-      <footer className="border-t bg-muted/40 mt-16">
-        <div className="container py-10 grid gap-8 md:grid-cols-3 text-sm">
+      <footer className="band-soft border-t border-[var(--s-hairline)]">
+        <div className="site-container grid gap-10 py-14 md:grid-cols-4">
           <div>
-            <p className="font-display font-bold text-base">{config?.nome}</p>
+            <p className="t-title-md text-[var(--s-ink)]">{config?.nome}</p>
             {config?.endereco && (
-              <p className="text-muted-foreground mt-2">
-                {config.endereco}<br />{config.cidade} · {config.uf}
+              <p className="t-body-sm mt-3 text-[var(--s-body)]">
+                {config.endereco}<br />{[config.cidade, config.uf].filter(Boolean).join(" · ")}
               </p>
             )}
           </div>
+
           <div>
-            <p className="font-semibold mb-2">Atendimento</p>
-            <ul className="text-muted-foreground space-y-1">
-              {(config?.horarios ?? []).map((h) => (
-                <li key={h.dia}>{h.dia}: {h.fechado ? "fechado" : `${h.abre} às ${h.fecha}`}</li>
+            <p className="t-label mb-4 text-[var(--s-ink)]">Navegação</p>
+            <ul className="flex flex-col gap-2.5">
+              {rotas.map((r) => (
+                <li key={r.para}>
+                  <Link to={r.para} className="t-body-sm inline-block py-1.5 text-[var(--s-muted)] hover:text-[var(--s-ink)]">{r.rotulo}</Link>
+                </li>
               ))}
             </ul>
           </div>
+
           <div>
-            <p className="font-semibold mb-2">Contato</p>
-            <ul className="text-muted-foreground space-y-1">
-              {config?.telefone && <li>{config.telefone}</li>}
-              {config?.email && <li>{config.email}</li>}
+            <p className="t-label mb-4 text-[var(--s-ink)]">Atendimento</p>
+            <ul className="flex flex-col gap-2.5">
+              {(config?.horarios ?? []).map((h) => (
+                <li key={h.dia} className="t-body-sm text-[var(--s-muted)]">
+                  {h.dia}: {h.fechado ? "fechado" : `${h.abre} às ${h.fecha}`}
+                </li>
+              ))}
             </ul>
-            <nav className="mt-4 flex flex-col gap-1">
-              <Link to="/privacidade" className="hover:underline">Política de privacidade</Link>
-              <Link to="/termos" className="hover:underline">Termos de uso</Link>
-            </nav>
+          </div>
+
+          <div>
+            <p className="t-label mb-4 text-[var(--s-ink)]">Contato</p>
+            <ul className="flex flex-col gap-2.5">
+              {config?.telefone && <li className="t-body-sm text-[var(--s-muted)]">{config.telefone}</li>}
+              {config?.email && <li className="t-body-sm text-[var(--s-muted)]">{config.email}</li>}
+              <li><Link to="/privacidade" className="t-body-sm inline-block py-1.5 text-[var(--s-muted)] hover:text-[var(--s-ink)]">Política de privacidade</Link></li>
+              <li><Link to="/termos" className="t-body-sm inline-block py-1.5 text-[var(--s-muted)] hover:text-[var(--s-ink)]">Termos de uso</Link></li>
+            </ul>
           </div>
         </div>
-        {(config?.razao_social || config?.cnpj) && (
-          <div className="container pb-6 text-xs text-muted-foreground">
-            {config?.razao_social} {config?.cnpj && `· CNPJ ${config.cnpj}`}
-          </div>
-        )}
+
+        <div className="site-container border-t border-[var(--s-hairline-strong)] py-6">
+          <p className="t-body-sm text-[var(--s-muted)]">
+            {config?.razao_social ?? config?.nome}
+            {config?.cnpj && ` · CNPJ ${config.cnpj}`}
+          </p>
+        </div>
       </footer>
 
-      {config?.whatsapp && (
-        <a
-          href={linkWhatsApp(config.whatsapp, `Olá! Vim pelo site da ${config.nome}.`)}
-          target="_blank" rel="noopener noreferrer"
-          aria-label="Falar no WhatsApp"
-          className="fixed bottom-5 right-5 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-[hsl(var(--whatsapp))] text-white shadow-lg"
-        >
-          <WhatsappLogo className="h-6 w-6" />
+      {zap && (
+        <a href={zap} target="_blank" rel="noopener noreferrer" aria-label="Falar no WhatsApp"
+          className="fixed bottom-6 right-6 z-50 grid h-14 w-14 place-items-center rounded-full bg-[var(--s-primary)] text-[var(--s-on-primary)] shadow-lg sm:hidden">
+          <WhatsappLogo size={26} weight="fill" />
         </a>
       )}
+
+      <BannerCookies />
     </div>
   );
 }
