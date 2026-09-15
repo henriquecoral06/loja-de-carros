@@ -6,3 +6,5 @@ dist-ssr
 .env.local
 .DS_Store
 supabase/.temp
+
+supabase/functions/.env

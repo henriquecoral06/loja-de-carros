@@ -9,6 +9,43 @@ mesma que o Lovable gera e entende, para que o projeto continue editável lá.
 
 ---
 
+## Rodar localmente
+
+Precisa de Docker rodando e do [Supabase CLI](https://supabase.com/docs/guides/cli).
+
+```bash
+npm install
+supabase start          # sobe Postgres, Auth, Storage e Edge Functions
+./scripts/seed-fotos.sh # placeholders para os veículos de demonstração
+npm run dev             # http://localhost:8080
+```
+
+O `supabase start` imprime a `anon key`. Coloque-a no `.env`:
+
+```
+VITE_SUPABASE_URL=http://127.0.0.1:54321
+VITE_SUPABASE_PUBLISHABLE_KEY=<anon key>
+VITE_SITE_URL=http://localhost:8080
+```
+
+Endereços úteis:
+
+| O quê | Onde |
+|---|---|
+| Site | http://localhost:8080 |
+| Painel | http://localhost:8080/admin |
+| Supabase Studio | http://127.0.0.1:54323 |
+| E-mails de teste (Inbucket) | http://127.0.0.1:54324 |
+
+Crie o primeiro usuário em `/admin/login` pelo "Primeiro acesso" — ele vira
+admin automaticamente. Para recomeçar do zero:
+
+```bash
+supabase db reset && ./scripts/seed-fotos.sh
+```
+
+---
+
 ## Como remixar para uma nova loja
 
 1. **Remix no Lovable** (ou fork deste repositório).
@@ -116,17 +153,27 @@ Dois detalhes que não são preciosismo:
 
 ## O que já está construído
 
-- Schema completo com RLS, views por papel, auditoria, storage e seed
-- Edge functions: captura de lead, WhatsApp via Evolution, SEO/sitemap
-- Site público: home, estoque com filtros na URL, página do veículo, contato, 404
-- Tema carregado do banco em runtime
+**Banco** — schema completo com RLS, views por papel, auditoria, storage,
+grants explícitos e seed de demonstração.
 
-## O que falta (gerar no Lovable)
+**Edge functions** — `registrar-lead` (validação, honeypot, limite por IP,
+deduplicação por telefone), `notificar-whatsapp` (Evolution API) e `seo`
+(Open Graph, schema.org e sitemap).
 
-- Painel administrativo: CRUD de veículos, upload de fotos, kanban de leads
-- Dashboard com as métricas da seção 09 do escopo
-- Tela de personalização da revenda
-- Rotina mensal de sincronização da FIPE
-- Páginas de privacidade e termos + banner de cookies
+**Site público** — home, estoque com filtros na URL, página do veículo com
+galeria, contato, privacidade, termos, 404 e banner de cookies.
+
+**Painel** — login com papéis, dashboard, gestão de estoque, cadastro de
+veículo com cascata FIPE, upload e ordenação de fotos, pipeline de leads com
+histórico, e personalização da revenda.
+
+## O que falta
+
+- Rotina mensal de sincronização da base FIPE (hoje o seed traz uma amostra)
+- Importação em lote por CSV e feed XML para portais (fases 2 e 3 do escopo)
+- Tela de gestão de usuários: hoje o papel de um novo vendedor é liberado
+  inserindo a linha em `user_roles` pelo Studio
+- E-mail transacional como canal de reserva da notificação de lead
+- Roteamento de robôs para a função `seo` no proxy do domínio (ver acima)
 
 O escopo completo está em [`docs/ESCOPO.md`](docs/ESCOPO.md).

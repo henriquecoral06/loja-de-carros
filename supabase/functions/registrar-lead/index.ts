@@ -6,17 +6,7 @@
 // deduplica por telefone e dispara a notificação.
 // =====================================================================
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { enviarWhatsApp } from "../notificar-whatsapp/index.ts";
-
-const cors = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
-
-const json = (corpo: unknown, status = 200) =>
-  new Response(JSON.stringify(corpo), {
-    status, headers: { ...cors, "Content-Type": "application/json" },
-  });
+import { enviarWhatsApp, cors, json } from "../_shared/evolution.ts";
 
 const moeda = (valor: number | null) =>
   valor == null ? "sob consulta" : valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -73,7 +63,7 @@ Deno.serve(async (req) => {
 
   const descricaoVeiculo = veiculo
     ? `${veiculo.marca} ${veiculo.modelo} ${veiculo.versao ?? ""} ${veiculo.ano_modelo}`.replace(/\s+/g, " ").trim()
-    : "sem veículo específico";
+    : null;
 
   let leadId: string;
 
@@ -81,7 +71,12 @@ Deno.serve(async (req) => {
     leadId = existente.id;
     await supabase.from("lead_interacoes").insert({
       lead_id: leadId,
-      texto: `Novo contato pelo site sobre ${descricaoVeiculo}. ${mensagem ?? ""}`.trim(),
+      texto: [
+        descricaoVeiculo
+          ? `Novo contato pelo site sobre o ${descricaoVeiculo}.`
+          : "Novo contato pelo site, sem veículo específico.",
+        mensagem,
+      ].filter(Boolean).join(" "),
       canal: "site",
     });
   } else {
@@ -116,7 +111,7 @@ Deno.serve(async (req) => {
       `*Nome:* ${nome}`,
       `*WhatsApp:* ${telefone}`,
       email ? `*E-mail:* ${email}` : null,
-      `*Veículo:* ${descricaoVeiculo}`,
+      descricaoVeiculo ? `*Veículo:* ${descricaoVeiculo}` : "*Veículo:* contato geral",
       veiculo ? `*Preço:* ${preco}` : null,
       mensagem ? `*Mensagem:* ${mensagem}` : null,
       utm_source ? `*Origem:* ${utm_source} / ${utm_medium ?? "-"}` : null,
@@ -124,7 +119,7 @@ Deno.serve(async (req) => {
       `Responda em até 15 minutos: wa.me/${telefone}`,
     ].filter(Boolean).join("\n");
 
-    const envio = await enviarWhatsApp({ numero: destino, texto });
+    const envio = await enviarWhatsApp(destino, texto);
     if (!envio.ok) console.error("notificacao whatsapp falhou", envio.motivo);
   }
 
