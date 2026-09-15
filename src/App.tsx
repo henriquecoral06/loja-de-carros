@@ -19,6 +19,7 @@ import Veiculos from "@/pages/admin/Veiculos";
 import VeiculoForm from "@/pages/admin/VeiculoForm";
 import Leads from "@/pages/admin/Leads";
 import Configuracao from "@/pages/admin/Configuracao";
+import BannerPrompt from "@/pages/admin/BannerPrompt";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { refetchOnWindowFocus: false, retry: 1 } },
@@ -50,6 +51,7 @@ export default function App() {
               <Route path="veiculos/:id" element={<VeiculoForm />} />
               <Route path="leads" element={<Leads />} />
               <Route path="config" element={<Configuracao />} />
+              <Route path="banner" element={<BannerPrompt />} />
             </Route>
           </Routes>
         </AuthProvider>

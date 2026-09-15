@@ -190,7 +190,27 @@ galeria, contato, privacidade, termos, 404 e banner de cookies.
 
 **Painel** — login com papéis, dashboard, gestão de estoque, cadastro de
 veículo com cascata FIPE, upload e ordenação de fotos, pipeline de leads com
-histórico, e personalização da revenda.
+histórico, configuração do negócio e gerador de prompt do banner.
+
+### Configuração do negócio e gerador de banner
+
+`/admin/config` guarda mais que contato e cores: guarda **posicionamento** —
+o que a loja vende, para quem, diferenciais, oferta principal, provas numéricas
+e tom de voz. Isso não é cadastro decorativo: é a matéria-prima de
+`/admin/banner`, que monta o pedido de imagem do banner da home.
+
+O gerador sabe três coisas que um prompt escrito à mão costuma esquecer, e são
+elas que separam um banner que funciona de um que atrapalha:
+
+1. **A imagem não pode ter texto.** O site escreve o título por cima; texto
+   gerado sai deformado e ainda repete o que já está escrito.
+2. **Existe uma área que precisa ficar vazia** — o terço esquerdo no desktop, a
+   metade superior no celular — porque é onde o título e os botões entram.
+3. **O banner é exibido a 30% de opacidade.** Cena escura ou cheia de detalhe
+   vira mancha cinza depois do rebaixamento.
+
+Diferenciais entram como sensação a transmitir, nunca como lista literal:
+"aceitamos seu usado na troca" é argumento de venda, não elemento de cena.
 
 ## O que falta
 

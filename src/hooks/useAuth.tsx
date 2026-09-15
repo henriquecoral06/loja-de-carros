@@ -29,10 +29,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       else setTimeout(() => carregarPapeis(nova.user.id), 0);
     });
 
-    supabase.auth.getSession().then(({ data: { session: atual } }) => {
+    supabase.auth.getSession().then(async ({ data: { session: atual } }) => {
+      if (!atual) { setSession(null); setCarregando(false); return; }
+
+      // A sessão fica no navegador mesmo depois que o usuário some do
+      // servidor — um db reset, um vendedor excluído. Sem esta checagem
+      // o painel mostrava "Acesso pendente" para um usuário que não
+      // existe mais, em vez de pedir login de novo.
+      const { error } = await supabase.auth.getUser();
+      if (error) {
+        await supabase.auth.signOut();
+        setSession(null);
+        setPapeis([]);
+        setCarregando(false);
+        return;
+      }
+
       setSession(atual);
-      if (atual) carregarPapeis(atual.user.id).finally(() => setCarregando(false));
-      else setCarregando(false);
+      carregarPapeis(atual.user.id).finally(() => setCarregando(false));
     });
 
     return () => subscription.unsubscribe();

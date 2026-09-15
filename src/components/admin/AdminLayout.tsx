@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, Navigate, Outlet, useLocation } from "react-router-dom";
 import {
-  ArrowSquareOut, Car, Gear, SignOut, SquaresFour, UsersThree,
+  ArrowSquareOut, Car, Gear, ImageSquare, SignOut, SquaresFour, UsersThree,
 } from "@phosphor-icons/react";
 import { useAuth } from "@/hooks/useAuth";
 import { useConfig } from "@/hooks/useConfig";
@@ -12,7 +12,8 @@ const ARVORE = [
   { to: "/admin", label: "Dashboard", icon: <SquaresFour size={17} />, end: true },
   { to: "/admin/veiculos", label: "Estoque", icon: <Car size={17} /> },
   { to: "/admin/leads", label: "Leads", icon: <UsersThree size={17} /> },
-  { to: "/admin/config", label: "A revenda", icon: <Gear size={17} />, soAdmin: true },
+  { to: "/admin/config", label: "O negócio", icon: <Gear size={17} />, soAdmin: true, grupo: "Marca" },
+  { to: "/admin/banner", label: "Banner", icon: <ImageSquare size={17} />, soAdmin: true, grupo: "Marca" },
 ];
 
 const CHAVE_MENU = "portal-menu-recolhido";
@@ -59,8 +60,16 @@ export default function AdminLayout() {
     );
   }
 
-  const itens = ARVORE.filter((i) => !i.soAdmin || isAdmin).map(({ soAdmin, ...i }) => i);
-  const grupos: GrupoNav[] = [{ subtitle: "Operação", items: itens }];
+  const itens = ARVORE.filter((i) => !i.soAdmin || isAdmin).map(({ soAdmin, grupo, ...i }) => i);
+  const daMarca = ARVORE.filter((i) => i.grupo === "Marca" && (!i.soAdmin || isAdmin))
+    .map(({ soAdmin, grupo, ...i }) => i);
+  const daOperacao = ARVORE.filter((i) => !i.grupo && (!i.soAdmin || isAdmin))
+    .map(({ soAdmin, grupo, ...i }) => i);
+
+  const grupos: GrupoNav[] = [
+    { subtitle: "Operação", items: daOperacao },
+    ...(daMarca.length ? [{ subtitle: "Marca", items: daMarca }] : []),
+  ];
 
   return (
     <div className="ds-app flex min-h-screen bg-canvas font-geist text-body antialiased">
