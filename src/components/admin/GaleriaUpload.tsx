@@ -29,6 +29,10 @@ export default function GaleriaUpload({ veiculoId }: { veiculoId: string }) {
     setEnviando(true);
     setErro("");
     const base = fotos?.length ?? 0;
+    // Um veículo pode ficar sem capa se a capa anterior foi apagada.
+    // Nesse caso a primeira foto deste envio assume, mesmo não sendo a
+    // primeira do veículo.
+    let semCapa = !(fotos ?? []).some((f: any) => f.capa);
 
     for (let i = 0; i < arquivos.length; i++) {
       const arquivo = arquivos[i];
@@ -46,8 +50,9 @@ export default function GaleriaUpload({ veiculoId }: { veiculoId: string }) {
         veiculo_id: veiculoId,
         url: publica.publicUrl,
         ordem: base + i,
-        capa: base === 0 && i === 0,
+        capa: semCapa,
       });
+      semCapa = false;
     }
     setEnviando(false);
     recarregar();
@@ -75,6 +80,14 @@ export default function GaleriaUpload({ veiculoId }: { veiculoId: string }) {
     const caminho = foto.url.split("/veiculos/").pop();
     if (caminho) await supabase.storage.from("veiculos").remove([caminho]);
     await supabase.from("veiculo_fotos").delete().eq("id", foto.id);
+
+    // Apagar a capa não pode deixar o veículo sem capa: a próxima na
+    // ordem assume. Sem isto o card do site cai num fallback silencioso
+    // e o vendedor não entende por que a foto escolhida sumiu.
+    if (foto.capa) {
+      const proxima = (fotos ?? []).find((f: any) => f.id !== foto.id);
+      if (proxima) await supabase.from("veiculo_fotos").update({ capa: true }).eq("id", (proxima as any).id);
+    }
     recarregar();
   }
 
