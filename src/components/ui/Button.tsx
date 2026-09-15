@@ -26,10 +26,14 @@ export const Button = forwardRef<HTMLButtonElement, Props>(function Button(
   { variant = "shiny", size = "md", icon, children, className, ...props },
   ref,
 ) {
+  // Sem utilitário `duration-*` aqui: o plugin tailwindcss-animate faz
+  // essa classe escrever `animation-duration` além de
+  // `transition-duration`, e ela vencia a volta da borda giratória — o
+  // botão girava a 0.2s por volta em vez dos 2.5s do design system.
+  // A transição de cada variante vive no CSS.
   const base = cn(
     "ds-focus group relative inline-flex items-center justify-center gap-2 rounded-full",
-    "font-medium transition-[transform,box-shadow,background-color,color] duration-200",
-    "disabled:pointer-events-none disabled:opacity-50",
+    "font-medium disabled:pointer-events-none disabled:opacity-50",
     tamanhos[size],
     className,
   );

@@ -55,6 +55,12 @@
   --ds-input-h: 44px; --ds-input-r: 9999px; --ds-input-px: 18px;
 
   /* Motion */
+  /* Volta da borda giratória (§A.2). Ponto único de ajuste para as três
+     superfícies que usam border-spin — aumente para deixar mais calmo.
+     Cuidado: utilitário `duration-*` do Tailwind em cima de um elemento
+     animado sobrescreve este valor, porque o plugin tailwindcss-animate
+     escreve animation-duration junto com transition-duration. */
+  --border-spin-duration: 2.5s;
   --dur-fast: 150ms; --dur-normal: 200ms; --dur-slow: 300ms; --dur-slower: 500ms;
   --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-in-out-soft: cubic-bezier(0.65, 0, 0.35, 1);
@@ -186,7 +192,7 @@
   box-shadow: inset 0 1px 1px rgba(255,255,255,0.15), inset 0 -2px 6px rgba(0,0,0,0.2),
     0 12px 24px -8px rgba(0,0,0,0.5);
   transition: box-shadow 300ms ease, transform 300ms ease;
-  animation: border-spin 2.5s linear infinite;
+  animation: border-spin var(--border-spin-duration) linear infinite;
 }
 .shiny-cta:hover {
   box-shadow: inset 0 1px 1px rgba(255,255,255,0.25), inset 0 -2px 6px rgba(0,0,0,0.25),
@@ -204,7 +210,7 @@
   border: 1px solid transparent;
   box-shadow: inset 0 1px 1px rgba(255,255,255,0.25), 0 12px 24px -8px rgba(16,185,129,0.45);
   transition: box-shadow 300ms ease, transform 300ms ease;
-  animation: border-spin 2.5s linear infinite;
+  animation: border-spin var(--border-spin-duration) linear infinite;
 }
 .shiny-brand:hover { box-shadow: inset 0 1px 1px rgba(255,255,255,0.35), 0 16px 32px -8px rgba(16,185,129,0.6); }
 .shiny-brand:active { transform: translateY(1px); }
@@ -253,7 +259,7 @@
   mask-composite: exclude;
   opacity: 0; transition: opacity 300ms ease;
   pointer-events: none;
-  animation: border-spin 2.5s linear infinite;
+  animation: border-spin var(--border-spin-duration) linear infinite;
 }
 .ds-btn-secondary:hover::after { opacity: 1; }
 
