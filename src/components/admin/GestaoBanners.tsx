@@ -48,7 +48,13 @@ export default function GestaoBanners() {
     if (!arquivos?.length) return;
     setEnviando(true);
     setErro("");
-    let ordem = banners?.length ?? 0;
+
+    // A ordem vem do banco, não da lista em memória: enviando um
+    // arquivo por vez, a lista do cliente ainda não tinha o anterior e
+    // todos entravam com ordem 0.
+    const { data: ultimo } = await supabase
+      .from("banners").select("ordem").order("ordem", { ascending: false }).limit(1).maybeSingle();
+    let ordem = ((ultimo as any)?.ordem ?? -1) + 1;
 
     for (const arquivo of Array.from(arquivos)) {
       if (arquivo.size > LIMITE_MB * 1024 * 1024) {

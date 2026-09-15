@@ -175,6 +175,18 @@ detalhe:
   descrição que sobra para o leitor de tela e para o Google. O painel avisa
   quando um banner ativo está sem descrição.
 
+As cores saem de um de dois caminhos, escolhidos no painel: **puxar do
+logotipo** ou **escolher manualmente** num seletor de cor. A extração roda em
+canvas no próprio navegador — nenhum serviço externo — e descarta pixels
+transparentes e tons de cinza, que quase sempre são fundo ou contorno e não a
+cor da marca. Cores parecidas são fundidas e o peso soma, senão um logo com
+degradê espalha o mesmo tom por dezenas de amostras.
+
+O texto sobre a cor principal não é escolhido no olho: o painel calcula se
+branco ou tinta escura dá mais contraste e grava o vencedor, avisando quando
+nem o melhor dos dois alcança 4,5:1. É o que evita milhares de lojas remixadas
+com botão ilegível.
+
 Logo e favicon também são upload pelo painel, direto para o bucket `marca` —
 nada de colar URL nem hospedar imagem em outro lugar. Trocar o logo atualiza o
 site na hora.

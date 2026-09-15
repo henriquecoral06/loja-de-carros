@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { ArrowRight } from "@phosphor-icons/react";
@@ -7,6 +7,7 @@ import { useConfig } from "@/hooks/useConfig";
 import { TONS } from "@/lib/banner";
 import { Button, Field, Input, SegmentedControl, Select, Textarea } from "@/components/ui";
 import UploadImagem from "@/components/admin/UploadImagem";
+import CoresDaMarca from "@/components/admin/CoresDaMarca";
 
 type Aba = "identidade" | "posicionamento" | "contato" | "medicao";
 
@@ -35,7 +36,17 @@ export default function Configuracao() {
   const [salvo, setSalvo] = useState(false);
   const [erro, setErro] = useState("");
 
-  useEffect(() => { if (config) setForm(config as any); }, [config]);
+  // Só na primeira carga. Ligar isto a [config] fazia o formulário ser
+  // reescrito a cada refetch — e um refetch acontece, por exemplo, logo
+  // depois de enviar o logo. As edições ainda não salvas sumiam sem
+  // aviso, que é a pior forma de perder trabalho.
+  const iniciado = useRef(false);
+  useEffect(() => {
+    if (config && !iniciado.current) {
+      setForm(config as any);
+      iniciado.current = true;
+    }
+  }, [config]);
 
   const campo = (chave: string, valor: any) => { setForm((f) => ({ ...f, [chave]: valor })); setSalvo(false); };
 
@@ -93,11 +104,9 @@ export default function Configuracao() {
 
             <fieldset className="rounded-ds-lg border border-hairline bg-surface p-5">
               <legend className="px-2 text-label-lg text-ink">Marca</legend>
-              <p className="mb-5 max-w-[56ch] text-caption text-mute">
-                Arquivos e cores da loja. Cores em HSL, no formato{" "}
-                <code className="rounded-ds-xs bg-ink/[0.06] px-1 font-mono text-[12px]">191 78% 21%</code>.
-                O site muda assim que você salvar — inclusive a faixa escura da
-                home, que é derivada da cor principal.
+              <p className="mb-5 max-w-[58ch] text-caption text-mute">
+                Arquivos e cores da loja. O site muda assim que você salvar —
+                inclusive a faixa escura da home, que é derivada da cor principal.
               </p>
               <div className="grid gap-5 sm:grid-cols-2">
                 <UploadImagem
@@ -110,20 +119,11 @@ export default function Configuracao() {
                   valor={form.favicon_url}
                   onChange={(url) => campo("favicon_url", url)}
                   hint="Quadrado, 512×512. É o ícone da aba do navegador." />
-                {[
-                  ["cor_primaria", "Cor principal"],
-                  ["cor_primaria_fg", "Texto sobre a cor principal"],
-                  ["cor_destaque", "Cor de destaque"],
-                ].map(([chave, label]) => (
-                  <Field key={chave} id={chave} label={label}>
-                    <div className="flex items-center gap-2">
-                      <Input id={chave} value={form[chave] ?? ""} onChange={(e) => campo(chave, e.target.value)} />
-                      <span className="h-9 w-9 shrink-0 rounded-ds-sm border border-hairline-strong"
-                        style={{ background: `hsl(${form[chave] || "0 0% 100%"})` }} />
-                    </div>
-                  </Field>
-                ))}
               </div>
+
+              <hr className="my-6 border-hairline" />
+
+              <CoresDaMarca form={form} campo={campo} />
             </fieldset>
           </>
         )}
