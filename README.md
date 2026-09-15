@@ -42,11 +42,24 @@ O `criar-admin-local.sh` já deixa um administrador pronto. Se preferir criar
 pela tela, use "Primeiro acesso" em `/admin/login`: o primeiro usuário do
 projeto vira admin automaticamente.
 
-Para recomeçar do zero — o reset apaga também os usuários:
+### Aplicando uma migração nova
+
+Para rodar só as migrações pendentes, **sem perder nada**:
+
+```bash
+supabase migration up
+```
+
+`supabase db reset` é outra coisa: ele **recria o banco do zero**, apagando
+usuários, leads e todas as fotos enviadas pelo painel. Use apenas quando quiser
+mesmo voltar ao estado inicial, ou quando precisar validar que as migrações
+rodam limpas num banco vazio:
 
 ```bash
 supabase db reset && ./scripts/criar-admin-local.sh && ./scripts/seed-fotos.sh
 ```
+
+As fotos ficam no storage e as linhas em `veiculo_fotos`; o reset leva as duas.
 
 ---
 
