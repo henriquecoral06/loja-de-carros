@@ -1,0 +1,40 @@
+{
+  "name": "loja-de-carros",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "react-router build",
+    "dev": "react-router dev",
+    "typecheck": "wrangler types && react-router typegen && tsc -b",
+    "deploy": "npm run build && wrangler deploy",
+    "preview": "npm run build && vite preview",
+    "cf-typegen": "wrangler types",
+    "postinstall": "wrangler types",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "wrangler d1 migrations apply DB --local",
+    "db:migrate:remote": "wrangler d1 migrations apply DB --remote",
+    "db:seed": "node scripts/gerar-seed.mjs && wrangler d1 execute DB --local --file=./seed/seed.sql",
+    "db:reset": "rm -rf .wrangler/state/v3/d1 && npm run db:migrate && npm run db:seed"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.45.2",
+    "isbot": "^5.1.36",
+    "lucide-react": "^1.46.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "react-router": "^8"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.54.10",
+    "@react-router/dev": "^8",
+    "@tailwindcss/vite": "^4.2.2",
+    "@types/node": "^22.20.3",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "drizzle-kit": "^0.31.10",
+    "tailwindcss": "^4.2.2",
+    "typescript": "^5.9.3",
+    "vite": "^8.0.3",
+    "wrangler": "^4.132.0"
+  }
+}

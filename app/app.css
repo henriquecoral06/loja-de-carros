@@ -1,0 +1,111 @@
+@import "tailwindcss" source(".");
+
+/*
+ * Tokens do marketplace. Tailwind 4 gera os utilitários a partir daqui:
+ * --color-marca-600 vira bg-marca-600, text-marca-600 etc.
+ *
+ * A cor de marca é um token só. Trocar o azul por outra cor é editar a
+ * escala abaixo — nenhum componente usa hex solto.
+ */
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  --color-marca-50: #eef3ff;
+  --color-marca-100: #dbe5ff;
+  --color-marca-200: #b9ccff;
+  --color-marca-500: #3563e9;
+  --color-marca-600: #1f4fd6; /* 6.8:1 com texto branco */
+  --color-marca-700: #1a41b3;
+  --color-marca-800: #163790;
+
+  /* Texto: nenhum cinza abaixo de 4.5:1 sobre o fundo da página. */
+  --color-tinta: #0e1726;
+  --color-texto: #2b3545;
+  --color-suave: #525d6c; /* 6.6:1 no branco */
+  --color-fraco: #626c7b; /* 5.2:1 no branco · 4.7:1 no fundo */
+
+  --color-linha: #e3e8ef;
+  --color-linha-forte: #cfd6df;
+  --color-fundo: #f3f5f8;
+  --color-noite: #0b1424;
+  --color-noite-2: #14203a;
+
+  --color-sucesso: #047857;
+  --color-sucesso-fundo: #e7f6ef;
+  --color-alerta: #92400e;
+  --color-alerta-fundo: #fef3e2;
+  --color-erro: #b42318;
+  --color-erro-fundo: #fdecea;
+
+  --shadow-card: 0 1px 2px rgb(14 23 38 / 0.05), 0 1px 1px rgb(14 23 38 / 0.03);
+  --shadow-card-hover: 0 12px 28px -12px rgb(14 23 38 / 0.22);
+  --shadow-flutuante: 0 24px 60px -24px rgb(14 23 38 / 0.35);
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    @apply bg-fundo text-texto;
+    font-feature-settings: "cv11", "ss01";
+  }
+  /* Números de preço e quilometragem alinham quando lado a lado. */
+  .numeros {
+    font-variant-numeric: tabular-nums;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-marca-600);
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  .conteiner {
+    @apply mx-auto w-full max-w-[1280px] px-4 sm:px-6 lg:px-8;
+  }
+
+  /* Base compartilhada por seletor agrupado, não por @apply: o Tailwind 4
+     não aplica classe própria de @layer components. Mantendo tudo nesta
+     camada, qualquer utilitário (h-10, px-4) ainda sobrescreve o botão. */
+  .botao, .botao-primario, .botao-secundario, .botao-fantasma, .botao-perigo {
+    @apply inline-flex h-11 items-center justify-center gap-2 rounded-lg px-5 text-[15px] font-semibold
+      transition-colors disabled:cursor-not-allowed disabled:opacity-60;
+  }
+  .botao-primario {
+    @apply bg-marca-600 text-white hover:bg-marca-700 active:bg-marca-800;
+  }
+  .botao-secundario {
+    @apply border border-linha-forte bg-white text-tinta hover:border-tinta;
+  }
+  .botao-fantasma {
+    @apply text-tinta hover:bg-tinta/5;
+  }
+  .botao-perigo {
+    @apply border border-erro/30 bg-white text-erro hover:bg-erro-fundo;
+  }
+
+  .campo {
+    @apply h-11 w-full rounded-lg border border-linha-forte bg-white px-3.5 text-[15px] text-tinta
+      placeholder:text-fraco transition-colors
+      hover:border-suave focus:border-marca-600 focus:outline-none focus:ring-4 focus:ring-marca-600/15
+      aria-invalid:border-erro aria-invalid:focus:ring-erro/15
+      disabled:bg-fundo disabled:text-fraco;
+  }
+  select.campo {
+    @apply cursor-pointer appearance-none bg-[length:16px] bg-[right_12px_center] bg-no-repeat pr-10;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23525d6c' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  }
+  textarea.campo {
+    @apply h-auto py-3 leading-relaxed;
+  }
+
+  .rotulo {
+    @apply mb-1.5 block text-sm font-medium text-tinta;
+  }
+
+  .cartao {
+    @apply rounded-2xl border border-linha bg-white shadow-card;
+  }
+}

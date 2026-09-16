@@ -1,0 +1,4 @@
+# Copie para .dev.vars (não versionado). Em produção use:
+#   npx wrangler secret put SESSION_SECRET
+# Gere um valor aleatório longo, por exemplo: openssl rand -base64 48
+SESSION_SECRET=troque-por-um-valor-aleatorio-longo

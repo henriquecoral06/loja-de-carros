@@ -1,0 +1,34 @@
+/**
+ * Configuração do Worker. Ver https://developers.cloudflare.com/workers/wrangler/configuration/
+ *
+ * Antes do primeiro deploy, crie os recursos na sua conta e troque o
+ * database_id abaixo pelo que o comando devolver:
+ *   npx wrangler d1 create loja-de-carros
+ *   npx wrangler r2 bucket create loja-de-carros-imagens
+ *   npx wrangler secret put SESSION_SECRET
+ */
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "loja-de-carros",
+	"compatibility_date": "2026-09-15",
+	"main": "./workers/app.ts",
+	"observability": {
+		"enabled": true
+	},
+	"upload_source_maps": true,
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "loja-de-carros",
+			// Substitua pelo id retornado por `wrangler d1 create`. Localmente qualquer valor serve.
+			"database_id": "00000000-0000-0000-0000-000000000000",
+			"migrations_dir": "migrations"
+		}
+	],
+	"r2_buckets": [
+		{
+			"binding": "IMAGENS",
+			"bucket_name": "loja-de-carros-imagens"
+		}
+	]
+}
