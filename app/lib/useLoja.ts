@@ -1,9 +1,13 @@
 import { useRouteLoaderData } from "react-router";
-import type { loader } from "~/routes/site";
+import type { loader } from "~/root";
 
-/** Dados da loja carregados pelo layout público. Só existe dentro de routes/site.tsx. */
+/** Dados da loja carregados pelo loader raiz. */
 export function useLoja() {
-  const dados = useRouteLoaderData<typeof loader>("routes/site");
-  if (!dados) throw new Error("useLoja() usado fora do layout do site");
+  const dados = useRouteLoaderData<typeof loader>("root");
+  if (!dados) throw new Error("useLoja() sem os dados da raiz");
   return dados.loja;
+}
+
+export function useRastreamento() {
+  return useRouteLoaderData<typeof loader>("root")?.rastreamento;
 }

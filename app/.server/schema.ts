@@ -31,6 +31,35 @@ export const loja = sqliteTable("loja", {
   cnpj: text("cnpj").notNull().default(""),
   instagram: text("instagram").notNull().default(""),
   facebook: text("facebook").notNull().default(""),
+  // Aparência (Admin → Aparência). Cores em #rrggbb; a paleta completa é
+  // derivada em app/lib/cores.ts. Chaves de R2 vazias = usar o padrão.
+  corPrimaria: text("cor_primaria").notNull().default("#d3141f"),
+  corEscura: text("cor_escura").notNull().default("#22232d"),
+  logoChave: text("logo_chave").notNull().default(""),
+  logoClaroChave: text("logo_claro_chave").notNull().default(""),
+  bannerChave: text("banner_chave").notNull().default(""),
+  atualizadoEm: integer("atualizado_em").notNull().default(agora),
+});
+
+/**
+ * Integrações (Admin → Integrações). Linha única (id = 1). Os ids de
+ * rastreamento vão para o navegador; URL e segredo do webhook NUNCA saem
+ * do servidor.
+ */
+export const integracoes = sqliteTable("integracoes", {
+  id: integer("id").primaryKey(),
+  metaPixelId: text("meta_pixel_id").notNull().default(""),
+  googleAdsId: text("google_ads_id").notNull().default(""),
+  googleAdsRotuloLead: text("google_ads_rotulo_lead").notNull().default(""),
+  googleAdsRotuloWhatsapp: text("google_ads_rotulo_whatsapp").notNull().default(""),
+  ga4Id: text("ga4_id").notNull().default(""),
+  gtmId: text("gtm_id").notNull().default(""),
+  exigirConsentimento: integer("exigir_consentimento", { mode: "boolean" }).notNull().default(true),
+  webhookUrl: text("webhook_url").notNull().default(""),
+  webhookSegredo: text("webhook_segredo").notNull().default(""),
+  webhookUltimoStatus: integer("webhook_ultimo_status"),
+  webhookUltimoEm: integer("webhook_ultimo_em"),
+  webhookUltimaResposta: text("webhook_ultima_resposta").notNull().default(""),
   atualizadoEm: integer("atualizado_em").notNull().default(agora),
 });
 
@@ -140,6 +169,8 @@ export const mensagens = sqliteTable(
     email: text("email").notNull(),
     telefone: text("telefone").notNull(),
     texto: text("texto").notNull(),
+    // De onde veio o lead: utm_*, gclid, fbclid e a página de entrada (JSON).
+    rastreio: text("rastreio").notNull().default("{}"),
     lida: integer("lida", { mode: "boolean" }).notNull().default(false),
     criadoEm: integer("criado_em").notNull().default(agora),
   },

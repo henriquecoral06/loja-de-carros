@@ -160,7 +160,7 @@ export default function Busca({ loaderData }: Route.ComponentProps) {
         <div className={cn(gaveta ? "fixed inset-0 z-50 bg-tinta/40 lg:static lg:bg-transparent" : "hidden lg:block")}
           onClick={(e) => e.target === e.currentTarget && setGaveta(false)}>
           <aside aria-label="Filtros"
-            className={cn("bg-white lg:sticky lg:top-24 lg:self-start lg:rounded-2xl lg:border lg:border-linha lg:shadow-card",
+            className={cn("bg-white lg:self-start lg:rounded-2xl lg:border lg:border-linha lg:shadow-card",
               gaveta && "absolute inset-y-0 left-0 w-[88%] max-w-sm overflow-y-auto shadow-flutuante lg:relative lg:w-auto lg:max-w-none lg:overflow-visible")}>
             <div className="flex items-center justify-between border-b border-linha px-5 py-4">
               <h2 className="font-bold text-tinta">Filtros</h2>
@@ -276,33 +276,40 @@ export default function Busca({ loaderData }: Route.ComponentProps) {
           {/* No celular a barra de filtros (com o h2 dela) fica escondida; sem
               este título a hierarquia saltaria do h1 direto para os h3 dos cards. */}
           <h2 id="titulo-resultados" className="sr-only">Resultados</h2>
-          <div className="flex flex-wrap items-center gap-2">
-            <button type="button" onClick={() => setGaveta(true)} className="botao-secundario h-10 px-4 text-sm lg:hidden">
+          <div className="flex items-center justify-between gap-3">
+            <button type="button" onClick={() => setGaveta(true)} className="botao-secundario h-10 shrink-0 px-4 text-sm lg:hidden">
               <SlidersHorizontal className="size-4" aria-hidden="true" /> Filtros{ativos.length > 0 && ` (${ativos.length})`}
             </button>
+            <p className="numeros hidden text-sm text-suave lg:block">
+              {ativos.length ? `${inteiro(total)} ${total === 1 ? "resultado" : "resultados"} com os filtros` : "Todos os carros do estoque"}
+            </p>
 
-            {ativos.map((a) => (
-              <Link key={a.rotulo} to={a.href} preventScrollReset
-                className="inline-flex h-8 items-center gap-1.5 rounded-full border border-marca-200 bg-marca-50 pl-3 pr-2 text-sm font-medium text-marca-800 hover:border-marca-600"
-                aria-label={`Remover filtro ${a.rotulo}`}>
-                {a.rotulo} <X className="size-3.5" aria-hidden="true" />
-              </Link>
-            ))}
-            {ativos.length > 1 && (
-              <Link to="/carros" className="text-sm font-semibold text-suave underline hover:text-tinta">Limpar tudo</Link>
-            )}
-
-            <Form method="get" action={location.pathname} className="ml-auto flex items-center gap-2">
+            <Form method="get" action={location.pathname} className="flex min-w-0 items-center gap-2">
               {[...url.searchParams].filter(([k]) => k !== "ordem" && k !== "pagina").map(([k, v], i) => (
                 <input key={`${k}-${i}`} type="hidden" name={k} value={v} />
               ))}
-              <label htmlFor="ordem" className="text-sm text-suave">Ordenar</label>
-              <select id="ordem" name="ordem" defaultValue={filtros.ordem} className="campo h-10 w-auto text-sm"
+              <label htmlFor="ordem" className="hidden text-sm text-suave sm:block">Ordenar por</label>
+              <select id="ordem" name="ordem" defaultValue={filtros.ordem} aria-label="Ordenar por" className="campo h-10 w-auto min-w-0 text-sm"
                 onChange={(e) => submit(e.currentTarget.form, { preventScrollReset: true })}>
                 {ORDENACOES.map((o) => <option key={o.valor} value={o.valor}>{o.rotulo}</option>)}
               </select>
             </Form>
           </div>
+
+          {ativos.length > 0 && (
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              {ativos.map((a) => (
+                <Link key={a.rotulo} to={a.href} preventScrollReset
+                  className="inline-flex h-8 items-center gap-1.5 rounded-full border border-marca-200 bg-marca-50 pl-3 pr-2 text-sm font-medium text-marca-800 hover:border-marca-600"
+                  aria-label={`Remover filtro ${a.rotulo}`}>
+                  {a.rotulo} <X className="size-3.5" aria-hidden="true" />
+                </Link>
+              ))}
+              {ativos.length > 1 && (
+                <Link to="/carros" className="px-1 py-1.5 text-sm font-semibold text-suave underline hover:text-tinta">Limpar tudo</Link>
+              )}
+            </div>
+          )}
 
           {anuncios.length ? (
             <ul className={cn("mt-5 grid gap-4 transition-opacity sm:grid-cols-2 xl:grid-cols-3", carregando && "opacity-50")}>

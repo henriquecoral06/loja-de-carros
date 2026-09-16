@@ -1,27 +1,28 @@
 import { count, eq } from "drizzle-orm";
-import { ExternalLink, Inbox, KeyRound, LayoutGrid, LogOut, Plus, Store, Users } from "lucide-react";
+import { ExternalLink, Inbox, KeyRound, LayoutGrid, LogOut, Palette, PlugZap, Plus, Store, Users } from "lucide-react";
 import { Form, Link, NavLink, Outlet } from "react-router";
 import { db, schema } from "~/.server/db";
-import { obterLoja } from "~/.server/loja";
 import { exigirUsuario } from "~/.server/sessao";
 import { cn } from "~/lib/ui";
+import { useLoja } from "~/lib/useLoja";
 import type { Route } from "./+types/layout";
 
 export async function loader({ request }: Route.LoaderArgs) {
   const usuario = await exigirUsuario(request);
-  const [loja, [{ naoLidas }]] = await Promise.all([
-    obterLoja(),
-    db.select({ naoLidas: count() }).from(schema.mensagens).where(eq(schema.mensagens.lida, false)),
-  ]);
-  return { usuario, naoLidas, nomeLoja: loja.nome, lojaPreenchida: loja.atualizadoEm > 0 };
+  const [{ naoLidas }] = await db.select({ naoLidas: count() }).from(schema.mensagens).where(eq(schema.mensagens.lida, false));
+  return { usuario, naoLidas };
 }
 
 export default function AdminLayout({ loaderData }: Route.ComponentProps) {
-  const { usuario, naoLidas, nomeLoja, lojaPreenchida } = loaderData;
+  const { usuario, naoLidas } = loaderData;
+  const loja = useLoja();
+  const lojaPreenchida = loja.atualizadoEm > 0 && Boolean(loja.whatsapp);
   const itens = [
     { to: "/admin", rotulo: "Estoque", icone: LayoutGrid, fim: true },
     { to: "/admin/mensagens", rotulo: "Mensagens", icone: Inbox, contador: naoLidas },
     { to: "/admin/loja", rotulo: "Dados da loja", icone: Store },
+    { to: "/admin/aparencia", rotulo: "Aparência", icone: Palette },
+    { to: "/admin/integracoes", rotulo: "Integrações", icone: PlugZap },
     { to: "/admin/equipe", rotulo: "Equipe", icone: Users },
     { to: "/admin/senha", rotulo: "Minha senha", icone: KeyRound },
   ];
@@ -31,10 +32,18 @@ export default function AdminLayout({ loaderData }: Route.ComponentProps) {
       <header className="sticky top-0 z-40 bg-noite text-white">
         <div className="flex h-14 items-center gap-3 px-4 sm:px-6">
           <Link to="/admin" className="flex min-w-0 items-center gap-2.5">
-            <span className="grid size-8 shrink-0 place-items-center rounded-md bg-marca-600 text-sm font-extrabold">
-              {nomeLoja.trim().charAt(0).toUpperCase()}
-            </span>
-            <span className="truncate font-bold">{nomeLoja}</span>
+            {loja.logoClaro ? (
+              <img src={loja.logoClaro} alt={loja.nome} className="h-7 max-w-[160px] object-contain" />
+            ) : loja.logo ? (
+              <span className="rounded-md bg-white px-2 py-1"><img src={loja.logo} alt={loja.nome} className="h-6 max-w-[140px] object-contain" /></span>
+            ) : (
+              <>
+                <span className="grid size-8 shrink-0 place-items-center rounded-md bg-marca-600 text-sm font-extrabold text-sobre-marca">
+                  {loja.nome.trim().charAt(0).toUpperCase()}
+                </span>
+                <span className="truncate font-bold">{loja.nome}</span>
+              </>
+            )}
             <span className="hidden rounded bg-white/10 px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-white/75 sm:inline">Painel</span>
           </Link>
           <div className="ml-auto flex items-center gap-1">
@@ -51,7 +60,7 @@ export default function AdminLayout({ loaderData }: Route.ComponentProps) {
         </div>
       </header>
 
-      <div className="mx-auto grid w-full max-w-[1400px] flex-1 gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[230px_minmax(0,1fr)]">
+      <div className="mx-auto grid w-full max-w-[1400px] flex-1 grid-cols-[minmax(0,1fr)] gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[230px_minmax(0,1fr)]">
         <nav aria-label="Painel" className="-mx-4 overflow-x-auto px-4 sm:-mx-6 sm:px-6 lg:mx-0 lg:overflow-visible lg:px-0">
           <div className="flex gap-1 lg:sticky lg:top-20 lg:flex-col">
             <Link to="/admin/veiculos/novo" className="botao-primario mr-2 h-10 shrink-0 px-4 text-sm lg:mb-3 lg:mr-0">
@@ -62,12 +71,13 @@ export default function AdminLayout({ loaderData }: Route.ComponentProps) {
                 <li key={to} className="shrink-0">
                   <NavLink to={to} end={fim}
                     className={({ isActive }) => cn(
-                      "flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors",
+                      // relative: prende o texto sr-only do contador, senão ele escapa da rolagem e alarga a página no celular.
+                      "relative flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors",
                       isActive ? "bg-white text-marca-700 shadow-card" : "text-suave hover:bg-white/70 hover:text-tinta")}>
                     <Icone className="size-[18px]" aria-hidden="true" />
                     {rotulo}
                     {!!contador && (
-                      <span className="numeros ml-auto rounded-full bg-marca-600 px-2 py-0.5 text-xs text-white">
+                      <span className="numeros ml-auto rounded-full bg-marca-600 px-2 py-0.5 text-xs text-sobre-marca">
                         {contador}<span className="sr-only"> não lidas</span>
                       </span>
                     )}

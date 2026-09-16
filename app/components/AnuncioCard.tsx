@@ -1,4 +1,4 @@
-import { Calendar, Camera, Cog, Gauge } from "lucide-react";
+import { Calendar, Camera, Cog, Fuel, Gauge } from "lucide-react";
 import { Link } from "react-router";
 import { anos, km, moeda } from "~/lib/formato";
 import { CarroPlaceholder } from "./CarroPlaceholder";
@@ -6,7 +6,7 @@ import { CarroPlaceholder } from "./CarroPlaceholder";
 export type DadosCard = {
   slug: string; marca: string; modelo: string; versao: string;
   anoFabricacao: number; anoModelo: number; km: number; preco: number;
-  cambio: string; carroceria: string; destaque: boolean;
+  cambio: string; combustivel: string; carroceria: string; destaque: boolean;
   capa: string | null; totalFotos: number;
 };
 
@@ -23,7 +23,7 @@ export function AnuncioCard({ anuncio, prioridade = false }: { anuncio: DadosCar
           <CarroPlaceholder carroceria={anuncio.carroceria} className="size-full" />
         )}
         {anuncio.destaque && (
-          <span className="absolute left-2.5 top-2.5 rounded bg-marca-600 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-white">
+          <span className="absolute left-2.5 top-2.5 rounded bg-marca-600 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-sobre-marca">
             Destaque
           </span>
         )}
@@ -45,10 +45,12 @@ export function AnuncioCard({ anuncio, prioridade = false }: { anuncio: DadosCar
 
         <p className="numeros mb-4 mt-3 text-[22px] font-extrabold tracking-tight text-tinta">{moeda(anuncio.preco)}</p>
 
-        <dl className="numeros mt-auto flex flex-wrap gap-x-3 gap-y-1 border-t border-linha pt-3 text-[13px] text-texto">
-          <div className="flex items-center gap-1"><Calendar className="size-3.5 shrink-0 text-fraco" aria-hidden="true" /><dt className="sr-only">Ano</dt><dd>{anos(anuncio.anoFabricacao, anuncio.anoModelo)}</dd></div>
-          <div className="flex items-center gap-1"><Gauge className="size-3.5 shrink-0 text-fraco" aria-hidden="true" /><dt className="sr-only">Quilometragem</dt><dd>{km(anuncio.km)}</dd></div>
-          <div className="flex items-center gap-1"><Cog className="size-3.5 shrink-0 text-fraco" aria-hidden="true" /><dt className="sr-only">Câmbio</dt><dd>{anuncio.cambio}</dd></div>
+        {/* Sempre duas linhas curtas: cards lado a lado ficam com a mesma altura. */}
+        <dl className="numeros mt-auto grid grid-cols-2 gap-x-3 gap-y-1.5 border-t border-linha pt-3 text-[13px] text-texto">
+          <div className="flex min-w-0 items-center gap-1.5"><Calendar className="size-3.5 shrink-0 text-fraco" aria-hidden="true" /><dt className="sr-only">Ano</dt><dd className="truncate">{anos(anuncio.anoFabricacao, anuncio.anoModelo)}</dd></div>
+          <div className="flex min-w-0 items-center gap-1.5"><Gauge className="size-3.5 shrink-0 text-fraco" aria-hidden="true" /><dt className="sr-only">Quilometragem</dt><dd className="truncate">{km(anuncio.km)}</dd></div>
+          <div className="flex min-w-0 items-center gap-1.5"><Cog className="size-3.5 shrink-0 text-fraco" aria-hidden="true" /><dt className="sr-only">Câmbio</dt><dd className="truncate">{anuncio.cambio}</dd></div>
+          <div className="flex min-w-0 items-center gap-1.5"><Fuel className="size-3.5 shrink-0 text-fraco" aria-hidden="true" /><dt className="sr-only">Combustível</dt><dd className="truncate">{anuncio.combustivel}</dd></div>
         </dl>
       </div>
     </article>

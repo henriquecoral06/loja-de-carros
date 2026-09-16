@@ -1,9 +1,9 @@
 # Loja de Carros
 
 Site de uma loja de carros seminovos, com a linguagem visual dos grandes
-portais de classificados: vermelho como cor de ação, busca em destaque, cards
-com foto, preço e ficha, filtros laterais. Nome, logo em texto, contatos e
-endereço são da loja — editados no painel. Roda inteiro no Cloudflare Workers.
+portais de classificados: cor de ação forte, busca em destaque, cards com
+foto, preço e ficha, filtros laterais. Nome, logo, cores, contatos e endereço
+são da loja — editados no painel. Roda inteiro no Cloudflare Workers.
 
 | Camada | Tecnologia |
 |---|---|
@@ -31,6 +31,10 @@ imagem, sem banco fora da Cloudflare.
 - Cadastro e edição de veículo com até 20 fotos (setas para reordenar; a primeira é a capa)
 - Mensagens recebidas pelo site, com resposta rápida por WhatsApp, telefone ou e-mail
 - Dados da loja: nome, frase de destaque, texto "sobre", WhatsApp, telefone, endereço, horário, CNPJ, redes
+- **Aparência:** logo (PNG, JPG, WebP ou SVG), logo para fundo escuro, banner da home e cores — com
+  prévia ao vivo, combinações prontas e sugestão de cores tirada da própria logo
+- **Integrações:** Meta Pixel, Google Ads (tag + rótulos de conversão), GA4, Google Tag Manager,
+  aviso de cookies (LGPD) e webhook para CRM com assinatura HMAC e botão de teste
 - Equipe: dar e remover acessos · Minha senha
 
 Situações de um veículo: **à venda** (aparece em tudo), **pausado** (some do
@@ -80,11 +84,34 @@ abertas dessa pessoa).
 | O quê | Onde |
 |---|---|
 | Nome, contatos, endereço, textos | Painel → Dados da loja |
-| Cor da marca | escala `--color-marca-*` em `app/app.css` — nenhum componente usa cor solta |
-| Logo | `app/components/Logo.tsx` (hoje é o nome em texto com um ícone) |
+| Logo, banner e cores | Painel → Aparência (a paleta completa sai de duas cores, em `app/lib/cores.ts`) |
+| Tags de anúncio e CRM | Painel → Integrações |
 | Diferenciais da home ("Seu carro na troca"…) | `DIFERENCIAIS` em `app/routes/home.tsx` |
 | Marcas e modelos do catálogo | `scripts/gerar-seed.mjs` |
 | Opcionais, cores, carrocerias | `app/lib/veiculos.ts` |
+
+---
+
+## Integrações
+
+**Eventos das tags** (só carregam depois do “Aceitar” no aviso de cookies, se
+a opção estiver ligada):
+
+| Momento | Meta | Google | dataLayer (GTM) |
+|---|---|---|---|
+| Toda página | `PageView` | `page_view` | `pagina` |
+| Página de um carro | `ViewContent` | `view_item` | `veiculo` |
+| Clique no WhatsApp | `Contact` | `contact` + conversão “WhatsApp” | `whatsapp` |
+| Clique no telefone | `Contact` | `contact` | `telefone` |
+| Formulário enviado | `Lead` | `generate_lead` + conversão “formulário” | `lead` |
+
+**Webhook do CRM.** A cada mensagem recebida, `POST` em JSON com `lead`,
+`veiculo` (ou `null` na página de contato), `rastreio` (utm_*, gclid, fbclid,
+página de entrada) e `loja`. Com segredo configurado, o cabeçalho
+`X-Assinatura: sha256=<HMAC-SHA256 do corpo>` permite ao CRM conferir a
+origem. O envio usa `waitUntil`: o visitante não espera o CRM responder. O
+resultado da última entrega aparece no painel. URL e segredo nunca vão para o
+navegador.
 
 ---
 
@@ -154,9 +181,18 @@ seguintes, sem erro**. Para leitura com `JOIN`, use `Promise.all`. Detalhes em
 
 ---
 
+## Fotos de demonstração
+
+O seed usa fotos do [Unsplash](https://unsplash.com/license) (uso comercial
+livre, sem atribuição obrigatória), escolhidas por carroceria e cor parecidas
+com cada carro — **não são fotos dos veículos anunciados**. Ficam como URL
+externa e não ocupam o R2; basta substituir pelas fotos reais no cadastro do
+veículo. O banner padrão e as categorias da home também vêm de lá.
+
+---
+
 ## O que ainda não existe
 
-- Upload de logo em imagem (hoje o logo é o nome em texto)
 - Recuperação de senha por e-mail (use `npm run acesso`)
 - Simulador de financiamento e formulário de avaliação do carro na troca
 - Integração com a tabela FIPE

@@ -109,6 +109,30 @@ const ANUNCIOS = [
   ["Mitsubishi", "L200 Triton", "Sport HPE-S 2.4 Diesel 4x4", 2020, 2021, 96400, 189900, "Automático", "Diesel", "Picape", "Prata", 4, false, OPC_COMPLETO],
 ];
 
+/*
+ * Fotos de demonstração do Unsplash (licença livre, uso comercial
+ * permitido, sem atribuição obrigatória). Escolhidas por carroceria e cor
+ * parecidas com cada carro — não são fotos do veículo anunciado. Ficam
+ * como URL externa: não ocupam o R2 e somem quando a loja troca pelas
+ * fotos reais no painel.
+ */
+const unsplash = (id) => `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=1600&h=1200&q=75`;
+const FOTOS = {
+  "Corolla": "1638618164682-12b986ec2a75", "Civic": "1674719645138-c3fd1aaf8307", "City": "1706495227612-fde52c357c69",
+  "320i": "1546614042-7df3c24c9e5d", "Corolla Cross": "1634682056897-5b3f43fb2e7a", "HR-V": "1607853554251-bd2eed4145da",
+  "T-Cross": "1606611013016-969c19ba27bb", "Nivus": "1726708133821-a10e4c89d3db", "Tracker": "1700884520248-92092bd21e63",
+  "Pulse": "1653813893853-be3e6ecfe061", "Compass": "1615063029891-497bebd4f03c", "Renegade": "1718762395094-fa40f65a88e8",
+  "Creta": "1694649686884-0d62d0dc47d1", "Duster": "1650959818516-03d68079f9a0", "Kicks": "1531181616225-f8e50c1ab53e",
+  "Song Plus": "1705624843697-4461f9dce482", "GLA": "1692970093810-e47f696b37ed", "Polo": "1541899481282-d53bffe3c35d",
+  "Gol": "1714225317039-d685f0e1cd38", "Onix": "1610768207795-72169abdf0d4", "Mobi": "1624543345260-c1f7ad0b7be6",
+  "HB20": "1573899754191-bd20f600141c", "Kwid": "1655288115919-7f8b6480ce53", "Dolphin": "1601057319429-db0ea69e0307",
+  "208": "1655285142221-2ecd4a91776f", "Hilux": "1732076064630-69b5bdf4fdf4", "Amarok": "1649793395985-967862a3b73f",
+  "S10": "1628464682320-6a9ae020cb2b", "Strada": "1588814928518-238716568ef4", "Toro": "1624339024061-b435d9261c1d",
+  "Ranger": "1636882441787-d9ac4ea22637", "L200 Triton": "1676067926577-e65f135e7799",
+};
+const INTERIORES = ["1625690180114-5530b1304127", "1660374703904-b26c6b594e04", "1592570714618-15e2d4719c6c"];
+const INTERIOR_PICAPE = "1610647752706-3bb12232b3ab";
+
 const DESCRICOES = [
   "Único dono, todas as revisões feitas na concessionária. Manual e chave reserva. IPVA pago.",
   "Carro muito bem conservado, pneus novos e laudo cautelar aprovado. Aceito troca por modelo de menor valor.",
@@ -121,6 +145,12 @@ ANUNCIOS.forEach(([marca, modelo, versao, fab, mod, kmRodado, preco, cambio, com
   const slug = `${slugify(`${marca} ${modelo} ${versao} ${mod}`).slice(0, 70)}-${curto()}`;
   const criado = agora - (i * 1.3 + 0.2) * dia;
   sql.push(`insert into anuncios (id, slug, marca_id, modelo_id, versao, ano_fabricacao, ano_modelo, km, preco, cambio, combustivel, carroceria, cor, portas, opcionais, descricao, destaque, status, visualizacoes, criado_por, criado_em, atualizado_em) values (${q(id)}, ${q(slug)}, ${idsMarca[marca]}, ${idsModelo[`${marca}|${modelo}`]}, ${q(versao)}, ${fab}, ${mod}, ${kmRodado}, ${preco}, ${q(cambio)}, ${q(combustivel)}, ${q(carroceria)}, ${q(cor)}, ${portas}, ${q(JSON.stringify(opc))}, ${q(DESCRICOES[i % DESCRICOES.length])}, ${destaque ? 1 : 0}, 'ativo', ${Math.floor(20 + ((i * 37) % 400))}, ${q(admin.id)}, ${Math.round(criado)}, ${Math.round(criado)});`);
+
+  const fotos = [FOTOS[modelo], carroceria === "Picape" ? INTERIOR_PICAPE : INTERIORES[i % INTERIORES.length]];
+  if (!FOTOS[modelo]) throw new Error(`Sem foto para ${modelo}`);
+  fotos.forEach((foto, ordem) => {
+    sql.push(`insert into fotos (id, anuncio_id, chave, ordem, criado_em) values (${q(randomUUID())}, ${q(id)}, ${q(unsplash(foto))}, ${ordem}, ${Math.round(criado)});`);
+  });
 });
 
 mkdirSync("seed", { recursive: true });

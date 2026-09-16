@@ -1,6 +1,7 @@
-
-import type { DadosLoja } from "~/.server/loja";
+import type { AnchorHTMLAttributes } from "react";
 import { linkWhatsApp } from "~/lib/formato";
+import { rastrear } from "~/lib/rastreamento";
+import { useLoja } from "~/lib/useLoja";
 
 export function IconeWhatsApp({ className }: { className?: string }) {
   return (
@@ -10,14 +11,29 @@ export function IconeWhatsApp({ className }: { className?: string }) {
   );
 }
 
-export function BotaoWhatsAppFlutuante({ loja }: { loja: Pick<DadosLoja, "whatsapp" | "nome"> }) {
+type Props = Omit<AnchorHTMLAttributes<HTMLAnchorElement>, "href"> & {
+  mensagem?: string;
+  /** Carro de onde partiu o clique, para o evento de conversão. */
+  veiculo?: { id: string; nome: string; valor: number };
+};
+
+/** Link para o WhatsApp da loja que registra o clique como contato nas tags de anúncio. */
+export function LinkWhatsApp({ mensagem, veiculo, onClick, children, ...props }: Props) {
+  const loja = useLoja();
   if (!loja.whatsapp) return null;
   return (
-    <a href={linkWhatsApp(loja.whatsapp, `Olá! Vim pelo site ${loja.nome}.`)}
-      target="_blank" rel="noopener noreferrer" aria-label="Falar com a loja no WhatsApp"
-      className="fixed bottom-5 right-5 z-40 grid size-14 place-items-center rounded-full bg-[#128c4a] text-white shadow-flutuante transition-transform hover:scale-105">
-      <IconeWhatsApp className="size-7" />
+    <a {...props} href={linkWhatsApp(loja.whatsapp, mensagem ?? `Olá! Vim pelo site ${loja.nome}.`)} target="_blank" rel="noopener noreferrer"
+      onClick={(e) => { rastrear("whatsapp", veiculo ?? {}); onClick?.(e); }}>
+      {children}
     </a>
   );
 }
 
+export function BotaoWhatsAppFlutuante() {
+  return (
+    <LinkWhatsApp aria-label="Falar com a loja no WhatsApp"
+      className="fixed bottom-5 right-5 z-40 grid size-14 place-items-center rounded-full bg-[#128c4a] text-white shadow-flutuante transition-transform hover:scale-105">
+      <IconeWhatsApp className="size-7" />
+    </LinkWhatsApp>
+  );
+}

@@ -1,17 +1,21 @@
 import { eq } from "drizzle-orm";
 import { isbot } from "isbot";
-import { Calendar, Check, Cog, DoorOpen, Fuel, Gauge, MapPin, Palette, Pencil, Phone, TriangleAlert } from "lucide-react";
+import { ArrowRight, Calendar, Check, Clock, Cog, DoorOpen, Fuel, Gauge, MapPin, Palette, Pencil, Phone, TriangleAlert } from "lucide-react";
+import { useEffect } from "react";
 import { data, Link, useFetcher } from "react-router";
 import { porSlug, registrarVisualizacao, similares } from "~/.server/anuncios";
 import { db, schema } from "~/.server/db";
+import { obterLoja } from "~/.server/loja";
 import { validarMensagem, type ErrosMensagem } from "~/.server/mensagens";
+import { enviarLeadAoCrm } from "~/.server/webhook";
 import { obterUsuario } from "~/.server/sessao";
 import { dentroDoLimite, exigirMesmaOrigem, ipDe } from "~/.server/seguranca";
 import { AnuncioCard } from "~/components/AnuncioCard";
 import { CamposMensagem } from "~/components/CamposMensagem";
 import { Galeria } from "~/components/Galeria";
-import { IconeWhatsApp } from "~/components/WhatsApp";
-import { anos, km, linkWhatsApp, moeda, telefone } from "~/lib/formato";
+import { IconeWhatsApp, LinkWhatsApp } from "~/components/WhatsApp";
+import { anos, km, moeda, telefone } from "~/lib/formato";
+import { rastrear } from "~/lib/rastreamento";
 import { lojaDasRotas } from "~/lib/site";
 import { useLoja } from "~/lib/useLoja";
 import type { Route } from "./+types/anuncio";
@@ -86,8 +90,7 @@ export async function action({ request, params }: Route.ActionArgs) {
   exigirMesmaOrigem(request);
   const form = await request.formData();
 
-  const [anuncio] = await db.select({ id: schema.anuncios.id, status: schema.anuncios.status })
-    .from(schema.anuncios).where(eq(schema.anuncios.slug, params.slug)).limit(1);
+  const anuncio = await porSlug(params.slug);
   if (!anuncio || anuncio.status === "pausado") throw data("Veículo não encontrado", { status: 404 });
   if (anuncio.status !== "ativo") return data({ erro: "Este carro já foi vendido." }, { status: 410 });
 
@@ -101,7 +104,18 @@ export async function action({ request, params }: Route.ActionArgs) {
     return data({ erro: "Você enviou muitas mensagens em pouco tempo. Tente de novo mais tarde." }, { status: 429 });
   }
 
-  await db.insert(schema.mensagens).values({ id: crypto.randomUUID(), anuncioId: anuncio.id, ...resultado.mensagem });
+  const id = crypto.randomUUID();
+  await db.insert(schema.mensagens).values({ id, anuncioId: anuncio.id, ...resultado.mensagem });
+  const origem = new URL(request.url).origin;
+  await enviarLeadAoCrm({
+    id, criado_em: new Date().toISOString(), origem: "pagina_do_veiculo",
+    lead: { nome: resultado.mensagem.nome, email: resultado.mensagem.email, telefone: resultado.mensagem.telefone, mensagem: resultado.mensagem.texto },
+    veiculo: {
+      id: anuncio.id, titulo: `${anuncio.marca} ${anuncio.modelo} ${anuncio.versao} ${anuncio.anoModelo}`, marca: anuncio.marca, modelo: anuncio.modelo,
+      versao: anuncio.versao, ano_modelo: anuncio.anoModelo, preco: anuncio.preco, url: `${origem}/carro/${anuncio.slug}`,
+    },
+    rastreio: resultado.rastreio,
+  }, (await obterLoja()).nome);
   return { enviada: true };
 }
 
@@ -119,6 +133,10 @@ export default function Anuncio({ loaderData }: Route.ComponentProps) {
     { icone: Palette, rotulo: "Cor", valor: a.cor },
     { icone: DoorOpen, rotulo: "Portas", valor: String(a.portas) },
   ];
+
+  const nomeVeiculo = `${a.marca} ${a.modelo} ${a.versao} ${a.anoModelo}`;
+  const eventoVeiculo = { id: a.id, nome: nomeVeiculo, valor: a.preco };
+  useEffect(() => { if (ativo) rastrear("veiculo", eventoVeiculo); }, [a.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const textoWhats = `Olá! Tenho interesse no ${a.marca} ${a.modelo} ${a.versao} ${a.anoModelo} (${moeda(a.preco)}). Ainda está disponível?`;
   const endereco = [loja.endereco, loja.bairro, [loja.cidade, loja.uf].filter(Boolean).join(" - ")].filter(Boolean).join(", ");
@@ -152,11 +170,13 @@ export default function Anuncio({ loaderData }: Route.ComponentProps) {
         </div>
       )}
 
-      <div className="mt-5 grid gap-8 lg:grid-cols-[minmax(0,1fr)_380px]">
-        <div className="min-w-0">
-          <Galeria fotos={a.fotos} titulo={`${titulo} ${a.versao}`} carroceria={a.carroceria} />
+      {/* No celular, preço e botão de contato vêm logo depois das fotos (order-2);
+          no desktop, ficam na coluna da direita. `contents` desfaz as colunas no celular. */}
+      <div className="mt-5 flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start lg:gap-8">
+        <div className="contents lg:block lg:min-w-0">
+          <div className="order-1"><Galeria fotos={a.fotos} titulo={`${titulo} ${a.versao}`} carroceria={a.carroceria} /></div>
 
-          <section aria-labelledby="titulo-ficha" className="cartao mt-6 p-5 sm:p-6">
+          <section aria-labelledby="titulo-ficha" className="cartao order-3 p-5 sm:p-6 lg:mt-6">
             <h2 id="titulo-ficha" className="text-lg font-bold text-tinta">Ficha técnica</h2>
             <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-3">
               {ficha.map(({ icone: Icone, rotulo, valor }) => (
@@ -172,7 +192,7 @@ export default function Anuncio({ loaderData }: Route.ComponentProps) {
           </section>
 
           {a.opcionais.length > 0 && (
-            <section aria-labelledby="titulo-opcionais" className="cartao mt-4 p-5 sm:p-6">
+            <section aria-labelledby="titulo-opcionais" className="cartao order-3 p-5 sm:p-6 lg:mt-4">
               <h2 id="titulo-opcionais" className="text-lg font-bold text-tinta">Itens e opcionais</h2>
               <ul className="mt-4 grid gap-x-6 gap-y-2.5 sm:grid-cols-2">
                 {a.opcionais.map((o) => (
@@ -185,7 +205,7 @@ export default function Anuncio({ loaderData }: Route.ComponentProps) {
           )}
 
           {a.descricao && (
-            <section aria-labelledby="titulo-descricao" className="cartao mt-4 p-5 sm:p-6">
+            <section aria-labelledby="titulo-descricao" className="cartao order-3 p-5 sm:p-6 lg:mt-4">
               <h2 id="titulo-descricao" className="text-lg font-bold text-tinta">Sobre este carro</h2>
               <p className="mt-3 max-w-[70ch] whitespace-pre-line leading-relaxed text-texto">{a.descricao}</p>
             </section>
@@ -193,9 +213,9 @@ export default function Anuncio({ loaderData }: Route.ComponentProps) {
         </div>
 
         {/* Sem sticky: com o formulário a coluna passa da altura da tela e o fim ficaria inalcançável. */}
-        <aside>
-          <div className="cartao p-5 sm:p-6">
-            {a.destaque && <span className="mb-2 inline-block rounded bg-marca-600 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-white">Destaque</span>}
+        <aside className="contents lg:block">
+          <div className="cartao order-2 p-5 sm:p-6">
+            {a.destaque && <span className="mb-2 inline-block rounded bg-marca-600 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-sobre-marca">Destaque</span>}
             <h1 className="text-2xl font-extrabold uppercase leading-tight tracking-tight text-tinta">{titulo}</h1>
             <p className="mt-1 text-suave">{a.versao}</p>
             <p className="numeros mt-4 text-[34px] font-extrabold leading-none tracking-tight text-tinta">{moeda(a.preco)}</p>
@@ -207,13 +227,11 @@ export default function Anuncio({ loaderData }: Route.ComponentProps) {
 
             {ativo && (
               <div className="mt-6 grid gap-2 border-t border-linha pt-6">
-                {loja.whatsapp && (
-                  <a href={linkWhatsApp(loja.whatsapp, textoWhats)} target="_blank" rel="noopener noreferrer" className="botao-primario w-full">
-                    <IconeWhatsApp className="size-[18px]" /> Tenho interesse
-                  </a>
-                )}
+                <LinkWhatsApp mensagem={textoWhats} veiculo={eventoVeiculo} className="botao-primario w-full">
+                  <IconeWhatsApp className="size-[18px]" /> Tenho interesse
+                </LinkWhatsApp>
                 {loja.telefone && (
-                  <a href={`tel:+55${loja.telefone}`} className="botao-secundario numeros w-full">
+                  <a href={`tel:+55${loja.telefone}`} onClick={() => rastrear("telefone", eventoVeiculo)} className="botao-secundario numeros w-full">
                     <Phone className="size-[18px]" aria-hidden="true" /> {telefone(loja.telefone)}
                   </a>
                 )}
@@ -221,17 +239,27 @@ export default function Anuncio({ loaderData }: Route.ComponentProps) {
             )}
           </div>
 
-          {ativo && <FormMensagem anuncio={a} />}
+          {ativo && <FormMensagem anuncio={a} evento={eventoVeiculo} />}
 
-          <div className="cartao mt-4 p-5">
-            <p className="font-bold text-tinta">{loja.nome}</p>
-            {endereco && (
-              <p className="mt-2 flex gap-2 text-sm text-suave">
-                <MapPin className="mt-0.5 size-4 shrink-0" aria-hidden="true" /> {endereco}
-              </p>
-            )}
-            {loja.horario && <p className="mt-1 pl-6 text-sm text-suave">{loja.horario}</p>}
-            <Link to="/contato" className="mt-3 inline-block py-1 pl-6 text-sm font-semibold text-marca-700 hover:underline">Como chegar</Link>
+          <div className="cartao order-5 p-5 sm:p-6 lg:mt-4">
+            <h2 className="font-bold text-tinta">Onde ver este carro</h2>
+            <ul className="mt-3 space-y-3 text-sm text-texto">
+              {endereco && (
+                <li className="flex gap-2.5">
+                  <MapPin className="mt-0.5 size-4 shrink-0 text-marca-700" aria-hidden="true" />
+                  <span>{endereco}</span>
+                </li>
+              )}
+              {loja.horario && (
+                <li className="flex gap-2.5">
+                  <Clock className="mt-0.5 size-4 shrink-0 text-marca-700" aria-hidden="true" />
+                  <span>{loja.horario}</span>
+                </li>
+              )}
+            </ul>
+            <Link to="/contato" className="mt-3 inline-flex items-center gap-1 py-1 text-sm font-semibold text-marca-700 hover:underline">
+              Como chegar <ArrowRight className="size-4" aria-hidden="true" />
+            </Link>
           </div>
         </aside>
       </div>
@@ -250,11 +278,13 @@ export default function Anuncio({ loaderData }: Route.ComponentProps) {
 
 type RespostaMensagem = { erro?: string; enviada?: boolean; erros?: ErrosMensagem };
 
-function FormMensagem({ anuncio: a }: { anuncio: { marca: string; modelo: string; anoModelo: number } }) {
+function FormMensagem({ anuncio: a, evento }: { anuncio: { marca: string; modelo: string; anoModelo: number }; evento: { id: string; nome: string; valor: number } }) {
   const mensagem = useFetcher<RespostaMensagem>();
+  const enviada = Boolean(mensagem.data?.enviada);
+  useEffect(() => { if (enviada) rastrear("lead", { ...evento, origem: "pagina_do_veiculo" }); }, [enviada]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <section aria-labelledby="titulo-mensagem" className="cartao mt-4 p-5 sm:p-6">
+    <section aria-labelledby="titulo-mensagem" className="cartao order-4 p-5 sm:p-6 lg:mt-4">
       <h2 id="titulo-mensagem" className="font-bold text-tinta">Prefere que a gente te chame?</h2>
       {mensagem.data?.enviada ? (
         <div role="status" className="mt-3 rounded-xl bg-sucesso-fundo p-4 text-sucesso">

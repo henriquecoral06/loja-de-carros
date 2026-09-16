@@ -117,7 +117,7 @@ export default function Estoque({ loaderData }: Route.ComponentProps) {
       )}
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-        <nav aria-label="Situação" className="-mx-1 flex overflow-x-auto">
+        <nav aria-label="Situação" className="-mx-1 flex max-w-full overflow-x-auto pb-1">
           {abas.map((aba) => (
             <Link key={aba.rotulo} to={linkAba(aba.valor)} aria-current={status === aba.valor ? "page" : undefined}
               className={cn("numeros mx-1 shrink-0 rounded-full px-3.5 py-2 text-sm font-semibold transition-colors",
@@ -151,7 +151,7 @@ export default function Estoque({ loaderData }: Route.ComponentProps) {
           )}
         </div>
       ) : (
-        <ul className="mt-4 grid gap-3">
+        <ul className="mt-4 grid grid-cols-[minmax(0,1fr)] gap-3">
           {anuncios.map((a) => <Linha key={a.id} anuncio={a} />)}
         </ul>
       )}
@@ -168,8 +168,8 @@ function Linha({ anuncio: a }: { anuncio: Route.ComponentProps["loaderData"]["an
   if (intencao === "excluir") return null;
 
   return (
-    <li className={cn("cartao flex flex-col gap-4 p-4 sm:flex-row sm:items-center", fetcher.state !== "idle" && "opacity-70")}>
-      <Link to={`/admin/veiculos/${a.id}`} className="block shrink-0 overflow-hidden rounded-lg bg-fundo sm:w-40" tabIndex={-1} aria-hidden="true">
+    <li className={cn("cartao grid grid-cols-[96px_minmax(0,1fr)] gap-x-3 gap-y-4 p-4 sm:flex sm:items-center sm:gap-4", fetcher.state !== "idle" && "opacity-70")}>
+      <Link to={`/admin/veiculos/${a.id}`} className="block shrink-0 self-start overflow-hidden rounded-lg bg-fundo sm:w-40 sm:self-center" tabIndex={-1} aria-hidden="true">
         {a.capa
           ? <img src={a.capa} alt="" className="aspect-[4/3] w-full object-cover" loading="lazy" />
           : <CarroPlaceholder carroceria={a.carroceria} className="aspect-[4/3] w-full" />}
@@ -193,7 +193,7 @@ function Linha({ anuncio: a }: { anuncio: Route.ComponentProps["loaderData"]["an
         </p>
       </div>
 
-      <fetcher.Form method="post" className="grid grid-cols-2 gap-2 sm:w-48"
+      <fetcher.Form method="post" className="col-span-2 grid grid-cols-2 gap-2 sm:w-48 sm:shrink-0"
         onSubmit={(e) => {
           const botao = (e.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null;
           if (botao?.value === "excluir" && !confirm(`Excluir ${a.marca} ${a.modelo}? As fotos também serão apagadas. Para tirar do site sem apagar, use "Pausar" ou "Vendido".`)) {

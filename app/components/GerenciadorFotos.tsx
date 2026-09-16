@@ -1,5 +1,6 @@
 import { ChevronLeft, ChevronRight, ImagePlus, LoaderCircle, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { reduzirImagem as reduzir } from "~/lib/imagem-cliente";
 import { SITE } from "~/lib/site";
 import { cn } from "~/lib/ui";
 
@@ -7,36 +8,6 @@ type Existente = { id: string; url: string };
 type Item =
   | { chave: string; tipo: "existente"; id: string; url: string }
   | { chave: string; tipo: "nova"; arquivo: File; url: string };
-
-const LADO_MAXIMO = 1600;
-
-/**
- * Reduz a foto no navegador antes de enviar. Foto de celular sai com 4 a
- * 8 MB; em WebP de 1600px fica em torno de 250 KB. O upload fica rápido
- * no 4G e o R2 guarda menos — sem pagar serviço de redimensionamento.
- */
-async function reduzir(arquivo: File): Promise<File> {
-  try {
-    const bitmap = await createImageBitmap(arquivo, { imageOrientation: "from-image" });
-    const escala = Math.min(1, LADO_MAXIMO / Math.max(bitmap.width, bitmap.height));
-    const canvas = document.createElement("canvas");
-    canvas.width = Math.round(bitmap.width * escala);
-    canvas.height = Math.round(bitmap.height * escala);
-    canvas.getContext("2d")!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-    bitmap.close();
-
-    const blob = await new Promise<Blob | null>((ok) => canvas.toBlob(ok, "image/webp", 0.82));
-    // Safari antigo não gera WebP e devolve PNG enorme: nesse caso JPEG.
-    const final = blob && blob.type === "image/webp"
-      ? blob
-      : await new Promise<Blob | null>((ok) => canvas.toBlob(ok, "image/jpeg", 0.85));
-    if (!final) return arquivo;
-    const ext = final.type === "image/webp" ? "webp" : "jpg";
-    return new File([final], arquivo.name.replace(/\.[^.]+$/, "") + `.${ext}`, { type: final.type });
-  } catch {
-    return arquivo; // formato que o navegador não decodifica: o servidor decide
-  }
-}
 
 export function GerenciadorFotos({ existentes, erro }: { existentes: Existente[]; erro?: string }) {
   const [comJs, setComJs] = useState(false);
@@ -115,7 +86,7 @@ export function GerenciadorFotos({ existentes, erro }: { existentes: Existente[]
               <li key={item.chave} className="group relative overflow-hidden rounded-xl border border-linha bg-fundo">
                 <img src={item.url} alt={`Foto ${i + 1}`} className="aspect-[4/3] w-full object-cover" />
                 {i === 0 && (
-                  <span className="absolute left-2 top-2 rounded-md bg-marca-600 px-2 py-0.5 text-xs font-bold text-white">Capa</span>
+                  <span className="absolute left-2 top-2 rounded-md bg-marca-600 px-2 py-0.5 text-xs font-bold text-sobre-marca">Capa</span>
                 )}
                 <div className="absolute inset-x-0 bottom-0 flex justify-between gap-1 bg-gradient-to-t from-tinta/80 to-transparent p-2">
                   <div className="flex gap-1">

@@ -22,7 +22,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   // veículo excluído perde o vínculo mas continua aqui.
   const lista = await db.select({
     id: mensagens.id, nome: mensagens.nome, email: mensagens.email, telefone: mensagens.telefone,
-    texto: mensagens.texto, lida: mensagens.lida, criadoEm: mensagens.criadoEm,
+    texto: mensagens.texto, rastreio: mensagens.rastreio, lida: mensagens.lida, criadoEm: mensagens.criadoEm,
     slug: anuncios.slug, marca: marcas.nome, modelo: modelos.nome, anoModelo: anuncios.anoModelo,
   }).from(mensagens)
     .leftJoin(anuncios, eq(anuncios.id, mensagens.anuncioId))
@@ -44,6 +44,17 @@ export async function action({ request }: Route.ActionArgs) {
     await db.update(schema.mensagens).set({ lida: form.get("lida") === "true" }).where(eq(schema.mensagens.id, id));
   }
   return { ok: true };
+}
+
+/** "Google Ads · campanha hilux-bh" a partir dos utm/gclid gravados com a mensagem. */
+function lerOrigem(json: string) {
+  try {
+    const r = JSON.parse(json) as Record<string, string>;
+    const canal = r.gclid || r.gbraid || r.wbraid ? "Google Ads" : r.fbclid ? "Meta Ads" : r.utm_source ? [r.utm_source, r.utm_medium].filter(Boolean).join(" / ") : "";
+    return [canal, r.utm_campaign && `campanha ${r.utm_campaign}`].filter(Boolean).join(" · ");
+  } catch {
+    return "";
+  }
 }
 
 export default function Mensagens({ loaderData }: Route.ComponentProps) {
@@ -84,6 +95,7 @@ function Mensagem({ m }: { m: Route.ComponentProps["loaderData"]["mensagens"][nu
   if (fetcher.formData?.get("intencao") === "excluir") return null;
   const lida = fetcher.formData?.has("lida") ? fetcher.formData.get("lida") === "true" : m.lida;
   const veiculo = m.marca ? `${m.marca} ${m.modelo} ${m.anoModelo}` : null;
+  const origem = lerOrigem(m.rastreio);
   const resposta = `Olá, ${m.nome.split(" ")[0]}! ${veiculo ? `Sobre o ${veiculo} que você viu no nosso site: ` : "Recebemos sua mensagem pelo site. "}`;
 
   return (
@@ -115,6 +127,7 @@ function Mensagem({ m }: { m: Route.ComponentProps["loaderData"]["mensagens"][nu
       </div>
 
       <p className="mt-3 whitespace-pre-line leading-relaxed text-texto">{m.texto}</p>
+      {origem && <p className="mt-2 text-xs text-suave">Origem: <span className="font-medium text-texto">{origem}</span></p>}
 
       <div className="mt-4 flex flex-wrap gap-2">
         <a href={linkWhatsApp(m.telefone, resposta)} target="_blank" rel="noopener noreferrer" className="botao h-9 bg-[#128c4a] px-3 text-sm text-white hover:bg-[#0f7a40]">

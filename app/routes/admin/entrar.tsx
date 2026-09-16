@@ -2,22 +2,22 @@ import { eq } from "drizzle-orm";
 import { ArrowLeft } from "lucide-react";
 import { data, Form, Link, redirect, useNavigation, useSearchParams } from "react-router";
 import { db, schema } from "~/.server/db";
-import { obterLoja } from "~/.server/loja";
 import { conferirSenha, gastarTempoEquivalente } from "~/.server/senha";
 import { destinoSeguro, iniciarSessao, obterUsuario } from "~/.server/sessao";
 import { dentroDoLimite, exigirMesmaOrigem, ipDe } from "~/.server/seguranca";
 import { CampoTexto } from "~/components/Campo";
+import { lojaDasRotas } from "~/lib/site";
+import { useLoja } from "~/lib/useLoja";
 import type { Route } from "./+types/entrar";
 
 export async function loader({ request }: Route.LoaderArgs) {
   if (await obterUsuario(request)) throw redirect("/admin");
-  return { nomeLoja: (await obterLoja()).nome };
+  return null;
 }
 
-export const meta = ({ loaderData }: Route.MetaArgs) => [
-  { title: `Entrar · ${loaderData?.nomeLoja ?? "Painel"}` },
-  { name: "robots", content: "noindex" },
-];
+export function meta({ matches }: Route.MetaArgs) {
+  return [{ title: `Entrar · ${lojaDasRotas(matches).nome}` }, { name: "robots", content: "noindex" }];
+}
 
 export async function action({ request }: Route.ActionArgs) {
   exigirMesmaOrigem(request);
@@ -42,7 +42,8 @@ export async function action({ request }: Route.ActionArgs) {
   return iniciarSessao(usuario.id, destinoSeguro(form.get("voltar")));
 }
 
-export default function Entrar({ loaderData, actionData }: Route.ComponentProps) {
+export default function Entrar({ actionData }: Route.ComponentProps) {
+  const loja = useLoja();
   const [params] = useSearchParams();
   const navigation = useNavigation();
   const enviando = navigation.state === "submitting";
@@ -51,7 +52,9 @@ export default function Entrar({ loaderData, actionData }: Route.ComponentProps)
     <main className="grid flex-1 place-items-center bg-noite px-4 py-14">
       <div className="w-full max-w-md">
         <div className="rounded-2xl bg-white p-6 shadow-flutuante sm:p-8">
-          <p className="text-sm font-semibold uppercase tracking-[0.12em] text-marca-600">{loaderData.nomeLoja}</p>
+          {loja.logo
+            ? <img src={loja.logo} alt={loja.nome} className="mb-5 h-10 max-w-[220px] object-contain" />
+            : <p className="text-sm font-semibold uppercase tracking-[0.12em] text-marca-700">{loja.nome}</p>}
           <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-tinta">Entrar no painel</h1>
           <p className="mt-1 text-suave">Acesso restrito à equipe da loja.</p>
 

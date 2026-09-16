@@ -4,10 +4,12 @@
  * Tokens do site. Tailwind 4 gera os utilitários a partir daqui:
  * --color-marca-600 vira bg-marca-600, text-marca-600 etc.
  *
- * Linguagem visual no estilo Webmotors: vermelho como cor de ação, texto
- * grafite, fundo cinza-claro e cards brancos. O vermelho é aproximado —
- * o site deles bloqueia acesso automatizado. Trocar a cor da loja é
- * editar só a escala `marca`; nenhum componente usa hex solto.
+ * Linguagem visual de portal de classificados: uma cor de ação forte,
+ * texto grafite, fundo cinza-claro e cards brancos.
+ *
+ * `marca-*`, `sobre-marca` e `noite*` abaixo são só o padrão: o <head>
+ * sobrescreve com as cores escolhidas em Admin → Aparência (paleta gerada
+ * em app/lib/cores.ts). Nenhum componente usa hex solto.
  */
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -19,6 +21,8 @@
   --color-marca-600: #d3141f; /* 5.4:1 com texto branco */
   --color-marca-700: #b01018;
   --color-marca-800: #8e0c13;
+  --color-marca-hover: #b01018; /* fundo do botão no hover */
+  --color-sobre-marca: #ffffff; /* texto sobre marca-600: branco ou grafite, o que for legível */
 
   /* Texto: nenhum cinza abaixo de 4.5:1 sobre o fundo da página. */
   --color-tinta: #1b1d26;
@@ -76,7 +80,7 @@
       transition-colors disabled:cursor-not-allowed disabled:opacity-60;
   }
   .botao-primario {
-    @apply bg-marca-600 text-white hover:bg-marca-700 active:bg-marca-800;
+    @apply bg-marca-600 text-sobre-marca hover:bg-marca-hover active:bg-marca-hover;
   }
   .botao-secundario {
     @apply border border-linha-forte bg-white text-tinta hover:border-tinta;

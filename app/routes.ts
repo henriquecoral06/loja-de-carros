@@ -23,6 +23,8 @@ export default [
       route("veiculos/:id", "routes/admin/veiculo-form.tsx", { id: "veiculo-editar" }),
       route("mensagens", "routes/admin/mensagens.tsx"),
       route("loja", "routes/admin/loja.tsx"),
+      route("aparencia", "routes/admin/aparencia.tsx"),
+      route("integracoes", "routes/admin/integracoes.tsx"),
       route("equipe", "routes/admin/equipe.tsx"),
       route("senha", "routes/admin/senha.tsx"),
     ]),
@@ -32,4 +34,5 @@ export default [
   route("imagens/*", "routes/imagens.ts"),
   route("sitemap.xml", "routes/sitemap.ts"),
   route("robots.txt", "routes/robots.ts"),
+  route("icone.svg", "routes/icone.ts"),
 ] satisfies RouteConfig;

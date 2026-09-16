@@ -18,15 +18,17 @@ export default function Sobre() {
 
   return (
     <>
-      <section className="bg-noite">
+      <section className="relative isolate overflow-hidden bg-noite">
+        <img src={loja.banner} alt="" className="absolute inset-0 -z-10 size-full object-cover" />
+        <div aria-hidden="true" className="absolute inset-0 -z-10 bg-gradient-to-r from-noite via-noite/85 to-noite/40" />
         <div className="conteiner py-14 sm:py-20">
-          <p className="text-sm font-semibold uppercase tracking-[0.14em] text-marca-200">A loja</p>
+          <p className="text-sm font-semibold uppercase tracking-[0.14em] text-white/70">Sobre a loja</p>
           <h1 className="mt-3 max-w-2xl text-4xl font-extrabold leading-tight tracking-tight text-white sm:text-5xl">{loja.nome}</h1>
           {loja.slogan && <p className="mt-4 max-w-xl text-lg text-white/75">{loja.slogan}</p>}
         </div>
       </section>
       <div className="conteiner grid gap-8 py-12 lg:grid-cols-[minmax(0,1fr)_340px]">
-        <article className="cartao p-6 sm:p-8">
+        <article className="cartao p-6 sm:p-10">
           <h2 className="text-2xl font-extrabold tracking-tight text-tinta">Nossa história</h2>
           {paragrafos.length ? (
             <div className="mt-4 max-w-[68ch] space-y-4 leading-relaxed text-texto">
