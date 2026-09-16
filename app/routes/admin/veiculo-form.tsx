@@ -1,32 +1,32 @@
-import { and, asc, eq, inArray } from "drizzle-orm";
+import { asc, eq, inArray } from "drizzle-orm";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { data, Form, Link, redirect, useNavigation } from "react-router";
 import { catalogo } from "~/.server/anuncios";
 import { db, schema } from "~/.server/db";
 import { removerObjetos, salvarFotoAnuncio, urlImagem, validarImagem } from "~/.server/imagens";
-import { anuncioDoUsuario } from "~/.server/meus-anuncios";
+import { anuncioPorId } from "~/.server/meus-anuncios";
 import { exigirUsuario } from "~/.server/sessao";
 import { exigirMesmaOrigem } from "~/.server/seguranca";
 import { CampoArea, CampoSelecao, CampoTexto } from "~/components/Campo";
 import { GerenciadorFotos } from "~/components/GerenciadorFotos";
 import { apenasDigitos, inteiro, slugify } from "~/lib/formato";
-import { SITE } from "~/lib/site";
+import { metaAdmin, SITE } from "~/lib/site";
 import {
-  ANO_MINIMO, anoMaximo, CAMBIOS, CARROCERIAS, COMBUSTIVEIS, CORES, OPCIONAIS, UFS,
+  ANO_MINIMO, anoMaximo, CAMBIOS, CARROCERIAS, COMBUSTIVEIS, CORES, OPCIONAIS, ROTULO_STATUS, STATUS_ANUNCIO,
 } from "~/lib/veiculos";
-import type { Route } from "./+types/anuncio-form";
+import type { Route } from "./+types/veiculo-form";
 
-export function meta({ params }: Route.MetaArgs) {
-  return [{ title: `${params.id ? "Editar anúncio" : "Novo anúncio"} — ${SITE.nome}` }, { name: "robots", content: "noindex" }];
+export function meta({ params, matches }: Route.MetaArgs) {
+  return metaAdmin(params.id ? "Editar veículo" : "Novo veículo", matches);
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  const usuario = await exigirUsuario(request);
+  await exigirUsuario(request);
   const cat = await catalogo();
 
-  if (!params.id) return { catalogo: cat, anuncio: null, fotos: [], usuario };
+  if (!params.id) return { catalogo: cat, anuncio: null, fotos: [] };
 
-  const anuncio = await anuncioDoUsuario(params.id, usuario.id);
+  const anuncio = await anuncioPorId(params.id);
   const fotos = await db.select({ id: schema.fotos.id, chave: schema.fotos.chave }).from(schema.fotos)
     .where(eq(schema.fotos.anuncioId, anuncio.id)).orderBy(asc(schema.fotos.ordem));
 
@@ -34,12 +34,11 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     catalogo: cat,
     anuncio: { ...anuncio, opcionais: JSON.parse(anuncio.opcionais) as string[] },
     fotos: fotos.map((f) => ({ id: f.id, url: urlImagem(f.chave) })),
-    usuario,
   };
 }
 
 type Campos = "marcaId" | "modeloId" | "versao" | "anoFabricacao" | "anoModelo" | "km" | "preco" | "cambio"
-  | "combustivel" | "carroceria" | "cor" | "portas" | "descricao" | "cidade" | "uf" | "fotos";
+  | "combustivel" | "carroceria" | "cor" | "portas" | "descricao" | "status" | "fotos";
 type Erros = Partial<Record<Campos, string>>;
 
 const naLista = (valor: string, lista: readonly string[]) => lista.includes(valor);
@@ -47,7 +46,7 @@ const naLista = (valor: string, lista: readonly string[]) => lista.includes(valo
 export async function action({ request, params }: Route.ActionArgs) {
   exigirMesmaOrigem(request);
   const usuario = await exigirUsuario(request);
-  const existente = params.id ? await anuncioDoUsuario(params.id, usuario.id) : null;
+  const existente = params.id ? await anuncioPorId(params.id) : null;
   const form = await request.formData();
   const texto = (k: string) => String(form.get(k) ?? "").trim();
   const numero = (k: string) => Number(apenasDigitos(texto(k)) || NaN);
@@ -59,7 +58,7 @@ export async function action({ request, params }: Route.ActionArgs) {
     cambio: texto("cambio"), combustivel: texto("combustivel"), carroceria: texto("carroceria"),
     cor: texto("cor"), portas: numero("portas"),
     opcionais: form.getAll("opcionais").map(String).filter((o) => naLista(o, OPCIONAIS)),
-    descricao: texto("descricao"), cidade: texto("cidade"), uf: texto("uf"),
+    descricao: texto("descricao"), destaque: form.get("destaque") === "on", status: texto("status") || "ativo",
   };
 
   const erros: Erros = {};
@@ -80,8 +79,7 @@ export async function action({ request, params }: Route.ActionArgs) {
   if (!naLista(v.cor, CORES)) erros.cor = "Escolha a cor.";
   if (!(v.portas >= 2 && v.portas <= 5)) erros.portas = "Escolha o número de portas.";
   if (v.descricao.length > 3000) erros.descricao = "A descrição pode ter até 3.000 caracteres.";
-  if (v.cidade.length < 2) erros.cidade = "Informe a cidade.";
-  if (!naLista(v.uf, UFS)) erros.uf = "Escolha o estado.";
+  if (!naLista(v.status, STATUS_ANUNCIO)) erros.status = "Situação inválida.";
 
   // ---- fotos ----
   const novas = form.getAll("fotos_novas").filter((f): f is File => f instanceof File && f.size > 0);
@@ -123,7 +121,7 @@ export async function action({ request, params }: Route.ActionArgs) {
   const [modeloNome] = await db.select({ nome: schema.modelos.nome }).from(schema.modelos).where(eq(schema.modelos.id, v.modeloId)).limit(1);
 
   // O slug nasce na criação e não muda depois: mudar quebraria todo link
-  // que o anunciante já compartilhou.
+  // que a loja já compartilhou.
   const slug = existente?.slug
     ?? `${slugify(`${marca.nome} ${modeloNome.nome} ${v.versao} ${v.anoModelo}`).slice(0, 70)}-${crypto.randomUUID().slice(0, 8)}`;
 
@@ -131,11 +129,11 @@ export async function action({ request, params }: Route.ActionArgs) {
     marcaId: v.marcaId, modeloId: v.modeloId, versao: v.versao, anoFabricacao: v.anoFabricacao, anoModelo: v.anoModelo,
     km: v.km, preco: v.preco, cambio: v.cambio as never, combustivel: v.combustivel as never, carroceria: v.carroceria as never,
     cor: v.cor, portas: v.portas, opcionais: JSON.stringify(v.opcionais), descricao: v.descricao,
-    cidade: v.cidade, uf: v.uf, atualizadoEm: agora,
+    destaque: v.destaque, status: v.status as never, atualizadoEm: agora,
   };
 
   if (!existente) {
-    await db.insert(schema.anuncios).values({ id, slug, usuarioId: usuario.id, status: "ativo", criadoEm: agora, ...dados });
+    await db.insert(schema.anuncios).values({ id, slug, criadoPor: usuario.id, criadoEm: agora, ...dados });
   }
 
   // Sobe as fotos novas. Se o R2 falhar, desfaz o que subiu e, se o
@@ -155,7 +153,7 @@ export async function action({ request, params }: Route.ActionArgs) {
   const removidas = atuais.filter((f) => !mantidas.has(f.id));
 
   await db.batch([
-    ...(existente ? [db.update(schema.anuncios).set(dados).where(and(eq(schema.anuncios.id, id), eq(schema.anuncios.usuarioId, usuario.id)))] : []),
+    ...(existente ? [db.update(schema.anuncios).set(dados).where(eq(schema.anuncios.id, id))] : []),
     ...(removidas.length ? [db.delete(schema.fotos).where(inArray(schema.fotos.id, removidas.map((f) => f.id)))] : []),
     ...sequencia.map((s, posicao) => s.tipo === "e"
       ? db.update(schema.fotos).set({ ordem: posicao }).where(eq(schema.fotos.id, s.id))
@@ -165,14 +163,14 @@ export async function action({ request, params }: Route.ActionArgs) {
   // Arquivo só sai do R2 depois que o banco confirmou.
   await removerObjetos(removidas.map((f) => f.chave));
 
-  throw redirect(`/painel?salvo=${slug}`);
+  throw redirect(`/admin?salvo=${slug}`);
 }
 
 const ANOS = Array.from({ length: anoMaximo() - ANO_MINIMO + 1 }, (_, i) => anoMaximo() - i);
 const formatarMilhar = (t: string) => { const d = apenasDigitos(t).slice(0, 9); return d ? inteiro(Number(d)) : ""; };
 
-export default function AnuncioForm({ loaderData, actionData }: Route.ComponentProps) {
-  const { catalogo: cat, anuncio: a, fotos, usuario } = loaderData;
+export default function VeiculoForm({ loaderData, actionData }: Route.ComponentProps) {
+  const { catalogo: cat, anuncio: a, fotos } = loaderData;
   const erros: Erros = actionData?.erros ?? {};
   const navigation = useNavigation();
   const enviando = navigation.state === "submitting";
@@ -201,13 +199,13 @@ export default function AnuncioForm({ loaderData, actionData }: Route.ComponentP
   return (
     <Form ref={formRef} method="post" encType="multipart/form-data" noValidate className="grid gap-4 pb-28">
       <div>
-        <h2 className="text-xl font-extrabold tracking-tight text-tinta">{a ? "Editar anúncio" : "Anunciar meu carro"}</h2>
-        <p className="text-suave">{a ? "As mudanças aparecem no site assim que você salvar." : "Anúncios completos, com boas fotos, recebem mais contatos."}</p>
+        <h1 className="text-2xl font-extrabold tracking-tight text-tinta">{a ? "Editar veículo" : "Novo veículo"}</h1>
+        <p className="text-suave">{a ? "As mudanças aparecem no site assim que você salvar." : "Cadastros completos, com boas fotos, recebem mais contatos."}</p>
       </div>
 
       {Object.keys(erros).length > 0 && (
         <div role="alert" className="rounded-xl border border-erro/20 bg-erro-fundo px-4 py-3 text-sm text-erro">
-          Revise os campos marcados antes de publicar.
+          Revise os campos marcados antes de salvar.
         </div>
       )}
 
@@ -290,27 +288,34 @@ export default function AnuncioForm({ loaderData, actionData }: Route.ComponentP
 
       <section className={secao} aria-labelledby="sec-descricao">
         <h3 id="sec-descricao" className={tituloSecao}>Descrição</h3>
-        <CampoArea id="descricao" rotulo="Conte o que o comprador precisa saber" rows={6} maxLength={3000}
+        <CampoArea id="descricao" rotulo="O que o comprador precisa saber" rows={6} maxLength={3000}
           value={descricao} onChange={(e) => setDescricao(e.target.value)}
-          placeholder="Revisões, estado de conservação, se aceita troca, histórico do carro…"
+          placeholder="Revisões, estado de conservação, único dono, garantia…"
           dica={`${inteiro(descricao.length)} de 3.000 caracteres`} erro={erros.descricao} className="mt-4" />
       </section>
 
-      <section className={secao} aria-labelledby="sec-local">
-        <h3 id="sec-local" className={tituloSecao}>Onde o carro está</h3>
-        <div className="mt-4 grid gap-4 sm:grid-cols-[1fr_140px]">
-          <CampoTexto id="cidade" rotulo="Cidade" defaultValue={a?.cidade ?? usuario.cidade} erro={erros.cidade} />
-          <CampoSelecao id="uf" rotulo="Estado" defaultValue={a?.uf ?? usuario.uf} erro={erros.uf}>
-            {UFS.map((u) => <option key={u}>{u}</option>)}
+      <section className={secao} aria-labelledby="sec-publicacao">
+        <h3 id="sec-publicacao" className={tituloSecao}>Publicação</h3>
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <CampoSelecao id="status" rotulo="Situação" defaultValue={a?.status ?? "ativo"} erro={erros.status}
+            dica="Pausado some do site; vendido continua no link, mas sai da busca.">
+            {STATUS_ANUNCIO.map((st) => <option key={st} value={st}>{ROTULO_STATUS[st]}</option>)}
           </CampoSelecao>
+          <label className="flex cursor-pointer items-start gap-3 self-center rounded-lg border border-linha p-4 sm:mt-6">
+            <input type="checkbox" name="destaque" defaultChecked={a?.destaque} className="mt-0.5 size-4 accent-marca-600" />
+            <span>
+              <span className="block font-semibold text-tinta">Destacar na página inicial</span>
+              <span className="block text-sm text-suave">Aparece na vitrine e com o selo “Destaque”.</span>
+            </span>
+          </label>
         </div>
       </section>
 
       <div className="fixed inset-x-0 bottom-0 z-30 border-t border-linha bg-white/95 backdrop-blur">
         <div className="conteiner flex items-center justify-end gap-3 py-3">
-          <Link to="/painel" className="botao-fantasma">Cancelar</Link>
+          <Link to="/admin" className="botao-fantasma">Cancelar</Link>
           <button type="submit" disabled={enviando} className="botao-primario min-w-44">
-            {enviando ? "Salvando…" : a ? "Salvar alterações" : "Publicar anúncio"}
+            {enviando ? "Salvando…" : a ? "Salvar alterações" : "Cadastrar veículo"}
           </button>
         </div>
       </div>

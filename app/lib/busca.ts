@@ -1,4 +1,4 @@
-import { CAMBIOS, CARROCERIAS, COMBUSTIVEIS, UFS, type Cambio, type Carroceria, type Combustivel } from "./veiculos";
+import { CAMBIOS, CARROCERIAS, COMBUSTIVEIS, type Cambio, type Carroceria, type Combustivel } from "./veiculos";
 
 export const ORDENACOES = [
   { valor: "recentes", rotulo: "Mais recentes" },
@@ -22,8 +22,6 @@ export type Filtros = {
   cambio: Cambio[];
   combustivel: Combustivel[];
   carroceria: Carroceria[];
-  uf?: string;
-  vendedor?: "particular" | "loja";
   ordem: Ordenacao;
   pagina: number;
 };
@@ -45,8 +43,6 @@ const daLista = <T extends string>(valores: string[], lista: readonly T[]) =>
 export function lerFiltros(url: URL, params: { marca?: string; modelo?: string } = {}): Filtros {
   const sp = url.searchParams;
   const ordem = sp.get("ordem");
-  const uf = sp.get("uf")?.toUpperCase();
-  const vendedor = sp.get("vendedor");
 
   return {
     q: sp.get("q")?.trim().slice(0, 80) || undefined,
@@ -60,8 +56,6 @@ export function lerFiltros(url: URL, params: { marca?: string; modelo?: string }
     cambio: daLista(sp.getAll("cambio"), CAMBIOS),
     combustivel: daLista(sp.getAll("combustivel"), COMBUSTIVEIS),
     carroceria: daLista(sp.getAll("carroceria"), CARROCERIAS),
-    uf: uf && (UFS as readonly string[]).includes(uf) ? uf : undefined,
-    vendedor: vendedor === "particular" || vendedor === "loja" ? vendedor : undefined,
     ordem: ORDENACOES.some((o) => o.valor === ordem) ? (ordem as Ordenacao) : "recentes",
     pagina: Math.min(inteiroPositivo(sp.get("pagina")) ?? 1, 500),
   };

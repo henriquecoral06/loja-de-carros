@@ -42,3 +42,6 @@ export function slugify(texto: string) {
     .normalize("NFD").replace(/[̀-ͯ]/g, "")
     .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 }
+
+/** 30110000 → 30110-000 */
+export const cep = (digitos: string) => (digitos.length === 8 ? `${digitos.slice(0, 5)}-${digitos.slice(5)}` : digitos);

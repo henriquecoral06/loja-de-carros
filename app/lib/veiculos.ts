@@ -4,6 +4,7 @@ export const CAMBIOS = ["Manual", "Automático", "CVT", "Automatizado"] as const
 export const COMBUSTIVEIS = ["Flex", "Gasolina", "Etanol", "Diesel", "Híbrido", "Elétrico"] as const;
 export const CARROCERIAS = ["Hatch", "Sedã", "SUV", "Picape", "Minivan", "Cupê", "Conversível", "Perua"] as const;
 export const STATUS_ANUNCIO = ["ativo", "pausado", "vendido"] as const;
+export const ROTULO_STATUS = { ativo: "À venda", pausado: "Pausado", vendido: "Vendido" } as const;
 
 export type Cambio = (typeof CAMBIOS)[number];
 export type Combustivel = (typeof COMBUSTIVEIS)[number];

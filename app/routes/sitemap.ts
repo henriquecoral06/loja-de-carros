@@ -10,14 +10,15 @@ export async function loader({ request }: Route.LoaderArgs) {
     db.select({ slug: schema.anuncios.slug, atualizadoEm: schema.anuncios.atualizadoEm }).from(schema.anuncios)
       .where(eq(schema.anuncios.status, "ativo")).orderBy(desc(schema.anuncios.atualizadoEm)).limit(45000),
     db.selectDistinct({ slug: schema.marcas.slug }).from(schema.marcas)
-      .innerJoin(schema.anuncios, eq(schema.anuncios.marcaId, schema.marcas.id)),
+      .innerJoin(schema.anuncios, eq(schema.anuncios.marcaId, schema.marcas.id))
+      .where(eq(schema.anuncios.status, "ativo")),
   ]);
 
   const url = (loc: string, lastmod?: number) =>
     `<url><loc>${escapar(origem + loc)}</loc>${lastmod ? `<lastmod>${new Date(lastmod).toISOString().slice(0, 10)}</lastmod>` : ""}</url>`;
 
   const corpo = [
-    url("/"), url("/carros"),
+    url("/"), url("/carros"), url("/sobre"), url("/contato"),
     ...marcas.map((m) => url(`/carros/${m.slug}`)),
     ...anuncios.map((a) => url(`/carro/${a.slug}`, a.atualizadoEm)),
   ].join("");

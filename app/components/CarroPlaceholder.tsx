@@ -44,7 +44,7 @@ export function CarroPlaceholder({ carroceria, className }: { carroceria?: strin
   return (
     // "meet", não "slice": num contêiner 4:3 o slice cortava a frente e a
     // traseira do carro. O fundo do próprio SVG cobre as sobras.
-    <svg viewBox="0 0 320 180" className={className} role="img" aria-label="Anúncio sem foto" preserveAspectRatio="xMidYMid meet"
+    <svg viewBox="0 0 320 180" className={className} role="img" aria-label="Veículo sem foto" preserveAspectRatio="xMidYMid meet"
       style={{ background: "linear-gradient(#edf1f6, #dfe5ed)" }}>
       <defs>
         <linearGradient id={gradiente} x1="0" y1="0" x2="0" y2="1">

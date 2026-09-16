@@ -7,9 +7,9 @@ import { db, schema } from "~/.server/db";
 import { AnuncioCard } from "~/components/AnuncioCard";
 import { lerFiltros, ORDENACOES, urlBusca } from "~/lib/busca";
 import { inteiro, km as fmtKm, moeda } from "~/lib/formato";
-import { SITE } from "~/lib/site";
+import { lojaDasRotas, SITE } from "~/lib/site";
 import { cn } from "~/lib/ui";
-import { CAMBIOS, CARROCERIAS, COMBUSTIVEIS, UFS } from "~/lib/veiculos";
+import { CAMBIOS, CARROCERIAS, COMBUSTIVEIS } from "~/lib/veiculos";
 import type { Route } from "./+types/busca";
 
 export async function loader({ request, params }: Route.LoaderArgs) {
@@ -27,7 +27,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   }
 
   // Sem JavaScript o formulário manda todo campo, até os vazios
-  // (?preco_min=&uf=...). Uma URL só por resultado: melhor para
+  // (?preco_min=&km_max=...). Uma URL só por resultado: melhor para
   // compartilhar e para o buscador não indexar duplicatas.
   if ([...url.searchParams.values()].some((v) => v === "")) {
     const limpa = new URLSearchParams([...url.searchParams].filter(([, v]) => v !== ""));
@@ -55,16 +55,17 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 }
 
 const tituloDe = (marca?: string, modelo?: string) =>
-  marca ? `${marca}${modelo ? ` ${modelo}` : ""} usados e seminovos` : "Carros usados e seminovos";
+  marca ? `${marca}${modelo ? ` ${modelo}` : ""} seminovos` : "Nosso estoque";
 
-export function meta({ loaderData, location }: Route.MetaArgs) {
-  if (!loaderData) return [{ title: `Busca — ${SITE.nome}` }];
+export function meta({ loaderData, location, matches }: Route.MetaArgs) {
+  const loja = lojaDasRotas(matches);
+  if (!loaderData) return [{ title: `Estoque — ${loja.nome}` }];
   const titulo = tituloDe(loaderData.marcaNome, loaderData.modeloNome);
   const canonica = new URL(location.pathname + location.search, loaderData.origem);
   canonica.searchParams.delete("ordem");
   return [
-    { title: `${titulo} à venda — ${SITE.nome}` },
-    { name: "description", content: `${inteiro(loaderData.total)} ofertas de ${titulo.toLowerCase()} de particulares e lojas.` },
+    { title: loaderData.marcaNome ? `${titulo} à venda — ${loja.nome}` : `Estoque de seminovos — ${loja.nome}` },
+    { name: "description", content: `${inteiro(loaderData.total)} ${loaderData.total === 1 ? "opção" : "opções"} de ${titulo.toLowerCase()} em estoque — ${loja.nome}${loja.cidade ? `, ${loja.cidade}` : ""}.` },
     { tagName: "link", rel: "canonical", href: canonica.toString() },
   ];
 }
@@ -131,8 +132,6 @@ export default function Busca({ loaderData }: Route.ComponentProps) {
     ...filtros.cambio.map((c) => ({ rotulo: c, href: urlBusca(url, { cambio: filtros.cambio.filter((x) => x !== c) }) })),
     ...filtros.combustivel.map((c) => ({ rotulo: c, href: urlBusca(url, { combustivel: filtros.combustivel.filter((x) => x !== c) }) })),
     ...filtros.carroceria.map((c) => ({ rotulo: c, href: urlBusca(url, { carroceria: filtros.carroceria.filter((x) => x !== c) }) })),
-    ...(filtros.uf ? [{ rotulo: filtros.uf, href: urlBusca(url, { uf: null }) }] : []),
-    ...(filtros.vendedor ? [{ rotulo: filtros.vendedor === "loja" ? "Lojas" : "Particulares", href: urlBusca(url, { vendedor: null }) }] : []),
   ];
 
   return (
@@ -141,7 +140,7 @@ export default function Busca({ loaderData }: Route.ComponentProps) {
         <ol className="flex flex-wrap items-center gap-1.5">
           <li><Link to="/" className="hover:text-tinta hover:underline">Início</Link></li>
           <li aria-hidden="true">/</li>
-          <li>{marcaNome ? <Link to="/carros" className="hover:text-tinta hover:underline">Carros</Link> : <span className="text-tinta">Carros</span>}</li>
+          <li>{marcaNome ? <Link to="/carros" className="hover:text-tinta hover:underline">Estoque</Link> : <span className="text-tinta">Estoque</span>}</li>
           {marcaNome && (<><li aria-hidden="true">/</li><li>{modeloNome ? <Link to={`/carros/${filtros.marca}`} className="hover:text-tinta hover:underline">{marcaNome}</Link> : <span className="text-tinta">{marcaNome}</span>}</li></>)}
           {modeloNome && (<><li aria-hidden="true">/</li><li className="text-tinta">{modeloNome}</li></>)}
         </ol>
@@ -151,7 +150,7 @@ export default function Busca({ loaderData }: Route.ComponentProps) {
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight text-tinta sm:text-3xl">{titulo}</h1>
           <p className="numeros mt-1 text-suave" aria-live="polite">
-            {inteiro(total)} {total === 1 ? "anúncio encontrado" : "anúncios encontrados"}
+            {inteiro(total)} {total === 1 ? "carro disponível" : "carros disponíveis"}
           </p>
         </div>
       </div>
@@ -263,26 +262,6 @@ export default function Busca({ loaderData }: Route.ComponentProps) {
                 </fieldset>
               ))}
 
-              <div className="px-5 py-4">
-                <label htmlFor="f-uf" className="text-sm font-semibold text-tinta">Estado</label>
-                <select id="f-uf" name="uf" defaultValue={filtros.uf ?? ""} className="campo mt-2 h-10 text-sm">
-                  <option value="">Todo o Brasil</option>
-                  {UFS.map((u) => <option key={u} value={u}>{u}</option>)}
-                </select>
-              </div>
-
-              <fieldset className="px-5 py-4">
-                <legend className="text-sm font-semibold text-tinta">Anunciante</legend>
-                <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
-                  {[["", "Todos"], ["particular", "Particular"], ["loja", "Loja"]].map(([valor, rotulo]) => (
-                    <label key={valor} className="flex cursor-pointer items-center gap-2 py-1 text-sm text-texto">
-                      <input type="radio" name="vendedor" value={valor} defaultChecked={(filtros.vendedor ?? "") === valor} className="size-4 accent-marca-600" />
-                      {rotulo}
-                    </label>
-                  ))}
-                </div>
-              </fieldset>
-
               {/* Sem JavaScript o filtro não aplica sozinho: o botão cobre esse caso e fecha a gaveta no celular. */}
               <div className="sticky bottom-0 bg-white px-5 py-4 lg:static">
                 {/* O total aqui seria o da busca anterior, não o dos filtros ainda
@@ -333,7 +312,7 @@ export default function Busca({ loaderData }: Route.ComponentProps) {
             <div className="cartao mt-5 px-6 py-14 text-center">
               <h2 className="text-lg font-bold text-tinta">Nenhum carro com esses filtros</h2>
               <p className="mx-auto mt-2 max-w-sm text-suave">Tire algum filtro para ampliar a busca.</p>
-              <Link to="/carros" className="botao-secundario mt-6">Ver todos os carros</Link>
+              <Link to="/carros" className="botao-secundario mt-6">Ver o estoque completo</Link>
             </div>
           )}
 

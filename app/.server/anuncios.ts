@@ -4,7 +4,7 @@ import { SITE } from "~/lib/site";
 import { db, schema } from "./db";
 import { urlImagem } from "./imagens";
 
-const { anuncios, marcas, modelos, usuarios, fotos } = schema;
+const { anuncios, marcas, modelos, fotos } = schema;
 
 /** Campos do card. A capa e o total de fotos saem de subconsultas correlacionadas. */
 const camposCard = {
@@ -18,18 +18,15 @@ const camposCard = {
   cambio: anuncios.cambio,
   combustivel: anuncios.combustivel,
   carroceria: anuncios.carroceria,
-  cidade: anuncios.cidade,
-  uf: anuncios.uf,
+  destaque: anuncios.destaque,
   criadoEm: anuncios.criadoEm,
   marca: marcas.nome,
   modelo: modelos.nome,
-  tipoVendedor: usuarios.tipo,
-  nomeLoja: usuarios.nomeLoja,
   capa: sql<string | null>`(select ${fotos.chave} from ${fotos} where ${fotos.anuncioId} = ${anuncios.id} order by ${fotos.ordem} limit 1)`,
   totalFotos: sql<number>`(select count(*) from ${fotos} where ${fotos.anuncioId} = ${anuncios.id})`,
 };
 
-export type Card = Awaited<ReturnType<typeof buscar>>["anuncios"][number];
+export type Card = Awaited<ReturnType<typeof recentes>>[number];
 
 const paraCard = <T extends { capa: string | null }>(linha: T) => ({
   ...linha,
@@ -58,10 +55,8 @@ function condicoes(f: Filtros, ids: { marcaId?: number; modeloId?: number }, ign
   if (f.cambio.length) lista.push(inArray(anuncios.cambio, f.cambio));
   if (f.combustivel.length) lista.push(inArray(anuncios.combustivel, f.combustivel));
   if (f.carroceria.length) lista.push(inArray(anuncios.carroceria, f.carroceria));
-  if (f.uf) lista.push(eq(anuncios.uf, f.uf));
-  if (f.vendedor) lista.push(eq(usuarios.tipo, f.vendedor));
   if (f.q) {
-    // Cada palavra precisa aparecer em marca, modelo ou versão:
+    // Cada palavra precisa aparecer em marca, modelo, versão ou ano:
     // "corolla xei" acha o Corolla XEi sem exigir a ordem exata.
     for (const palavra of f.q.toLowerCase().split(/\s+/).filter(Boolean).slice(0, 6)) {
       const termo = `%${palavra.replace(/[%_]/g, "")}%`;
@@ -88,8 +83,7 @@ const ordenar = (ordem: Filtros["ordem"]) => {
 
 const base = () => db.select(camposCard).from(anuncios)
   .innerJoin(marcas, eq(marcas.id, anuncios.marcaId))
-  .innerJoin(modelos, eq(modelos.id, anuncios.modeloId))
-  .innerJoin(usuarios, eq(usuarios.id, anuncios.usuarioId));
+  .innerJoin(modelos, eq(modelos.id, anuncios.modeloId));
 
 export async function buscar(f: Filtros) {
   const ids = await idsDoCaminho(f);
@@ -101,30 +95,27 @@ export async function buscar(f: Filtros) {
   // Promise.all, NÃO db.batch. No batch o D1 devolve cada linha como
   // objeto chaveado pelo nome da coluna, e o Drizzle converte com
   // Object.values: marcas.nome e modelos.nome colidem em "nome", o array
-  // encurta e todos os campos seguintes deslocam. O card saía "COROLLA
-  // LOJA" com selo de particular. Consultas avulsas usam array e não têm
-  // esse problema.
+  // encurta e todos os campos seguintes deslocam — sem erro nenhum.
   const [linhas, [{ total }], marcasFaceta, modelosFaceta] = await Promise.all([
     base().where(onde).orderBy(...ordenar(f.ordem)).limit(SITE.porPagina).offset(deslocamento),
     db.select({ total: count() }).from(anuncios)
       .innerJoin(marcas, eq(marcas.id, anuncios.marcaId))
       .innerJoin(modelos, eq(modelos.id, anuncios.modeloId))
-      .innerJoin(usuarios, eq(usuarios.id, anuncios.usuarioId))
       .where(onde),
     // A faceta de marca ignora o filtro de marca: senão, ao escolher uma
     // marca, todas as outras sumiriam da lista.
     db.select({ slug: marcas.slug, nome: marcas.nome, total: count() }).from(anuncios)
       .innerJoin(marcas, eq(marcas.id, anuncios.marcaId))
       .innerJoin(modelos, eq(modelos.id, anuncios.modeloId))
-      .innerJoin(usuarios, eq(usuarios.id, anuncios.usuarioId))
       .where(condicoes(f, ids, { marca: true }))
       .groupBy(marcas.id).orderBy(desc(count()), asc(marcas.nome)),
-    db.select({ slug: modelos.slug, nome: modelos.nome, total: count() }).from(anuncios)
-      .innerJoin(marcas, eq(marcas.id, anuncios.marcaId))
-      .innerJoin(modelos, eq(modelos.id, anuncios.modeloId))
-      .innerJoin(usuarios, eq(usuarios.id, anuncios.usuarioId))
-      .where(ids.marcaId ? condicoes({ ...f, modelo: undefined }, { marcaId: ids.marcaId }) : sql`0`)
-      .groupBy(modelos.id).orderBy(asc(modelos.nome)),
+    ids.marcaId
+      ? db.select({ slug: modelos.slug, nome: modelos.nome, total: count() }).from(anuncios)
+          .innerJoin(marcas, eq(marcas.id, anuncios.marcaId))
+          .innerJoin(modelos, eq(modelos.id, anuncios.modeloId))
+          .where(condicoes({ ...f, modelo: undefined }, { marcaId: ids.marcaId }))
+          .groupBy(modelos.id).orderBy(asc(modelos.nome))
+      : Promise.resolve([] as { slug: string; nome: string; total: number }[]),
   ]);
 
   return { anuncios: linhas.map(paraCard), total, marcasFaceta, modelosFaceta, inexistente: false };
@@ -135,18 +126,22 @@ export async function recentes(limite = 8) {
   return linhas.map(paraCard);
 }
 
+/** Vitrine da home. Sem destaque marcado, cai para os mais recentes. */
+export async function destaques(limite = 8) {
+  const linhas = await base().where(and(eq(anuncios.status, "ativo"), eq(anuncios.destaque, true)))
+    .orderBy(desc(anuncios.atualizadoEm)).limit(limite);
+  return linhas.length ? linhas.map(paraCard) : recentes(limite);
+}
+
 export async function porSlug(slug: string) {
   const [anuncio] = await db.select({
     ...camposCard,
     cor: anuncios.cor, portas: anuncios.portas, opcionais: anuncios.opcionais,
     descricao: anuncios.descricao, status: anuncios.status, visualizacoes: anuncios.visualizacoes,
-    marcaSlug: marcas.slug, modeloSlug: modelos.slug, usuarioId: anuncios.usuarioId,
-    vendedorNome: usuarios.nome, vendedorCidade: usuarios.cidade, vendedorUf: usuarios.uf,
-    vendedorDesde: usuarios.criadoEm,
+    marcaSlug: marcas.slug, modeloSlug: modelos.slug,
   }).from(anuncios)
     .innerJoin(marcas, eq(marcas.id, anuncios.marcaId))
     .innerJoin(modelos, eq(modelos.id, anuncios.modeloId))
-    .innerJoin(usuarios, eq(usuarios.id, anuncios.usuarioId))
     .where(eq(anuncios.slug, slug)).limit(1);
 
   if (!anuncio) return null;
@@ -178,6 +173,7 @@ export async function registrarVisualizacao(id: string) {
 }
 
 export async function catalogo() {
+  // Cada SELECT lê uma tabela só: sem nome de coluna repetido, o batch é seguro aqui.
   const [listaMarcas, listaModelos] = await db.batch([
     db.select().from(marcas).orderBy(asc(marcas.nome)),
     db.select().from(modelos).orderBy(asc(modelos.nome)),
@@ -188,10 +184,22 @@ export async function catalogo() {
   }));
 }
 
-/** Marcas com anúncio ativo e quantos têm — para a vitrine da home. */
+/** Marcas com carro disponível e quantos — para a vitrine e o filtro da home. */
 export async function marcasComEstoque() {
   return db.select({ nome: marcas.nome, slug: marcas.slug, total: count() }).from(anuncios)
     .innerJoin(marcas, eq(marcas.id, anuncios.marcaId))
     .where(eq(anuncios.status, "ativo"))
-    .groupBy(marcas.id).orderBy(desc(count())).limit(12);
+    .groupBy(marcas.id).orderBy(desc(count()), asc(marcas.nome));
+}
+
+/** Modelos com carro disponível, agrupados por marca — o seletor da home só oferece o que existe. */
+export async function modelosComEstoque() {
+  const linhas = await db.select({ marcaSlug: marcas.slug, slug: modelos.slug, nome: modelos.nome }).from(anuncios)
+    .innerJoin(marcas, eq(marcas.id, anuncios.marcaId))
+    .innerJoin(modelos, eq(modelos.id, anuncios.modeloId))
+    .where(eq(anuncios.status, "ativo"))
+    .groupBy(modelos.id).orderBy(asc(modelos.nome));
+  const porMarca: Record<string, { slug: string; nome: string }[]> = {};
+  for (const l of linhas) (porMarca[l.marcaSlug] ??= []).push({ slug: l.slug, nome: l.nome });
+  return porMarca;
 }

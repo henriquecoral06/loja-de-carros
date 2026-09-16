@@ -1,34 +1,36 @@
 @import "tailwindcss" source(".");
 
 /*
- * Tokens do marketplace. Tailwind 4 gera os utilitários a partir daqui:
+ * Tokens do site. Tailwind 4 gera os utilitários a partir daqui:
  * --color-marca-600 vira bg-marca-600, text-marca-600 etc.
  *
- * A cor de marca é um token só. Trocar o azul por outra cor é editar a
- * escala abaixo — nenhum componente usa hex solto.
+ * Linguagem visual no estilo Webmotors: vermelho como cor de ação, texto
+ * grafite, fundo cinza-claro e cards brancos. O vermelho é aproximado —
+ * o site deles bloqueia acesso automatizado. Trocar a cor da loja é
+ * editar só a escala `marca`; nenhum componente usa hex solto.
  */
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
 
-  --color-marca-50: #eef3ff;
-  --color-marca-100: #dbe5ff;
-  --color-marca-200: #b9ccff;
-  --color-marca-500: #3563e9;
-  --color-marca-600: #1f4fd6; /* 6.8:1 com texto branco */
-  --color-marca-700: #1a41b3;
-  --color-marca-800: #163790;
+  --color-marca-50: #fff1f2;
+  --color-marca-100: #ffe0e2;
+  --color-marca-200: #ffc2c6;
+  --color-marca-500: #e8323e;
+  --color-marca-600: #d3141f; /* 5.4:1 com texto branco */
+  --color-marca-700: #b01018;
+  --color-marca-800: #8e0c13;
 
   /* Texto: nenhum cinza abaixo de 4.5:1 sobre o fundo da página. */
-  --color-tinta: #0e1726;
-  --color-texto: #2b3545;
-  --color-suave: #525d6c; /* 6.6:1 no branco */
-  --color-fraco: #626c7b; /* 5.2:1 no branco · 4.7:1 no fundo */
+  --color-tinta: #1b1d26;
+  --color-texto: #3a3d4a;
+  --color-suave: #555966; /* 7.0:1 no branco */
+  --color-fraco: #676b78; /* 5.3:1 no branco · 4.8:1 no fundo */
 
-  --color-linha: #e3e8ef;
-  --color-linha-forte: #cfd6df;
-  --color-fundo: #f3f5f8;
-  --color-noite: #0b1424;
-  --color-noite-2: #14203a;
+  --color-linha: #e4e5e9;
+  --color-linha-forte: #cfd1d7;
+  --color-fundo: #f2f3f5;
+  --color-noite: #22232d;
+  --color-noite-2: #2e2f3b;
 
   --color-sucesso: #047857;
   --color-sucesso-fundo: #e7f6ef;
@@ -37,9 +39,9 @@
   --color-erro: #b42318;
   --color-erro-fundo: #fdecea;
 
-  --shadow-card: 0 1px 2px rgb(14 23 38 / 0.05), 0 1px 1px rgb(14 23 38 / 0.03);
-  --shadow-card-hover: 0 12px 28px -12px rgb(14 23 38 / 0.22);
-  --shadow-flutuante: 0 24px 60px -24px rgb(14 23 38 / 0.35);
+  --shadow-card: 0 1px 2px rgb(27 29 38 / 0.06), 0 1px 1px rgb(27 29 38 / 0.03);
+  --shadow-card-hover: 0 14px 30px -14px rgb(27 29 38 / 0.28);
+  --shadow-flutuante: 0 24px 60px -24px rgb(27 29 38 / 0.4);
 }
 
 @layer base {

@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "7f3c4840-9bc4-468e-ad3a-8e09414ee645",
+  "id": "0ae49666-1302-485c-8c91-282a7c27fa4c",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "anuncios": {
@@ -16,13 +16,6 @@
         },
         "slug": {
           "name": "slug",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "usuario_id": {
-          "name": "usuario_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -129,19 +122,13 @@
           "autoincrement": false,
           "default": "''"
         },
-        "cidade": {
-          "name": "cidade",
-          "type": "text",
+        "destaque": {
+          "name": "destaque",
+          "type": "integer",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false
-        },
-        "uf": {
-          "name": "uf",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "autoincrement": false,
+          "default": false
         },
         "status": {
           "name": "status",
@@ -158,6 +145,13 @@
           "notNull": true,
           "autoincrement": false,
           "default": 0
+        },
+        "criado_por": {
+          "name": "criado_por",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
         },
         "criado_em": {
           "name": "criado_em",
@@ -189,6 +183,14 @@
           "columns": [
             "status",
             "criado_em"
+          ],
+          "isUnique": false
+        },
+        "anuncios_destaque_idx": {
+          "name": "anuncios_destaque_idx",
+          "columns": [
+            "status",
+            "destaque"
           ],
           "isUnique": false
         },
@@ -227,42 +229,15 @@
           ],
           "isUnique": false
         },
-        "anuncios_uf_idx": {
-          "name": "anuncios_uf_idx",
-          "columns": [
-            "uf"
-          ],
-          "isUnique": false
-        },
         "anuncios_carroceria_idx": {
           "name": "anuncios_carroceria_idx",
           "columns": [
             "carroceria"
           ],
           "isUnique": false
-        },
-        "anuncios_usuario_idx": {
-          "name": "anuncios_usuario_idx",
-          "columns": [
-            "usuario_id"
-          ],
-          "isUnique": false
         }
       },
       "foreignKeys": {
-        "anuncios_usuario_id_usuarios_id_fk": {
-          "name": "anuncios_usuario_id_usuarios_id_fk",
-          "tableFrom": "anuncios",
-          "tableTo": "usuarios",
-          "columnsFrom": [
-            "usuario_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
         "anuncios_marca_id_marcas_id_fk": {
           "name": "anuncios_marca_id_marcas_id_fk",
           "tableFrom": "anuncios",
@@ -287,6 +262,19 @@
             "id"
           ],
           "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "anuncios_criado_por_usuarios_id_fk": {
+          "name": "anuncios_criado_por_usuarios_id_fk",
+          "tableFrom": "anuncios",
+          "tableTo": "usuarios",
+          "columnsFrom": [
+            "criado_por"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },
@@ -395,6 +383,149 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
+    "loja": {
+      "name": "loja",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "nome": {
+          "name": "nome",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "slogan": {
+          "name": "slogan",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "''"
+        },
+        "sobre": {
+          "name": "sobre",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "''"
+        },
+        "whatsapp": {
+          "name": "whatsapp",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "telefone": {
+          "name": "telefone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "''"
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "''"
+        },
+        "endereco": {
+          "name": "endereco",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "''"
+        },
+        "bairro": {
+          "name": "bairro",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "''"
+        },
+        "cidade": {
+          "name": "cidade",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "''"
+        },
+        "uf": {
+          "name": "uf",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "''"
+        },
+        "cep": {
+          "name": "cep",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "''"
+        },
+        "horario": {
+          "name": "horario",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "''"
+        },
+        "cnpj": {
+          "name": "cnpj",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "''"
+        },
+        "instagram": {
+          "name": "instagram",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "''"
+        },
+        "facebook": {
+          "name": "facebook",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "''"
+        },
+        "atualizado_em": {
+          "name": "atualizado_em",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(unixepoch() * 1000)"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
     "marcas": {
       "name": "marcas",
       "columns": {
@@ -448,14 +579,7 @@
           "name": "anuncio_id",
           "type": "text",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "vendedor_id": {
-          "name": "vendedor_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
+          "notNull": false,
           "autoincrement": false
         },
         "nome": {
@@ -504,10 +628,10 @@
         }
       },
       "indexes": {
-        "mensagens_vendedor_idx": {
-          "name": "mensagens_vendedor_idx",
+        "mensagens_criado_idx": {
+          "name": "mensagens_criado_idx",
           "columns": [
-            "vendedor_id",
+            "lida",
             "criado_em"
           ],
           "isUnique": false
@@ -524,20 +648,7 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "mensagens_vendedor_id_usuarios_id_fk": {
-          "name": "mensagens_vendedor_id_usuarios_id_fk",
-          "tableFrom": "mensagens",
-          "tableTo": "usuarios",
-          "columnsFrom": [
-            "vendedor_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
+          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },
@@ -654,6 +765,13 @@
             "expira_em"
           ],
           "isUnique": false
+        },
+        "sessoes_usuario_idx": {
+          "name": "sessoes_usuario_idx",
+          "columns": [
+            "usuario_id"
+          ],
+          "isUnique": false
         }
       },
       "foreignKeys": {
@@ -705,50 +823,6 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
-        },
-        "whatsapp": {
-          "name": "whatsapp",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "tipo": {
-          "name": "tipo",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "'particular'"
-        },
-        "nome_loja": {
-          "name": "nome_loja",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "cidade": {
-          "name": "cidade",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "uf": {
-          "name": "uf",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "papel": {
-          "name": "papel",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "'usuario'"
         },
         "criado_em": {
           "name": "criado_em",

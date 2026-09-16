@@ -68,10 +68,7 @@ function criar() {
 /** Criado sob demanda: o segredo vem do ambiente da requisição. */
 const sessoes = () => (armazenamento ??= criar());
 
-export type UsuarioLogado = {
-  id: string; nome: string; email: string; tipo: "particular" | "loja";
-  nomeLoja: string | null; whatsapp: string; cidade: string; uf: string; papel: "usuario" | "admin";
-};
+export type UsuarioLogado = { id: string; nome: string; email: string };
 
 export async function obterUsuario(request: Request): Promise<UsuarioLogado | null> {
   const sessao = await sessoes().getSession(request.headers.get("Cookie"));
@@ -80,8 +77,6 @@ export async function obterUsuario(request: Request): Promise<UsuarioLogado | nu
 
   const [usuario] = await db.select({
     id: schema.usuarios.id, nome: schema.usuarios.nome, email: schema.usuarios.email,
-    tipo: schema.usuarios.tipo, nomeLoja: schema.usuarios.nomeLoja, whatsapp: schema.usuarios.whatsapp,
-    cidade: schema.usuarios.cidade, uf: schema.usuarios.uf, papel: schema.usuarios.papel,
   }).from(schema.usuarios).where(eq(schema.usuarios.id, usuarioId)).limit(1);
 
   return usuario ?? null;
@@ -101,10 +96,10 @@ function caminhoVisivel(request: Request) {
   return `${caminho}${qs ? `?${qs}` : ""}`;
 }
 
-/** Para rotas do painel: sem sessão, manda para o login e volta depois. */
+/** Para rotas do admin: sem sessão, manda para o login e volta depois. */
 export async function exigirUsuario(request: Request) {
   const usuario = await obterUsuario(request);
-  if (!usuario) throw redirect(`/entrar?voltar=${encodeURIComponent(caminhoVisivel(request))}`);
+  if (!usuario) throw redirect(`/admin/entrar?voltar=${encodeURIComponent(caminhoVisivel(request))}`);
   return usuario;
 }
 
@@ -120,11 +115,11 @@ export async function iniciarSessao(usuarioId: string, destino: string) {
 
 export async function encerrarSessao(request: Request) {
   const sessao = await sessoes().getSession(request.headers.get("Cookie"));
-  return redirect("/", { headers: { "Set-Cookie": await sessoes().destroySession(sessao) } });
+  return redirect("/admin/entrar", { headers: { "Set-Cookie": await sessoes().destroySession(sessao) } });
 }
 
 /** Destino de "voltar" só pode ser caminho interno: impede redirecionamento aberto. */
-export function destinoSeguro(valor: FormDataEntryValue | string | null, padrao = "/painel") {
+export function destinoSeguro(valor: FormDataEntryValue | string | null, padrao = "/admin") {
   const texto = typeof valor === "string" ? valor : "";
   // "//evil.com" e "/\evil.com" são tratados como outro domínio pelo navegador.
   if (!texto.startsWith("/") || texto.startsWith("//") || texto.startsWith("/\\")) return padrao;

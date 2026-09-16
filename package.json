@@ -14,7 +14,8 @@
     "db:migrate": "wrangler d1 migrations apply DB --local",
     "db:migrate:remote": "wrangler d1 migrations apply DB --remote",
     "db:seed": "node scripts/gerar-seed.mjs && wrangler d1 execute DB --local --file=./seed/seed.sql",
-    "db:reset": "rm -rf .wrangler/state/v3/d1 && npm run db:migrate && npm run db:seed"
+    "db:reset": "rm -rf .wrangler/state/v3/d1 && npm run db:migrate && npm run db:seed",
+    "acesso": "node scripts/acesso.mjs"
   },
   "dependencies": {
     "drizzle-orm": "^0.45.2",
