@@ -76,6 +76,8 @@ export function rastrear(evento: Evento, dados: Dados = {}) {
     if (evento === "pagina") {
       j.fbq?.("track", "PageView");
       j.gtag?.("event", "page_view", { page_location: location.href, page_title: document.title });
+      // Remarketing do Google Ads: só marca com o page_view endereçado à conta.
+      if (c.googleAdsId) j.gtag?.("event", "page_view", { send_to: c.googleAdsId, page_location: location.href });
     } else {
       j.fbq?.("track", "ViewContent", { content_ids: [dados.id], content_name: dados.nome, content_type: "vehicle", ...valor });
       j.gtag?.("event", "view_item", { items: [{ item_id: dados.id, item_name: dados.nome, price: dados.valor }], ...valor });
