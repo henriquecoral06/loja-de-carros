@@ -72,7 +72,13 @@ export async function action({ request }: Route.ActionArgs) {
 
   let fotoChave = atual?.fotoChave ?? "";
   const antiga = fotoChave;
-  if (foto?.ok) fotoChave = await salvarArquivoLoja("vendedor", foto.bytes, foto.tipo);
+  if (foto?.ok) {
+    try {
+      fotoChave = await salvarArquivoLoja("vendedor", foto.bytes, foto.tipo);
+    } catch {
+      return data({ erros: { foto: "Não foi possível guardar a foto. Tente de novo." } as Erros }, { status: 500 });
+    }
+  }
   else if (form.get("remover_foto") === "1") fotoChave = "";
 
   const valores = { nome, whatsappDdi, whatsapp, email, fotoChave };
@@ -173,3 +179,5 @@ function Linha({ v }: { v: Route.ComponentProps["loaderData"]["vendedores"][numb
     </tr>
   );
 }
+
+export { ErroPainel as ErrorBoundary } from "~/components/admin/ErroPainel";

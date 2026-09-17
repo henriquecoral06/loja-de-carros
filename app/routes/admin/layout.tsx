@@ -118,3 +118,16 @@ export default function AdminLayout({ loaderData }: Route.ComponentProps) {
     </div>
   );
 }
+
+/** Erro no próprio layout (ex.: banco fora do ar): página simples com saída. */
+export function ErrorBoundary() {
+  return (
+    <main className="grid min-h-dvh place-items-center bg-[#f6f6f7] p-6">
+      <div className="max-w-md rounded-xl border border-linha bg-white p-8 text-center">
+        <h1 className="text-xl font-bold text-tinta">O painel está indisponível agora</h1>
+        <p className="mt-2 text-suave">Tente de novo em alguns instantes.</p>
+        <button type="button" onClick={() => window.location.reload()} className="botao-primario mt-6">Tentar de novo</button>
+      </div>
+    </main>
+  );
+}

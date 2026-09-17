@@ -15,7 +15,8 @@
     "db:migrate:remote": "wrangler d1 migrations apply DB --remote",
     "db:seed": "node scripts/gerar-seed.mjs && wrangler d1 execute DB --local --file=./seed/seed.sql",
     "db:reset": "rm -rf .wrangler/state/v3/d1 && npm run db:migrate && npm run db:seed",
-    "acesso": "node scripts/acesso.mjs"
+    "acesso": "node scripts/acesso.mjs",
+    "test:e2e": "node scripts/teste-e2e.mjs"
   },
   "dependencies": {
     "drizzle-orm": "^0.45.2",
@@ -33,6 +34,7 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "drizzle-kit": "^0.31.10",
+    "playwright-core": "^1.63.0",
     "tailwindcss": "^4.2.2",
     "typescript": "^5.9.3",
     "vite": "^8.0.3",

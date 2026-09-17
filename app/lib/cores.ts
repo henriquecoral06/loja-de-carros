@@ -89,7 +89,7 @@ export function avisosCores(primaria: string, escura: string) {
   const avisos: string[] = [];
   if (!COR_HEX.test(primaria) || !COR_HEX.test(escura)) return ["Use cores no formato #RRGGBB."];
   const p = paleta(primaria, escura);
-  if (contraste(primaria, p["sobre-marca"]) < 4.5) avisos.push("O texto dos botões fica difícil de ler nessa cor principal. Prefira um tom mais escuro ou mais claro.");
+  if (contraste(primaria, p["sobre-marca"]) < 4.5) avisos.push("O texto dos botões fica um pouco apagado nessa cor principal. Um tom levemente mais escuro deixa mais legível.");
   if (contraste(primaria, BRANCO) < 3) avisos.push("A cor principal é clara: botões e selos vão se destacar pouco do fundo branco.");
   if (contraste(escura, BRANCO) < 7) avisos.push("A cor escura precisa ser bem escura: textos brancos vão por cima dela no topo e no rodapé.");
   return avisos;
@@ -98,7 +98,7 @@ export function avisosCores(primaria: string, escura: string) {
 export const PREDEFINIDAS = [
   { nome: "Vermelho", primaria: "#d3141f", secundaria: "#a80f18", escura: "#22232d" },
   { nome: "Azul", primaria: "#0b5cd6", secundaria: "#0848a8", escura: "#0f1b2d" },
-  { nome: "Verde", primaria: "#0f8a5f", secundaria: "#0b6b4a", escura: "#1f2320" },
+  { nome: "Verde", primaria: "#0e7a53", secundaria: "#0a5f40", escura: "#1f2320" },
   { nome: "Laranja", primaria: "#c2410c", secundaria: "#9a330a", escura: "#1c1917" },
   { nome: "Grafite", primaria: "#1f2937", secundaria: "#111827", escura: "#0b0f19" },
   { nome: "Roxo", primaria: "#6d28d9", secundaria: "#5521ab", escura: "#1a1333" },

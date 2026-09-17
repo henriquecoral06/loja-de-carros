@@ -165,3 +165,5 @@ function Linha({ l }: { l: Lead }) {
     </li>
   );
 }
+
+export { ErroPainel as ErrorBoundary } from "~/components/admin/ErroPainel";

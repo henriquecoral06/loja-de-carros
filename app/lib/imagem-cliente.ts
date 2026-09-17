@@ -2,7 +2,7 @@
 
 /**
  * Reduz a foto antes de enviar. Foto de celular sai com 4 a 8 MB; em WebP
- * de 1600px fica em torno de 250 KB. O upload fica rápido no 4G e o R2
+ * de 1600px fica em torno de 250 KB. O upload fica rápido no 4G e o armazenamento
  * guarda menos — sem pagar serviço de redimensionamento.
  */
 export async function reduzirImagem(arquivo: File, ladoMaximo = 1600): Promise<File> {

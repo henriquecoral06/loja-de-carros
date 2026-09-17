@@ -120,3 +120,5 @@ export default function Dashboard({ loaderData: d }: Route.ComponentProps) {
     </div>
   );
 }
+
+export { ErroPainel as ErrorBoundary } from "~/components/admin/ErroPainel";

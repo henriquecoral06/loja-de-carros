@@ -259,6 +259,26 @@ export default function Anuncio({ loaderData }: Route.ComponentProps) {
         </aside>
       </div>
 
+      {ativo && (
+        // Celular: preço e contato sempre à mão enquanto a pessoa rola as fotos e a ficha.
+        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-linha bg-white/95 px-4 py-3 shadow-flutuante backdrop-blur lg:hidden">
+          <div className="flex items-center gap-3">
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-xs text-suave">{titulo} {a.anoModelo}</p>
+              <p className="numeros text-lg font-extrabold leading-tight text-tinta">{moeda(a.preco)}</p>
+            </div>
+            {loja.telefone && (
+              <LinkTelefone numero={loja.telefone} ddi={loja.telefoneDdi} veiculo={eventoVeiculo} className="botao-secundario size-11 shrink-0 px-0">
+                <Phone className="size-5" aria-hidden="true" /><span className="sr-only">Ligar para a loja</span>
+              </LinkTelefone>
+            )}
+            <LinkWhatsApp mensagem={textoWhats} numero={a.vendedor} veiculo={eventoVeiculo} className="botao-primario h-11 shrink-0 px-4 text-sm">
+              <IconeWhatsApp className="size-[18px]" /> Tenho interesse
+            </LinkWhatsApp>
+          </div>
+        </div>
+      )}
+
       {parecidos.length > 0 && (
         <section aria-labelledby="titulo-similares" className="mt-14">
           <h2 id="titulo-similares" className="text-2xl font-extrabold tracking-tight text-tinta">Você também pode gostar</h2>

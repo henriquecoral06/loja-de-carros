@@ -1,4 +1,4 @@
-import { asc, eq, inArray } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 import { db, schema } from "~/.server/db";
 import { urlImagem } from "~/.server/imagens";
 import { lojaCompleta } from "~/.server/loja";
@@ -31,9 +31,10 @@ export async function loader({ request }: Route.LoaderArgs) {
     .innerJoin(modelos, eq(modelos.id, anuncios.modeloId))
     .where(eq(anuncios.status, "ativo"));
 
-  const todasFotos = lista.length
-    ? await db.select({ anuncioId: fotos.anuncioId, chave: fotos.chave }).from(fotos).where(inArray(fotos.anuncioId, lista.map((a) => a.id))).orderBy(asc(fotos.ordem))
-    : [];
+  // Join em vez de IN (...): o D1 aceita no máximo 100 parâmetros por consulta.
+  const todasFotos = await db.select({ anuncioId: fotos.anuncioId, chave: fotos.chave }).from(fotos)
+    .innerJoin(anuncios, eq(anuncios.id, fotos.anuncioId))
+    .where(eq(anuncios.status, "ativo")).orderBy(asc(fotos.ordem));
   const absoluta = (u: string) => (u.startsWith("http") ? u : `${url.origin}${u}`);
 
   const corpo = lista.map((a) => `

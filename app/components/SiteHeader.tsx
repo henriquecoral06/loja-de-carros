@@ -22,7 +22,7 @@ function Busca({ id, className }: { id: string; className?: string }) {
       <Search className="pointer-events-none absolute left-3.5 top-1/2 size-[18px] -translate-y-1/2 text-fraco" aria-hidden="true" />
       <input id={id} name="q" type="search" key={pathname.startsWith("/carros") ? params.get("q") ?? "" : "vazio"}
         defaultValue={pathname.startsWith("/carros") ? params.get("q") ?? "" : ""}
-        placeholder="Marca ou modelo" enterKeyHint="search"
+        placeholder="Buscar carro" enterKeyHint="search"
         className="campo h-11 rounded-full bg-fundo pl-10 hover:bg-white focus:bg-white" />
     </Form>
   );
@@ -41,21 +41,21 @@ export function SiteHeader() {
       <div className="conteiner flex h-[72px] items-center gap-4 lg:gap-8">
         <Logo loja={loja} />
 
-        <Busca id="busca-topo" className="hidden max-w-md flex-1 md:block" />
+        <Busca id="busca-topo" className="hidden min-w-44 max-w-md flex-1 md:block" />
 
         <nav aria-label="Principal" className="ml-auto hidden items-center gap-1 lg:flex">
           {LINKS.map((l) => (
             <NavLink key={l.para} to={l.para}
-              className={({ isActive }) => cn("relative flex h-11 items-center px-3.5 text-[15px] font-semibold text-tinta transition-colors hover:text-marca-700",
-                isActive && "text-marca-700 after:absolute after:inset-x-3.5 after:-bottom-[14px] after:h-[3px] after:rounded-full after:bg-marca-600")}>
+              className={({ isActive }) => cn("relative flex h-11 items-center whitespace-nowrap px-3 text-[15px] font-semibold text-tinta transition-colors hover:text-marca-700",
+                isActive && "text-marca-700 after:absolute after:inset-x-3 after:-bottom-[14px] after:h-[3px] after:rounded-full after:bg-marca-600")}>
               {l.rotulo}
             </NavLink>
           ))}
         </nav>
 
         <div className="ml-auto flex items-center gap-2 lg:ml-0">
-          <LinkWhatsApp className="botao-primario hidden h-11 px-5 text-sm sm:inline-flex">
-            <IconeWhatsApp className="size-[18px]" /> Fale com a loja
+          <LinkWhatsApp className="botao-primario hidden h-11 whitespace-nowrap px-4 text-sm sm:inline-flex xl:px-5">
+            <IconeWhatsApp className="size-[18px]" /> <span className="xl:hidden">WhatsApp</span><span className="hidden xl:inline">Fale com a loja</span>
           </LinkWhatsApp>
           <button type="button" onClick={() => setAberto((v) => !v)} className="botao-fantasma size-11 px-0 lg:hidden"
             aria-expanded={aberto} aria-controls="menu-celular" aria-label={aberto ? "Fechar menu" : "Abrir menu"}>

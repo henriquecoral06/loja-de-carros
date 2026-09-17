@@ -200,3 +200,5 @@ export default function LandingPageForm({ loaderData, actionData }: Route.Compon
     </Form>
   );
 }
+
+export { ErroPainel as ErrorBoundary } from "~/components/admin/ErroPainel";

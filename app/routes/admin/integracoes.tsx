@@ -60,8 +60,9 @@ function urlWebhookValida(valor: string) {
   }
 }
 
-const exemplo = (nomeLoja: string, origem: string, evento: PayloadLead["evento"] = "teste"): PayloadLead => ({
-  evento, id: "8f0c2d1e-…", criado_em: new Date().toISOString(), origem: "veiculo", status: "novo",
+// Data fixa no exemplo exibido: servidor e navegador precisam renderizar o mesmo texto.
+const exemplo = (nomeLoja: string, origem: string, evento: PayloadLead["evento"] = "teste", criadoEm = "2026-09-17T12:00:00.000Z"): PayloadLead => ({
+  evento, id: "8f0c2d1e-…", criado_em: criadoEm, origem: "veiculo", status: "novo",
   lead: { nome: "Lead de Teste", email: "teste@exemplo.com", telefone: "5548999990000", mensagem: "Olá, o carro ainda está disponível?" },
   veiculo: { id: "…", codigo: "0001", titulo: "Toyota Corolla XEi 2.0 Flex CVT 2023", marca: "Toyota", modelo: "Corolla", versao: "XEi 2.0 Flex CVT", ano_modelo: 2023, preco: 139900, url: `${origem}/carros` },
   vendedor: { nome: "Carlos", whatsapp: "5548999990001", email: "carlos@loja.com.br" },
@@ -94,7 +95,7 @@ export async function action({ request }: Route.ActionArgs) {
     let r: { ok: boolean; status: number; texto: string };
     if (intencao === "testar-webhook") {
       if (!atual.webhookUrl) return { teste: { ok: false, texto: "Salve a URL do webhook antes de testar." } };
-      r = await entregarWebhook(atual.webhookUrl, atual.webhookSegredo, exemplo(loja.nome, origem));
+      r = await entregarWebhook(atual.webhookUrl, atual.webhookSegredo, exemplo(loja.nome, origem, "teste", new Date().toISOString()));
     } else if (intencao === "testar-email") {
       r = await enviarEmail(atual, `Teste de e-mail — ${loja.nome}`, [["Status", "Se você recebeu este e-mail, os avisos de novos leads estão funcionando."]]);
     } else {
@@ -401,3 +402,5 @@ function Testes() {
     </Secao>
   );
 }
+
+export { ErroPainel as ErrorBoundary } from "~/components/admin/ErroPainel";

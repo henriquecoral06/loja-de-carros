@@ -48,4 +48,13 @@ export const CORES = [
 ] as const;
 
 export const ANO_MINIMO = 1950;
+// Sempre calculado na hora: no Cloudflare Workers, `new Date()` no
+// carregamento do módulo (fora de uma requisição) devolve 1970.
 export const anoMaximo = () => new Date().getFullYear() + 1;
+
+/** Anos do mais novo para o mais antigo. Chamar dentro de componente/loader, nunca no topo do módulo. */
+export const listaAnos = (quantos?: number) => {
+  const max = anoMaximo();
+  const total = quantos ?? max - ANO_MINIMO + 1;
+  return Array.from({ length: total }, (_, i) => max - i);
+};

@@ -11,7 +11,7 @@ import { dentroDoLimite, exigirMesmaOrigem, ipDe } from "~/.server/seguranca";
 import { CamposMensagem } from "~/components/CamposMensagem";
 import { Galeria } from "~/components/Galeria";
 import { Rastreamento } from "~/components/Rastreamento";
-import { BotaoWhatsAppFlutuante, IconeWhatsApp, LinkWhatsApp } from "~/components/WhatsApp";
+import { IconeWhatsApp, LinkWhatsApp } from "~/components/WhatsApp";
 import { anos, km, moeda } from "~/lib/formato";
 import { rastrear } from "~/lib/rastreamento";
 import { lojaDasRotas } from "~/lib/site";
@@ -211,7 +211,6 @@ export default function LandingPage({ loaderData }: Route.ComponentProps) {
           <Link to="/privacidade" className="py-1 underline">Privacidade</Link>
         </div>
       </footer>
-      <BotaoWhatsAppFlutuante />
       <Rastreamento />
     </div>
   );
@@ -224,7 +223,7 @@ function Cabecalho({ lp, specs, escuro }: {
 }) {
   return (
     <div>
-      <h1 className={cn("text-3xl font-extrabold leading-tight tracking-tight sm:text-5xl", escuro ? "text-white" : "text-tinta")}>{lp.headline}</h1>
+      <h1 className={cn("text-balance text-3xl font-extrabold leading-tight tracking-tight sm:text-5xl", escuro ? "text-white" : "text-tinta")}>{lp.headline}</h1>
       {lp.subtitulo && <p className={cn("mt-3 max-w-2xl text-lg", escuro ? "text-white/80" : "text-suave")}>{lp.subtitulo}</p>}
       <ul className="numeros mt-5 flex flex-wrap gap-2">
         {specs.map(({ icone: Icone, texto }) => (

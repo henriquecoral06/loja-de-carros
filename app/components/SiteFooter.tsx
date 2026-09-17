@@ -1,5 +1,5 @@
 import { Clock, Mail, MapPin, Phone } from "lucide-react";
-import { Link } from "react-router";
+import { Link, useLocation } from "react-router";
 import { cep } from "~/lib/formato";
 import { useLoja } from "~/lib/useLoja";
 import { CARROCERIAS } from "~/lib/veiculos";
@@ -8,6 +8,7 @@ import { LinkTelefone } from "./WhatsApp";
 
 export function SiteFooter() {
   const loja = useLoja();
+  const { pathname } = useLocation();
   const cidade = [loja.cidade, loja.uf].filter(Boolean).join(" - ");
   const redes = ([["Instagram", loja.instagram], ["Facebook", loja.facebook], ["TikTok", loja.tiktok], ["YouTube", loja.youtube]] as const)
     .filter(([, url]) => /^https:\/\//.test(url));
@@ -15,9 +16,10 @@ export function SiteFooter() {
   const link = "inline-block py-1.5 transition-colors hover:text-white";
 
   return (
-    <footer className="mt-20 bg-noite text-[15px] text-white/70">
-      <div className="conteiner grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-[1.3fr_0.7fr_0.8fr_1.6fr] lg:gap-12">
-        <div>
+    // Na página do carro, a barra fixa de contato do celular cobriria o fim do rodapé.
+    <footer className={`mt-20 bg-noite text-[15px] text-white/70 ${pathname.startsWith("/carro/") ? "pb-20 lg:pb-0" : ""}`}>
+      <div className="conteiner grid grid-cols-2 gap-x-6 gap-y-10 py-14 lg:grid-cols-[1.3fr_0.7fr_0.8fr_1.6fr] lg:gap-12">
+        <div className="col-span-2 lg:col-span-1">
           <Logo loja={loja} claro />
           {loja.slogan && <p className="mt-5 max-w-xs leading-relaxed">{loja.slogan}</p>}
           {redes.length > 0 && (
@@ -50,7 +52,7 @@ export function SiteFooter() {
           </ul>
         </nav>
 
-        <div>
+        <div className="col-span-2 lg:col-span-1">
           <h2 className={titulo}>Atendimento</h2>
           <ul className="mt-4 space-y-3">
             {(loja.endereco || cidade) && (

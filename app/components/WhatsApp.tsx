@@ -1,4 +1,5 @@
 import type { AnchorHTMLAttributes } from "react";
+import { useLocation } from "react-router";
 import { linkTelefone, linkWhatsApp, telefone } from "~/lib/formato";
 import { rastrear } from "~/lib/rastreamento";
 import { useLoja } from "~/lib/useLoja";
@@ -43,10 +44,14 @@ export function LinkTelefone({ numero, ddi, veiculo, className, children }: { nu
 
 export function BotaoWhatsAppFlutuante() {
   const loja = useLoja();
-  if (!loja.whatsappFlutuante) return null;
+  const { pathname } = useLocation();
+  // Página do carro e landing page já têm botão de WhatsApp fixo/à vista:
+  // o flutuante só cobriria o botão principal no celular.
+  if (!loja.whatsappFlutuante || pathname.startsWith("/lp/")) return null;
+  const naPaginaDoCarro = pathname.startsWith("/carro/");
   return (
     <LinkWhatsApp aria-label="Falar com a loja no WhatsApp"
-      className="fixed bottom-5 right-5 z-40 grid size-14 place-items-center rounded-full bg-[#128c4a] text-white shadow-flutuante transition-transform hover:scale-105">
+      className={`fixed bottom-5 right-5 z-40 size-14 place-items-center rounded-full bg-[#128c4a] text-white shadow-flutuante transition-transform hover:scale-105 ${naPaginaDoCarro ? "hidden lg:grid" : "grid"}`}>
       <IconeWhatsApp className="size-7" />
     </LinkWhatsApp>
   );

@@ -9,7 +9,7 @@ import { lerFiltros, ORDENACOES, urlBusca } from "~/lib/busca";
 import { inteiro, km as fmtKm, moeda } from "~/lib/formato";
 import { lojaDasRotas, SITE } from "~/lib/site";
 import { cn } from "~/lib/ui";
-import { CAMBIOS, CARROCERIAS, COMBUSTIVEIS } from "~/lib/veiculos";
+import { CAMBIOS, CARROCERIAS, COMBUSTIVEIS, listaAnos } from "~/lib/veiculos";
 import type { Route } from "./+types/busca";
 
 export async function loader({ request, params }: Route.LoaderArgs) {
@@ -70,7 +70,6 @@ export function meta({ loaderData, location, matches }: Route.MetaArgs) {
   ];
 }
 
-const ANOS = Array.from({ length: 30 }, (_, i) => new Date().getFullYear() + 1 - i);
 const KMS = [10000, 30000, 50000, 80000, 100000, 150000];
 
 export default function Busca({ loaderData }: Route.ComponentProps) {
@@ -83,6 +82,7 @@ export default function Busca({ loaderData }: Route.ComponentProps) {
   const submit = useSubmit();
   const formRef = useRef<HTMLFormElement>(null);
   const titulo = tituloDe(marcaNome, modeloNome);
+  const ANOS = listaAnos(30);
   const totalPaginas = Math.max(1, Math.ceil(total / SITE.porPagina));
 
   // Fecha a gaveta ao trocar de marca/modelo (muda o caminho). Mudança de
@@ -312,8 +312,8 @@ export default function Busca({ loaderData }: Route.ComponentProps) {
           )}
 
           {anuncios.length ? (
-            <ul className={cn("mt-5 grid gap-4 transition-opacity sm:grid-cols-2 xl:grid-cols-3", carregando && "opacity-50")}>
-              {anuncios.map((a, i) => <li key={a.id}><AnuncioCard anuncio={a} prioridade={i < 3} /></li>)}
+            <ul className={cn("mt-5 grid gap-3 transition-opacity sm:grid-cols-2 sm:gap-4 xl:grid-cols-3", carregando && "opacity-50")}>
+              {anuncios.map((a, i) => <li key={a.id}><AnuncioCard anuncio={a} prioridade={i < 3} lista /></li>)}
             </ul>
           ) : (
             <div className="cartao mt-5 px-6 py-14 text-center">

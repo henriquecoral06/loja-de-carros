@@ -82,7 +82,7 @@ export async function action({ request }: Route.ActionArgs) {
   const anuncio = await anuncioPorId(String(form.get("id")));
   if (intencao === "excluir") {
     const chaves = await db.select({ chave: schema.fotos.chave }).from(schema.fotos).where(eq(schema.fotos.anuncioId, anuncio.id));
-    // Apaga a linha primeiro: se o R2 falhar, sobra arquivo órfão, mas nunca um veículo apontando para foto que não existe.
+    // Apaga o cadastro primeiro: se apagar as fotos falhar, sobra arquivo órfão, mas nunca um veículo apontando para foto que não existe.
     await db.delete(schema.anuncios).where(eq(schema.anuncios.id, anuncio.id));
     await removerObjetos(chaves.map((c) => c.chave));
     return { ok: true };
@@ -175,13 +175,13 @@ function Linha({ v }: { v: Veiculo }) {
   const botaoIcone = "grid size-9 place-items-center rounded-lg text-texto hover:bg-fundo";
 
   return (
-    <tr className={cn("grid grid-cols-[64px_minmax(0,1fr)] gap-x-3 gap-y-2 border-b border-linha p-4 last:border-0 md:table-row md:p-0", fetcher.state !== "idle" && "opacity-60")}>
+    <tr className={cn("grid grid-cols-[64px_minmax(0,1fr)_auto] gap-x-3 gap-y-2 border-b border-linha p-4 last:border-0 md:table-row md:p-0", fetcher.state !== "idle" && "opacity-60")}>
       <td className="row-span-2 md:border-b md:border-linha md:py-3 md:pl-4 md:pr-0 md:align-middle">
         <Link to={`/admin/veiculos/${v.id}`} tabIndex={-1} aria-hidden="true" className="block size-14 overflow-hidden rounded-lg bg-fundo">
           {v.capa ? <img src={v.capa.startsWith("https://images.unsplash.com") ? v.capa.replace(/w=\d+&h=\d+/, "w=160&h=160") : v.capa} alt="" loading="lazy" className="size-full object-cover" /> : <CarroPlaceholder carroceria={v.carroceria} className="size-full" />}
         </Link>
       </td>
-      <td className="min-w-0 md:w-full md:max-w-0 md:border-b md:border-linha md:px-4 md:py-3 md:align-middle">
+      <td className="col-span-2 min-w-0 md:w-full md:max-w-0 md:border-b md:border-linha md:px-4 md:py-3 md:align-middle">
         <Link to={`/admin/veiculos/${v.id}`} className="block truncate font-semibold text-tinta hover:underline">{titulo}</Link>
         <p className="numeros mt-0.5 truncate text-xs text-suave">
           {codigoVeiculo(v.codigo)} · {anos(v.anoFabricacao, v.anoModelo)} · {km(v.km)} · {v.leads} {v.leads === 1 ? "lead" : "leads"}
@@ -191,20 +191,20 @@ function Linha({ v }: { v: Veiculo }) {
       </td>
       <td className="hidden whitespace-nowrap text-sm text-suave 2xl:table-cell 2xl:border-b 2xl:border-linha 2xl:px-4 2xl:align-middle">{v.carroceria} · {v.cambio}</td>
       <td className="numeros hidden whitespace-nowrap font-semibold text-tinta md:table-cell md:border-b md:border-linha md:px-4 md:align-middle">{moeda(v.preco)}</td>
-      <td className="col-start-2 md:border-b md:border-linha md:px-4 md:align-middle">
+      <td className="col-start-2 min-w-0 self-center md:border-b md:border-linha md:px-4 md:align-middle">
         <fetcher.Form method="post">
           <input type="hidden" name="id" value={v.id} />
           <input type="hidden" name="intencao" value="status" />
           <label htmlFor={`status-${v.id}`} className="sr-only">Status de {titulo}</label>
           <select id={`status-${v.id}`} name="status" value={status} onChange={(e) => fetcher.submit(e.currentTarget.form)}
-            className={cn("h-8 cursor-pointer rounded-full border-0 py-0 pl-3 pr-7 text-xs font-semibold",
+            className={cn("h-8 w-full max-w-36 cursor-pointer rounded-full border-0 py-0 pl-3 pr-7 text-xs font-semibold md:w-auto",
               status === "ativo" ? "bg-sucesso-fundo text-sucesso" : status === "pausado" ? "bg-alerta-fundo text-alerta" : "bg-fundo text-suave")}>
             {STATUS_ANUNCIO.map((s) => <option key={s} value={s}>{ROTULO_STATUS[s]}</option>)}
           </select>
         </fetcher.Form>
       </td>
       <td className="numeros hidden whitespace-nowrap text-sm text-suave xl:table-cell xl:border-b xl:border-linha xl:px-4 xl:align-middle">{data(v.atualizadoEm)}</td>
-      <td className="col-span-2 md:border-b md:border-linha md:pl-2 md:pr-4 md:align-middle">
+      <td className="col-start-3 self-center md:border-b md:border-linha md:pl-2 md:pr-4 md:align-middle">
         <div className="flex items-center justify-end gap-0.5">
           <fetcher.Form method="post">
             <input type="hidden" name="id" value={v.id} />
@@ -275,3 +275,5 @@ function Feed({ feed }: { feed: { ativo: boolean; url: string } }) {
     </details>
   );
 }
+
+export { ErroPainel as ErrorBoundary } from "~/components/admin/ErroPainel";

@@ -63,7 +63,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
         {/* Degradê garante leitura do texto branco sobre qualquer foto de banner. */}
         <div aria-hidden="true" className="absolute inset-0 -z-10 bg-gradient-to-r from-noite via-noite/85 to-noite/30" />
         <div className="conteiner pb-32 pt-14 sm:pb-36 sm:pt-20">
-          <h1 className="max-w-2xl text-4xl font-extrabold leading-[1.08] tracking-tight text-white sm:text-5xl">
+          <h1 className="max-w-2xl text-balance text-4xl font-extrabold leading-[1.08] tracking-tight text-white sm:text-5xl">
             {loja.heroTitulo || loja.slogan || "Seu próximo carro está aqui"}
           </h1>
           <p className="mt-4 max-w-xl text-lg text-white/80">
@@ -91,7 +91,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
             <div>
               <label htmlFor="h-modelo" className="rotulo">Modelo</label>
               <select id="h-modelo" name="modelo" className="campo" disabled={!marcaSel}>
-                <option value="">{marcaSel ? "Todos" : "Escolha a marca"}</option>
+                <option value="">Todos</option>
                 {(modelos[marcaSel] ?? []).map((m) => <option key={m.slug} value={m.slug}>{m.nome}</option>)}
               </select>
             </div>
@@ -124,8 +124,9 @@ export default function Home({ loaderData }: Route.ComponentProps) {
           </Link>
         </div>
         {vitrine.length ? (
-          <ul className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {vitrine.map((a, i) => <li key={a.id}><AnuncioCard anuncio={a} prioridade={i < 4} /></li>)}
+          // Celular: carrossel com rolagem lateral (os 8 destaques empilhados davam uma rolagem enorme).
+          <ul className="-mx-4 mt-5 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 pb-2 [scrollbar-width:none] sm:mx-0 sm:grid sm:snap-none sm:grid-cols-2 sm:gap-4 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-4">
+            {vitrine.map((a, i) => <li key={a.id} className="w-[78%] shrink-0 snap-start sm:w-auto"><AnuncioCard anuncio={a} prioridade={i < 4} /></li>)}
           </ul>
         ) : (
           <p className="cartao mt-5 p-8 text-suave">O estoque está sendo atualizado. Fale com a gente para saber das novidades.</p>

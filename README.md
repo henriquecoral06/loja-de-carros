@@ -10,7 +10,7 @@ são da loja — editados no painel. Roda inteiro no Cloudflare Workers.
 | Interface | React 19 · React Router 8 (framework mode, SSR) · Tailwind CSS 4 |
 | Servidor | Cloudflare Workers |
 | Banco | Cloudflare D1 (SQLite) via Drizzle ORM |
-| Fotos | Cloudflare R2 |
+| Fotos | Cloudflare D1 (ou R2, se configurado) |
 
 Nenhum serviço externo pago: sem provedor de autenticação, sem serviço de
 imagem, sem banco fora da Cloudflare.
@@ -70,7 +70,6 @@ D1 e R2 são emulados pelo `@cloudflare/vite-plugin`, com os dados em
 ```bash
 npx wrangler login
 npx wrangler d1 create loja-de-carros          # copie o database_id para o wrangler.jsonc
-npx wrangler r2 bucket create loja-de-carros-imagens
 npx wrangler secret put SESSION_SECRET         # valor aleatório longo
 npm run db:migrate:remote
 npm run acesso -- voce@sualoja.com.br "Seu nome" --remote   # primeiro acesso ao painel
@@ -80,6 +79,41 @@ npm run deploy
 Depois, entre em `/admin/loja` e preencha os dados da loja. O mesmo
 `npm run acesso` redefine a senha de quem esqueceu (e derruba as sessões
 abertas dessa pessoa).
+
+---
+
+## Testar antes de publicar
+
+```bash
+npm run test:e2e                                                  # local (conta demo do seed)
+BASE=https://sua-loja.workers.dev EMAIL=voce@loja.com SENHA=... npm run test:e2e   # produção
+```
+
+Abre o Chrome instalado (sem janela) e usa o sistema como uma pessoa usaria: busca e filtros, página do
+carro, os quatro formulários do site, menu e filtros no celular; no painel, cadastro de veículo com e sem
+fotos, status, destaque, edição, feed XML, landing page (criar/duplicar/excluir), leads (status, anotação,
+CSV), vendedores, integrações (salvar, token da API, testes), configurações, acessos e senha errada.
+Falha se aparecer erro de servidor, erro de JavaScript ou tela de erro. Tudo que ele cria leva o prefixo
+`E2E` e é apagado no fim.
+
+O site limita 8 mensagens por hora por IP; o teste envia 4. Para rodar várias vezes seguidas no local,
+limpe o limite: `npx wrangler d1 execute DB --local --command "delete from limites"`.
+
+### Armadilhas do Cloudflare Workers que o teste pegou
+
+- `new Date()` no topo de um módulo vale **1970** no Workers. Anos, datas e prazos são sempre
+  calculados dentro do componente ou do loader (`listaAnos()` em `app/lib/veiculos.ts`).
+- `db.batch([])` vazio funciona no D1 local e **falha no remoto**.
+- O D1 aceita no máximo **100 parâmetros** por consulta: nada de `IN (...)` com listas longas.
+- Trocar o `database_id` em `wrangler.jsonc` faz o ambiente local usar outro banco (vazio).
+
+### Onde ficam as imagens
+
+Fotos, logo, banner e fotos de vendedores enviadas pelo painel ficam **no próprio D1** (tabela `arquivos`),
+então o site funciona completo sem ativar o R2. O navegador reduz cada foto para ~200–400 KB antes de
+enviar (o D1 aceita até 2 MB por imagem) e `/imagens/...` responde com cache de um ano na borda da
+Cloudflare. Se a conta tiver R2, adicione o binding `IMAGENS` no `wrangler.jsonc`: o código passa a
+guardar no R2 sozinho.
 
 ---
 

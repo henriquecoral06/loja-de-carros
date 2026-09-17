@@ -128,3 +128,5 @@ function Linha({ l, origem }: { l: Route.ComponentProps["loaderData"]["lista"][n
     </tr>
   );
 }
+
+export { ErroPainel as ErrorBoundary } from "~/components/admin/ErroPainel";

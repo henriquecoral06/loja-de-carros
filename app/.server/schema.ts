@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { blob, index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 import { CAMBIOS, CARROCERIAS, COMBUSTIVEIS, ESTILOS_LP, ORIGENS_LEAD, STATUS_ANUNCIO, STATUS_LEAD } from "../lib/veiculos";
 
 /*
@@ -205,7 +205,7 @@ export const fotos = sqliteTable(
   {
     id: text("id").primaryKey(),
     anuncioId: text("anuncio_id").notNull().references(() => anuncios.id, { onDelete: "cascade" }),
-    chave: text("chave").notNull(), // chave do objeto no R2
+    chave: text("chave").notNull(), // chave em `arquivos` (ou no R2), ou URL externa das fotos de exemplo
     ordem: integer("ordem").notNull().default(0),
     criadoEm: integer("criado_em").notNull().default(agora),
   },
@@ -256,6 +256,19 @@ export const leads = sqliteTable(
   },
   (t) => [index("leads_criado_idx").on(t.criadoEm), index("leads_status_idx").on(t.status, t.criadoEm)],
 );
+
+/**
+ * Imagens enviadas pelo painel (fotos, logo, banner). Ficam no próprio D1:
+ * o site funciona sem ativar o R2. O navegador reduz as fotos antes de
+ * enviar (~200–400 KB), bem abaixo do limite de 2 MB por linha do D1.
+ */
+export const arquivos = sqliteTable("arquivos", {
+  chave: text("chave").primaryKey(),
+  tipo: text("tipo").notNull(),
+  tamanho: integer("tamanho").notNull(),
+  dados: blob("dados").notNull(),
+  criadoEm: integer("criado_em").notNull().default(agora),
+});
 
 /*
  * Limite de tentativas (login, mensagem). Janela fixa: uma linha por

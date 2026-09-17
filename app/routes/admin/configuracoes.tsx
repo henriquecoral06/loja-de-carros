@@ -138,13 +138,19 @@ export async function action({ request }: Route.ActionArgs) {
   const substituidas: string[] = [];
   for (const campo of ARQUIVOS) {
     const novo = validos.find((x) => x.campo === campo);
-    if (novo) mudancas[campo.coluna] = await salvarArquivoLoja(campo.prefixo, novo.bytes, novo.tipo);
+    if (novo) {
+      try {
+        mudancas[campo.coluna] = await salvarArquivoLoja(campo.prefixo, novo.bytes, novo.tipo);
+      } catch {
+        return data({ config: { erros: { [campo.campo]: "Não foi possível guardar a imagem. Tente de novo." } as Erros } }, { status: 500 });
+      }
+    }
     else if (form.get(`remover_${campo.campo}`) === "1") mudancas[campo.coluna] = "";
     else continue;
     if (atual[campo.coluna]) substituidas.push(atual[campo.coluna]);
   }
   await salvarLoja({ ...v, ...mudancas });
-  // Arquivo antigo só sai do R2 depois que o banco aponta para o novo.
+  // Imagem antiga só é apagada depois que a loja aponta para a nova.
   await removerObjetos(substituidas);
   return { config: { ok: true } };
 }
@@ -372,7 +378,7 @@ function Senha({ resposta }: { resposta?: { ok?: boolean; erros?: Erros } }) {
   const enviando = navigation.state === "submitting" && navigation.formData?.get("intencao") === "senha";
   const erros = resposta?.erros ?? {};
   return (
-    <Secao titulo="Alterar minha senha" descricao="Use pelo menos 8 caracteres. Troque a senha padrão do seed antes de divulgar o site.">
+    <Secao titulo="Alterar minha senha" descricao="Use pelo menos 8 caracteres. Ao trocar, as sessões abertas em outros aparelhos são encerradas.">
       {resposta?.ok ? (
         <p role="status" className="rounded-lg bg-sucesso-fundo px-3 py-2.5 text-sm text-sucesso">Senha alterada. Sessões abertas em outros aparelhos foram encerradas.</p>
       ) : (
@@ -389,3 +395,5 @@ function Senha({ resposta }: { resposta?: { ok?: boolean; erros?: Erros } }) {
     </Secao>
   );
 }
+
+export { ErroPainel as ErrorBoundary } from "~/components/admin/ErroPainel";

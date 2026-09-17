@@ -12,7 +12,7 @@ import { GerenciadorFotos } from "~/components/GerenciadorFotos";
 import { apenasDigitos, inteiro, slugify } from "~/lib/formato";
 import { metaAdmin, SITE } from "~/lib/site";
 import {
-  ANO_MINIMO, anoMaximo, CAMBIOS, CARROCERIAS, COMBUSTIVEIS, CORES, codigoVeiculo, OPCIONAIS, ROTULO_STATUS, STATUS_ANUNCIO,
+  ANO_MINIMO, anoMaximo, CAMBIOS, CARROCERIAS, COMBUSTIVEIS, CORES, codigoVeiculo, listaAnos, OPCIONAIS, ROTULO_STATUS, STATUS_ANUNCIO,
 } from "~/lib/veiculos";
 import type { Route } from "./+types/veiculo-form";
 
@@ -42,7 +42,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 }
 
 type Campos = "marcaId" | "modeloId" | "versao" | "anoFabricacao" | "anoModelo" | "km" | "preco" | "cambio"
-  | "combustivel" | "carroceria" | "cor" | "portas" | "descricao" | "status" | "fotos";
+  | "combustivel" | "carroceria" | "cor" | "portas" | "descricao" | "status" | "fotos" | "geral";
 type Erros = Partial<Record<Campos, string>>;
 
 const naLista = (valor: string, lista: readonly string[]) => lista.includes(valor);
@@ -119,7 +119,7 @@ export async function action({ request, params }: Route.ActionArgs) {
   const invalida = validadas.findIndex((r) => !r.ok);
   if (invalida >= 0) {
     const r = validadas[invalida] as { ok: false; erro: string };
-    erros.fotos = r.erro === "grande" ? `A foto "${novas[invalida].name}" passa de 8 MB.` : `A foto "${novas[invalida].name}" não é JPG, PNG ou WebP.`;
+    erros.fotos = r.erro === "grande" ? `A foto "${novas[invalida].name}" é grande demais. Envie pelo painel com JavaScript ativo (ele reduz a foto) ou use uma imagem menor.` : `A foto "${novas[invalida].name}" não é JPG, PNG ou WebP.`;
   }
 
   if (Object.keys(erros).length) return data({ erros }, { status: 400 });
@@ -141,48 +141,67 @@ export async function action({ request, params }: Route.ActionArgs) {
     destaque: v.destaque, status: v.status as never, vendedorId: v.vendedorId, atualizadoEm: agora,
   };
 
-  if (!existente) {
-    // Código sequencial do estoque. UNIQUE no banco: duas criações simultâneas não repetem número.
-    const [{ ultimo }] = await db.select({ ultimo: max(schema.anuncios.codigo) }).from(schema.anuncios);
-    await db.insert(schema.anuncios).values({ id, codigo: (ultimo ?? 0) + 1, slug, criadoPor: usuario.id, criadoEm: agora, ...dados });
-  }
-
-  // Sobe as fotos novas. Se o R2 falhar, desfaz o que subiu e, se o
-  // anúncio acabou de ser criado, apaga ele também.
+  // 1) Guarda as fotos novas primeiro. Se falhar, nada foi gravado no
+  //    cadastro ainda: não sobra carro pela metade.
   const chavesNovas: string[] = [];
   try {
     for (const r of validadas) {
       if (r.ok) chavesNovas.push(await salvarFotoAnuncio(id, r.bytes, r.tipo));
     }
-  } catch {
-    await removerObjetos(chavesNovas);
-    if (!existente) await db.delete(schema.anuncios).where(eq(schema.anuncios.id, id));
-    return data({ erros: { fotos: "Não foi possível enviar as fotos. Tente de novo." } as Erros }, { status: 500 });
+  } catch (e) {
+    console.error("Falha ao enviar fotos", e);
+    await removerObjetos(chavesNovas).catch(() => {});
+    return data({ erros: { fotos: "Não foi possível enviar as fotos. Tente de novo." } as Erros }, { status: 502 });
   }
 
   const mantidas = new Set(sequencia.filter((s) => s.tipo === "e").map((s) => (s as { id: string }).id));
   const removidas = atuais.filter((f) => !mantidas.has(f.id));
-
-  await db.batch([
-    ...(existente ? [db.update(schema.anuncios).set(dados).where(eq(schema.anuncios.id, id))] : []),
+  const operacoesFotos = [
     ...(removidas.length ? [db.delete(schema.fotos).where(inArray(schema.fotos.id, removidas.map((f) => f.id)))] : []),
     ...sequencia.map((s, posicao) => s.tipo === "e"
       ? db.update(schema.fotos).set({ ordem: posicao }).where(eq(schema.fotos.id, s.id))
       : db.insert(schema.fotos).values({ id: crypto.randomUUID(), anuncioId: id, chave: chavesNovas[s.indice], ordem: posicao })),
-  ] as never);
+  ];
 
-  // Arquivo só sai do R2 depois que o banco confirmou.
-  await removerObjetos(removidas.map((f) => f.chave));
+  // 2) Carro e fotos numa só transação (batch do D1). Batch nunca vai
+  //    vazio: a primeira operação é sempre o insert/update do carro.
+  try {
+    if (existente) {
+      await db.batch([db.update(schema.anuncios).set(dados).where(eq(schema.anuncios.id, id)), ...operacoesFotos]);
+    } else {
+      // Código sequencial do estoque. É UNIQUE: se duas pessoas salvarem ao
+      // mesmo tempo, a segunda tenta de novo com o próximo número.
+      for (let tentativa = 0; ; tentativa++) {
+        const [{ ultimo }] = await db.select({ ultimo: max(schema.anuncios.codigo) }).from(schema.anuncios);
+        try {
+          await db.batch([
+            db.insert(schema.anuncios).values({ id, codigo: (ultimo ?? 0) + 1 + tentativa, slug, criadoPor: usuario.id, criadoEm: agora, ...dados }),
+            ...operacoesFotos,
+          ]);
+          break;
+        } catch (e) {
+          if (tentativa >= 2 || !String(e).includes("UNIQUE")) throw e;
+        }
+      }
+    }
+  } catch (e) {
+    console.error("Falha ao salvar veículo", e);
+    await removerObjetos(chavesNovas).catch(() => {});
+    return data({ erros: { geral: "Não foi possível salvar o veículo. Tente de novo em instantes." } as Erros }, { status: 500 });
+  }
+
+  // Foto antiga só é apagada depois que o cadastro confirmou.
+  await removerObjetos(removidas.map((f) => f.chave)).catch((e) => console.error("Falha ao remover fotos antigas", e));
 
   throw redirect(`/admin/veiculos?salvo=${slug}`);
 }
 
-const ANOS = Array.from({ length: anoMaximo() - ANO_MINIMO + 1 }, (_, i) => anoMaximo() - i);
 const formatarMilhar = (t: string) => { const d = apenasDigitos(t).slice(0, 9); return d ? inteiro(Number(d)) : ""; };
 
 export default function VeiculoForm({ loaderData, actionData }: Route.ComponentProps) {
   const { catalogo: cat, vendedores, anuncio: a, fotos } = loaderData;
   const erros: Erros = actionData?.erros ?? {};
+  const ANOS = listaAnos();
   const navigation = useNavigation();
   const enviando = navigation.state === "submitting";
 
@@ -216,7 +235,7 @@ export default function VeiculoForm({ loaderData, actionData }: Route.ComponentP
 
       {Object.keys(erros).length > 0 && (
         <div role="alert" className="rounded-xl border border-erro/20 bg-erro-fundo px-4 py-3 text-sm text-erro">
-          Revise os campos marcados antes de salvar.
+          {erros.geral ?? (erros.fotos && Object.keys(erros).length === 1 ? erros.fotos : "Revise os campos marcados antes de salvar.")}
         </div>
       )}
 
@@ -337,3 +356,5 @@ export default function VeiculoForm({ loaderData, actionData }: Route.ComponentP
     </Form>
   );
 }
+
+export { ErroPainel as ErrorBoundary } from "~/components/admin/ErroPainel";
