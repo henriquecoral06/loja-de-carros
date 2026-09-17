@@ -6,7 +6,7 @@ import { cn } from "~/lib/ui";
 import { codigoVeiculo } from "~/lib/veiculos";
 import {
   Ampliacao, BlocoDepoimentos, BlocoEtapas, BlocoNumeros, Botao, BotaoCta, BotaoMaterial, BotaoWa, CardsNavegacao, CartaoVendedor, FormularioLP,
-  IconeDestaque, ListaOpcionais, LogoTopo, Mapa, Menu, MidiaTopo, Ordenadas, precoDe, Rodape, V, Video, WhatsFlutuante, type LP, type Partes,
+  IconeDestaque, ListaOpcionais, LogoTopo, Mapa, Menu, MidiaTopo, mosaico, Ordenadas, precoDe, Rodape, V, Video, WhatsFlutuante, type LP, type Partes,
 } from "./base";
 
 /* Estilo Tech: preto, rótulos técnicos numerados e dados em destaque. */
@@ -55,6 +55,7 @@ export function Tech(d: LP) {
   const { lp, v, fotos, faq, fatos, ficha, destaques, chamada, endereco, video, material, galeria, faixa, numeros, etapas, depoimentos, setAberta, nomeCarro, ordem, loja } = d;
   const num = (k: SecaoOrdenavel) => String(ordem.indexOf(k) + 1).padStart(2, "0");
   const preco = precoDe(d);
+  const mosaicoFotos = mosaico(fotos.length, 5);
 
   const partes: Partes = {
     conceito: (
@@ -99,9 +100,9 @@ export function Tech(d: LP) {
     ),
     galeria: galeria.length > 0 && (
       <Secao n={num("galeria")} id="fotos" rotulo="Imagens" titulo="Fotos reais. Nenhum retoque.">
-        <div className="grid gap-3 md:grid-cols-12">
-          {fotos.slice(0, 5).map((src, i) => (
-            <button key={src + i} type="button" onClick={() => setAberta(i)} className={cn("group relative overflow-hidden", i === 0 ? "aspect-[4/3] md:col-span-8 md:row-span-2 md:aspect-auto" : "aspect-[4/3] md:col-span-4")} style={{ borderRadius: V.card }} aria-label={`Ampliar foto ${i + 1}`}>
+        <div className={cn("grid gap-3", mosaicoFotos.n === 1 ? "md:aspect-[16/9]" : "md:aspect-[2/1]", mosaicoFotos.grade)}>
+          {fotos.slice(0, mosaicoFotos.n).map((src, i) => (
+            <button key={src + i} type="button" onClick={() => setAberta(i)} className={cn("group relative aspect-[4/3] overflow-hidden md:aspect-auto", mosaicoFotos.item(i))} style={{ borderRadius: V.card }} aria-label={`Ampliar foto ${i + 1}`}>
               <img src={src} alt={`${nomeCarro} — foto ${i + 1}`} className="size-full object-cover transition duration-700 group-hover:scale-[1.03]" loading="lazy" />
               <span className="absolute bottom-3 left-3 bg-black/60 px-2 py-1 text-[10px] text-white" style={{ fontFamily: MONO }}>{String(i + 1).padStart(2, "0")} / {String(fotos.length).padStart(2, "0")}</span>
             </button>

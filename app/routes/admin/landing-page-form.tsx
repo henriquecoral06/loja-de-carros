@@ -76,8 +76,14 @@ export async function loader({ request, params }: Route.LoaderArgs) {
       }
     : modo === "modelo" ? modelo : doVeiculo;
 
+  // Página antiga pode citar outro carro (o carro foi trocado e os textos ficaram).
+  const semAcento = (x: string) => x.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const textosDeOutroCarro = Boolean(lp) && ![lp!.headline, lp!.subtitulo, lp!.secao1Titulo].some((x) => semAcento(x).includes(semAcento(veiculo.modelo)));
+
   return {
     etapa: 2 as const,
+    veiculos,
+    textosDeOutroCarro,
     lp,
     veiculo,
     modo,
@@ -115,7 +121,7 @@ export async function action({ request, params }: Route.ActionArgs) {
     throw redirect("/admin/landing-pages");
   }
 
-  const anuncioId = atual?.anuncioId ?? t("anuncioId");
+  const anuncioId = t("anuncioId") || atual?.anuncioId || "";
   const [carro] = anuncioId ? await db.select({ slug: schema.anuncios.slug }).from(schema.anuncios).where(eq(schema.anuncios.id, anuncioId)).limit(1) : [];
   const veiculo = carro ? await porSlug(carro.slug) : null;
   if (!veiculo) return data({ erros: { geral: "O veículo desta página não existe mais." } as Erros }, { status: 400 });
@@ -196,7 +202,9 @@ export async function action({ request, params }: Route.ActionArgs) {
   // Imagens: foto do carro, upload já feito por esta página ou vazio (automático).
   const escolha = (campo: string, anterior: string) => {
     const v = t(campo, 500);
-    return v === "" || fotosDoCarro.has(v) || (v === anterior && v.startsWith("/imagens/lp/")) ? v : anterior;
+    if (v === "" || fotosDoCarro.has(v) || (v === anterior && v.startsWith("/imagens/lp/"))) return v;
+    // Foto de outro carro (o carro da página foi trocado) volta para o automático.
+    return anterior.startsWith("/imagens/lp/") ? anterior : "";
   };
   const arquivo = (campo: string) => {
     const f = form.get(campo);
@@ -226,7 +234,7 @@ export async function action({ request, params }: Route.ActionArgs) {
   const id = atual?.id ?? crypto.randomUUID();
   try {
     if (atual) {
-      await db.update(schema.landingPages).set({ ...valores, ...arquivos, atualizadoEm: Date.now() }).where(eq(schema.landingPages.id, atual.id));
+      await db.update(schema.landingPages).set({ anuncioId, ...valores, ...arquivos, atualizadoEm: Date.now() }).where(eq(schema.landingPages.id, atual.id));
     } else {
       await db.insert(schema.landingPages).values({ id, anuncioId, ...valores, ...arquivos, criadoEm: Date.now(), atualizadoEm: Date.now() });
     }
@@ -489,11 +497,13 @@ type Estrutura = { chave: SecaoOrdenavel; oculta: boolean };
 
 export default function LandingPageForm({ loaderData, actionData }: Route.ComponentProps) {
   if (loaderData.etapa === 1) return <Etapa1 veiculos={loaderData.veiculos} veiculoInicial={loaderData.veiculoInicial} />;
-  return <Editor dados={loaderData} actionData={actionData} />;
+  // Trocar o carro recarrega o editor com as fotos e os dados do novo carro.
+  return <Editor key={loaderData.veiculo.id} dados={loaderData} actionData={actionData} />;
 }
 
 function Editor({ dados, actionData }: { dados: DadosEditor; actionData: Route.ComponentProps["actionData"] }) {
-  const { lp, veiculo: v, modo, doVeiculo, modelo, origem } = dados;
+  const { lp, veiculo: v, modo, doVeiculo, modelo, origem, veiculos, textosDeOutroCarro } = dados;
+  const [anuncioId, setAnuncioId] = useState(v.id);
   const erros: Erros = actionData && "erros" in actionData ? actionData.erros : {};
   const navegacao = useNavigation();
   const salvando = navegacao.state === "submitting" && navegacao.formMethod?.toUpperCase() === "POST";
@@ -783,6 +793,12 @@ function Editor({ dados, actionData }: { dados: DadosEditor; actionData: Route.C
         {!lp && <Link to={`/admin/landing-pages/nova?veiculo=${v.id}`} className="botao-fantasma h-10 px-4 text-sm">Voltar à etapa 1</Link>}
       </Cabecalho>
       {params.get("criada") && !sujo && !salvoAs && <Aviso tipo="sucesso">Landing page criada como rascunho. Revise as seções (setas reordenam, o olho oculta) e mude o status para Ativa quando estiver pronta.</Aviso>}
+      {textosDeOutroCarro && versao === 0 && (
+        <div role="alert" className="mb-4 flex flex-col gap-3 rounded-xl border border-alerta/25 bg-alerta-fundo px-4 py-3 text-sm text-alerta sm:flex-row sm:items-center sm:justify-between">
+          <p><strong>Os textos desta página não falam do {v.marca} {v.modelo}.</strong> Ela foi criada para outro carro e os textos ficaram. O título atual é “{lp?.headline}”.</p>
+          <button type="button" onClick={() => aplicarSemente(doVeiculo, `dados do ${v.modelo}`)} className="botao-primario h-10 shrink-0 px-4 text-sm"><Sparkles className="size-4" /> Preencher com os dados do {v.modelo}</button>
+        </div>
+      )}
       {Object.keys(erros).length > 0 && <Aviso tipo="erro">{erros.geral ?? "Revise os campos destacados."}</Aviso>}
 
       <Form method="post" encType="multipart/form-data" noValidate onChange={marcar} className="grid grid-cols-1 gap-6 pb-28 xl:grid-cols-[minmax(0,1fr)_340px]">
@@ -887,6 +903,12 @@ function Editor({ dados, actionData }: { dados: DadosEditor; actionData: Route.C
         <aside className="min-w-0">
           <div className="grid grid-cols-[minmax(0,1fr)] gap-4 rounded-xl border border-linha bg-white p-5 xl:sticky xl:top-4 xl:max-h-[calc(100dvh-7rem)] xl:overflow-y-auto">
             <h2 className="font-bold text-tinta">Publicação</h2>
+            {lp && (
+              <CampoSelecao id="anuncioId" rotulo="Carro da página" value={anuncioId} onChange={(e) => setAnuncioId(e.target.value)}
+                dica={anuncioId !== v.id ? "Salve para carregar as fotos e a ficha do novo carro. Depois use “Preencher textos” para trocar os textos." : "Fotos, preço, ficha e vendedor vêm deste carro."}>
+                {veiculos.map((x) => <option key={x.id} value={x.id}>{codigoVeiculo(x.codigo)} · {x.marca} {x.modelo} {x.versao} {x.anoModelo}{x.status !== "ativo" ? ` (${x.status})` : ""}</option>)}
+              </CampoSelecao>
+            )}
             <CampoTexto id="titulo" rotulo="Nome interno" defaultValue={lp?.titulo ?? tituloPadrao} maxLength={100} erro={erros.titulo} dica="Só aparece no painel." />
             <CampoSelecao id="status" rotulo="Status" defaultValue={lp?.status ?? "rascunho"}>
               <option value="rascunho">Rascunho (só a equipe vê)</option>

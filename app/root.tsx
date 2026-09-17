@@ -1,7 +1,8 @@
-import { isRouteErrorResponse, Link, Links, Meta, Outlet, Scripts, ScrollRestoration, useRouteLoaderData } from "react-router";
+import { isRouteErrorResponse, Link, Links, Meta, Outlet, Scripts, ScrollRestoration, useLocation, useRouteLoaderData } from "react-router";
 import { rastreamentoPublico } from "~/.server/integracoes";
 import { obterLoja } from "~/.server/loja";
 import { cssTema, paleta } from "~/lib/cores";
+import { scriptTags, temTags, urlGtag } from "~/lib/tags";
 import type { Route } from "./+types/root";
 import "./app.css";
 
@@ -28,6 +29,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const secundaria = dados?.loja.corSecundaria ?? "";
   // O ícone da aba acompanha a cor da loja: ?c= só muda o cache.
   const icone = `/icone.svg?c=${paleta(primaria, escura)["marca-600"].slice(1)}`;
+  // Tags de anúncio no <head> das páginas públicas (o painel não é medido).
+  const { pathname } = useLocation();
+  const rastreamento = dados?.rastreamento;
+  const comTags = temTags(rastreamento) && !pathname.startsWith("/admin");
+  const gtag = comTags && rastreamento ? urlGtag(rastreamento) : null;
 
   return (
     <html lang="pt-BR">
@@ -36,6 +42,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="theme-color" content={paleta(primaria, escura)["marca-600"]} />
         <link rel="icon" href={icone} type="image/svg+xml" />
+        {comTags && rastreamento && <script dangerouslySetInnerHTML={{ __html: scriptTags(rastreamento) }} />}
+        {gtag && <script async src={gtag} />}
         <Meta />
         <Links />
         {/* Só hex validado entra aqui (ver app/lib/cores.ts). */}

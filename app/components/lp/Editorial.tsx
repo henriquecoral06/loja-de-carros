@@ -4,7 +4,7 @@ import { IconeWhatsApp } from "~/components/WhatsApp";
 import { cn } from "~/lib/ui";
 import {
   Ampliacao, BlocoDepoimentos, BlocoEtapas, BlocoNumeros, Botao, BotaoCta, BotaoMaterial, BotaoWa, CardsNavegacao, CartaoVendedor,
-  FichaTecnica, FormularioLP, IconeDestaque, ListaFaq, ListaOpcionais, LogoTopo, Mapa, Menu, MidiaTopo, Ordenadas, Rodape, Rotulo, V, Video,
+  FichaTecnica, FormularioLP, IconeDestaque, ListaFaq, ListaOpcionais, LogoTopo, Mapa, Menu, MidiaTopo, mosaico, Ordenadas, Rodape, Rotulo, V, Video,
   WhatsFlutuante, type LP, type Partes,
 } from "./base";
 
@@ -19,6 +19,7 @@ function Display({ children, className = "", escuro = false }: { children: React
 export function Editorial(d: LP) {
   const { lp, v, fotos, faq, fatos, destaques, chamada, endereco, video, material, galeria, faixa, ficha, numeros, etapas, depoimentos, setAberta, nomeCarro } = d;
 
+  const mosaicoFotos = mosaico(fotos.length, 3);
   const faixaCta = (
     <section className="border-y" style={{ borderColor: BORDA }}>
       <div className="conteiner flex flex-col items-start justify-between gap-6 py-10 sm:flex-row sm:items-center">
@@ -96,9 +97,9 @@ export function Editorial(d: LP) {
             </div>
             <span className="hidden text-sm sm:block" style={{ color: V.texto }}>{fotos.length} fotos</span>
           </div>
-          <div className="grid gap-2 px-2 md:grid-cols-12 md:grid-rows-2 lg:px-4">
-            {fotos.slice(0, 3).map((src, i) => (
-              <button key={src + i} type="button" onClick={() => setAberta(i)} className={cn("group relative overflow-hidden bg-black/5", i === 0 ? "aspect-[4/3] md:col-span-8 md:row-span-2 md:aspect-auto" : "aspect-[4/3] md:col-span-4")} style={{ borderRadius: V.card }} aria-label={`Ampliar foto ${i + 1}`}>
+          <div className={cn("grid gap-2 px-2 lg:px-4", mosaicoFotos.n === 1 ? "md:aspect-[21/9]" : "md:aspect-[2/1]", mosaicoFotos.grade)}>
+            {fotos.slice(0, mosaicoFotos.n).map((src, i) => (
+              <button key={src + i} type="button" onClick={() => setAberta(i)} className={cn("group relative aspect-[4/3] overflow-hidden bg-black/5 md:aspect-auto", mosaicoFotos.item(i))} style={{ borderRadius: V.card }} aria-label={`Ampliar foto ${i + 1}`}>
                 <img src={src} alt={`${nomeCarro} — foto ${i + 1}`} className="size-full object-cover transition duration-700 group-hover:scale-[1.04]" loading="lazy" />
               </button>
             ))}

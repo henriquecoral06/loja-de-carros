@@ -5,7 +5,7 @@ import { codigoVeiculo } from "~/lib/veiculos";
 import { cn } from "~/lib/ui";
 import {
   Ampliacao, BlocoDepoimentos, BlocoEtapas, BlocoNumeros, BotaoCta, BotaoMaterial, BotaoWa, CardsNavegacao, CartaoVendedor, FichaTecnica,
-  FormularioLP, IconeDestaque, ListaFaq, ListaOpcionais, LogoTopo, Mapa, Menu, MidiaTopo, Ordenadas, precoDe, Rodape, V, Video, WhatsFlutuante,
+  FormularioLP, IconeDestaque, ListaFaq, ListaOpcionais, LogoTopo, Mapa, Menu, MidiaTopo, mosaico, Ordenadas, precoDe, Rodape, V, Video, WhatsFlutuante,
   type LP, type Partes,
 } from "./base";
 
@@ -24,7 +24,8 @@ function Bloco({ id, titulo, children }: { id?: string; titulo: string; children
 
 export function Clean(d: LP) {
   const { lp, v, fotos, faq, fatos, destaques, chamada, endereco, video, material, mostrar, galeria, faixa, ficha, numeros, etapas, depoimentos, setAberta, nomeCarro, videoTopo, topo } = d;
-  const miniaturas = fotos.slice(0, 5);
+  const grade = mosaico(fotos.length, 5);
+  const miniaturas = fotos.slice(0, grade.n);
   const miniatura = (i: number, cls: string) =>
     miniaturas[i] ? (
       <button key={i} type="button" onClick={() => setAberta(i)} className={cn("group relative overflow-hidden bg-black/5", cls)} aria-label={`Ampliar foto ${i + 1}`}>
@@ -138,22 +139,23 @@ export function Clean(d: LP) {
                 </button>
               ))}
             </div>
-            <div className="hidden aspect-[2/1] gap-2 overflow-hidden md:grid md:grid-cols-4 md:grid-rows-2" style={{ borderRadius: V.card }}>
-              {videoTopo ? <div className="relative col-span-2 row-span-2 overflow-hidden"><MidiaTopo d={d} /></div> : miniatura(0, "col-span-2 row-span-2")}
-              {miniatura(1, "")}
-              {miniatura(2, "")}
-              {miniatura(3, "")}
-              {miniatura(4, "")}
+            <div className={cn("hidden gap-2 overflow-hidden md:grid", grade.n === 1 ? "aspect-[16/9]" : "aspect-[2/1]", grade.grade)} style={{ borderRadius: V.card }}>
+              {miniaturas.map((_, i) => i === 0 && videoTopo
+                ? <div key="video" className={cn("relative overflow-hidden", grade.item(0))}><MidiaTopo d={d} /></div>
+                : miniatura(i, grade.item(i)))}
             </div>
-            <button type="button" onClick={() => setAberta(0)} className="absolute bottom-4 right-4 hidden items-center gap-2 border bg-white px-3 py-1.5 text-sm font-semibold text-tinta shadow md:flex" style={{ borderRadius: V.raio }}>
-              <Grip className="size-4" aria-hidden="true" /> Mostrar todas as fotos ({fotos.length})
-            </button>
+            {fotos.length > 1 && (
+              <button type="button" onClick={() => setAberta(0)} className="absolute bottom-4 right-4 hidden items-center gap-2 border bg-white px-3 py-1.5 text-sm font-semibold text-tinta shadow md:flex" style={{ borderRadius: V.raio }}>
+                <Grip className="size-4" aria-hidden="true" /> Mostrar todas as fotos ({fotos.length})
+              </button>
+            )}
           </div>
         ) : topo && <div className="relative aspect-[2/1] overflow-hidden" style={{ borderRadius: V.card }}><MidiaTopo d={d} /></div>}
 
-        <div className="mt-8 grid gap-10 lg:grid-cols-[minmax(0,1fr)_380px]">
+        {/* Sem o card de contato, o conteúdo ocupa o centro em vez de deixar uma coluna vazia. */}
+        <div className={cn("mt-8 grid gap-10", cartaoContato ? "lg:grid-cols-[minmax(0,1fr)_380px]" : "mx-auto max-w-4xl")}>
           <div className="min-w-0 [&>div:first-child>section]:border-t-0 [&>div:first-child>section]:pt-0"><Ordenadas d={d} partes={partes} /></div>
-          <div>{cartaoContato}</div>
+          {cartaoContato && <div>{cartaoContato}</div>}
         </div>
       </div>
       <Rodape d={d} />

@@ -14,6 +14,7 @@
  */
 import type { ConfigRastreamento } from "~/.server/integracoes";
 import { eventoMetaDe, type TipoConversao } from "./conversoes";
+import { CHAVE_CONSENTIMENTO, scriptTags, temTags, urlGtag } from "./tags";
 
 type Evento = "pagina" | "veiculo" | TipoConversao;
 type Dados = { id?: string; nome?: string; valor?: number; origem?: string; eventId?: string };
@@ -27,52 +28,41 @@ type Janela = Window & {
 
 let config: ConfigRastreamento | null = null;
 let carregado = false;
-const w = () => window as unknown as Janela;
+const w = () => window as unknown as Janela & { __tagsLoja?: boolean };
 
-const temAlgo = (c: ConfigRastreamento) => Boolean(c.metaPixelId || c.googleAdsId || c.ga4Id || c.gtmId);
-
-function script(src: string) {
-  const s = document.createElement("script");
-  s.async = true;
-  s.src = src;
-  document.head.appendChild(s);
+/**
+ * Liga o rastreamento. As tags normalmente já vieram no <head> do HTML
+ * (ver app/lib/tags.ts); se a página foi aberta por navegação interna a
+ * partir de uma tela sem tags, instala o mesmo código agora.
+ */
+export function iniciarTags(c: ConfigRastreamento) {
+  config = c;
+  if (carregado || !temTags(c)) return;
+  carregado = true;
+  if (w().__tagsLoja) return;
+  const init = document.createElement("script");
+  init.textContent = scriptTags(c);
+  document.head.appendChild(init);
+  const gtag = urlGtag(c);
+  if (gtag) {
+    const s = document.createElement("script");
+    s.async = true;
+    s.src = gtag;
+    document.head.appendChild(s);
+  }
 }
 
-/** Injeta as tags. Chamado depois do consentimento (ou direto, se a loja desligou o aviso). */
-export function carregarTags(c: ConfigRastreamento) {
-  config = c;
-  if (carregado || !temAlgo(c)) return;
-  carregado = true;
+/** "Aceitar" no aviso de cookies: libera Google (Modo de Consentimento) e Meta. */
+export function concederConsentimento() {
   const j = w();
-
-  if (c.metaPixelId) {
-    // Equivalente ao snippet oficial do Meta, sem string de script inline.
-    const fbq = function (...args: unknown[]) {
-      const f = j.fbq!;
-      if (f.callMethod) (f.callMethod as (...a: unknown[]) => void).apply(f, args);
-      else f.queue!.push(args);
-    } as Janela["fbq"] & object;
-    fbq.push = fbq; fbq.loaded = true; fbq.version = "2.0"; fbq.queue = [];
-    j.fbq = fbq; j._fbq = fbq;
-    script("https://connect.facebook.net/en_US/fbevents.js");
-    j.fbq("init", c.metaPixelId);
+  j.gtag?.("consent", "update", { ad_storage: "granted", analytics_storage: "granted", ad_user_data: "granted", ad_personalization: "granted" });
+  j.gtag?.("set", "ads_data_redaction", false);
+  if (j.fbq) {
+    j.fbq("consent", "grant");
+    // O PageView desta página foi retido enquanto o consentimento estava negado.
+    j.fbq("track", "PageView");
   }
-
-  if (c.googleAdsId || c.ga4Id) {
-    j.dataLayer = j.dataLayer || [];
-    j.gtag = function () { j.dataLayer!.push(arguments); }; // gtag exige o objeto arguments
-    script(`https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(c.googleAdsId || c.ga4Id)}`);
-    j.gtag("js", new Date());
-    // page_view manual: a navegação do site não recarrega a página.
-    if (c.googleAdsId) j.gtag("config", c.googleAdsId, { send_page_view: false });
-    if (c.ga4Id) j.gtag("config", c.ga4Id, { send_page_view: false });
-  }
-
-  if (c.gtmId) {
-    j.dataLayer = j.dataLayer || [];
-    j.dataLayer.push({ "gtm.start": Date.now(), event: "gtm.js" });
-    script(`https://www.googletagmanager.com/gtm.js?id=${encodeURIComponent(c.gtmId)}`);
-  }
+  j.dataLayer?.push({ event: "consentimento_aceito" });
 }
 
 export function rastrear(evento: Evento, dados: Dados = {}) {
@@ -106,7 +96,6 @@ export function rastrear(evento: Evento, dados: Dados = {}) {
   if (c.gtmId && j.dataLayer) j.dataLayer.push({ event: evento, veiculo: dados.nome, veiculo_id: dados.id, valor: dados.valor, origem: dados.origem });
 }
 
-const CHAVE_CONSENTIMENTO = "consentimento-cookies";
 
 export function lerConsentimento(): "aceito" | "recusado" | null {
   try {

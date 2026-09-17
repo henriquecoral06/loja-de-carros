@@ -747,5 +747,16 @@ export function FaixaRolante({ d }: { d: LP }) {
   );
 }
 
+/**
+ * Grade de fotos em mosaico (a partir do tablet) que se ajusta à quantidade:
+ * sem quadros vazios quando o carro tem só 1, 2 ou 3 fotos.
+ */
+export function mosaico(total: number, maximo: 3 | 5) {
+  const n = Math.min(total, maximo);
+  const grade = n <= 1 ? "md:grid-cols-1" : n === 2 ? "md:grid-cols-2" : n === 3 ? "md:grid-cols-3 md:grid-rows-2" : "md:grid-cols-4 md:grid-rows-2";
+  const item = (i: number) => (n <= 2 ? "" : i === 0 ? "md:col-span-2 md:row-span-2" : n === 4 && i === 1 ? "md:col-span-2" : "");
+  return { n, grade, item };
+}
+
 /** Preço formatado quando a página mostra preço. */
 export const precoDe = (d: LP) => (d.lp.mostrarPreco ? moeda(d.v.preco) : null);

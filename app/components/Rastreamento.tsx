@@ -1,30 +1,28 @@
 import { Cookie } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router";
-import { carregarTags, gravarConsentimento, lerConsentimento, rastrear, registrarOrigem } from "~/lib/rastreamento";
+import { concederConsentimento, gravarConsentimento, iniciarTags, lerConsentimento, rastrear, registrarOrigem } from "~/lib/rastreamento";
+import { temTags } from "~/lib/tags";
 import { useRastreamento } from "~/lib/useLoja";
 
 /**
- * Carrega as tags de anúncio e mostra o aviso de cookies (LGPD) quando a
- * loja configurou alguma tag. Sem tag configurada, não aparece nada.
+ * Rastreamento das páginas públicas e aviso de cookies (LGPD). As tags já
+ * vêm no <head> em Modo de Consentimento; o "Aceitar" libera os cookies.
+ * Sem tag configurada, não aparece nada.
  */
 export function Rastreamento() {
   const config = useRastreamento();
   const location = useLocation();
   const [aviso, setAviso] = useState(false);
-  const temTag = Boolean(config && (config.metaPixelId || config.googleAdsId || config.ga4Id || config.gtmId));
+  const temTag = temTags(config);
 
   useEffect(() => registrarOrigem(), []);
 
   useEffect(() => {
     if (!config || !temTag) return;
-    const decisao = lerConsentimento();
-    if (!config.exigirConsentimento || decisao === "aceito") {
-      carregarTags(config);
-      rastrear("pagina");
-    } else if (decisao === null) {
-      setAviso(true);
-    }
+    iniciarTags(config);
+    rastrear("pagina");
+    if (config.exigirConsentimento && lerConsentimento() === null) setAviso(true);
     // Só na montagem: as navegações seguintes são tratadas abaixo.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [temTag]);
@@ -42,10 +40,7 @@ export function Rastreamento() {
   const decidir = (valor: "aceito" | "recusado") => {
     gravarConsentimento(valor);
     setAviso(false);
-    if (valor === "aceito") {
-      carregarTags(config);
-      rastrear("pagina");
-    }
+    if (valor === "aceito") concederConsentimento();
   };
 
   return (

@@ -48,12 +48,16 @@ const CHROME = process.env.CHROME ?? {
 }[process.platform] ?? "/usr/bin/google-chrome";
 const browser = await chromium.launch({ executablePath: CHROME, headless: true });
 
-async function novaPagina({ largura = 1366, altura = 900, logado = false, mobile = false } = {}) {
+async function novaPagina({ largura = 1366, altura = 900, logado = false, mobile = false, aviso = false } = {}) {
   const ctx = await browser.newContext({ viewport: { width: largura, height: altura }, isMobile: mobile, hasTouch: mobile, locale: "pt-BR" });
   if (logado) {
     const u = new URL(BASE);
     await ctx.addCookies([{ name: "sessao", value: COOKIE, domain: u.hostname, path: "/", httpOnly: true, secure: PROD, sameSite: "Lax" }]);
   }
+  // Nada sai para Google/Meta: teste em produção não pode gerar conversão falsa na conta de anúncios.
+  await ctx.route(/googletagmanager|google-analytics|analytics\.google|doubleclick|googleadservices|googlesyndication|google\.com(\.br)?\/(pagead|ccm|rmkt)|facebook\.(net|com)/, (r) => r.fulfill({ status: 200, body: "" }));
+  // O aviso de cookies cobriria botões no celular; o passo "tags" testa o aviso à parte.
+  if (!aviso) await ctx.addInitScript(() => { try { localStorage.setItem("consentimento-cookies", "recusado"); } catch {} });
   const page = await ctx.newPage();
   page.on("pageerror", (e) => falhas.push(`[JS] ${page.url()} :: ${e.message}`));
   page.on("console", (m) => { if (m.type() === "error" && !/favicon|unsplash|Failed to load resource: net::ERR_BLOCKED|youtube|facebook|googletag|status of 40[04]/i.test(m.text())) falhas.push(`[console] ${page.url()} :: ${m.text().slice(0, 300)}`); });
@@ -97,6 +101,21 @@ async function ir(page, caminho) {
 // ---------------- SITE PÚBLICO ----------------
 {
   const { ctx, page } = await novaPagina();
+  await passo("tags de anúncio e aviso de cookies", async () => {
+    const html = await (await fetch(`${BASE}/`)).text();
+    if (!html.includes("__tagsLoja")) { passos.push("info  nenhuma tag configurada em Integrações: passo pulado"); return; }
+    if (!/gtag\('consent','default'/.test(html)) throw new Error("tags sem Modo de Consentimento no HTML");
+    const t = await novaPagina({ aviso: true });
+    await ir(t.page, "/");
+    const consentimentos = () => t.page.evaluate(() => (window.dataLayer ?? []).map((x) => Array.from(x)).filter((x) => x[0] === "consent").map((x) => `${x[1]}:${x[2].ad_storage}`));
+    const exige = await t.page.getByRole("button", { name: "Aceitar" }).count();
+    if (exige) {
+      if (!(await consentimentos()).includes("default:denied")) throw new Error("consentimento deveria começar negado");
+      await t.page.getByRole("button", { name: "Aceitar" }).click();
+      if (!(await consentimentos()).includes("update:granted")) throw new Error("Aceitar não liberou as tags");
+    }
+    await t.ctx.close();
+  });
   await passo("home e busca da home", async () => {
     await ir(page, "/");
     await page.selectOption("#h-marca", { index: 1 });
@@ -319,6 +338,17 @@ else {
     const corpo = await r.body();
     if (r.status() !== 200 || corpo.length !== pdf.length || !corpo.subarray(0, 5).equals(Buffer.from("%PDF-"))) throw new Error(`PDF baixado: ${r.status()} ${corpo.length} bytes`);
     await publico.close();
+
+    // Trocar o carro da página: aviso de textos de outro carro e "Preencher com os dados".
+    await page.selectOption("#anuncioId", { index: 2 });
+    await postar(page, () => page.click("button:has-text('Salvar alterações')"));
+    await page.getByText("Salvo às").waitFor({ timeout: 20000 });
+    const modelo = (await page.locator("#anuncioId option:checked").innerText()).split(" · ")[1].split(" ")[1];
+    await page.click("button:has-text('Preencher com os dados do')");
+    await postar(page, () => page.click("button:has-text('Salvar alterações')"));
+    await page.getByText("Salvo às").waitFor({ timeout: 20000 });
+    const html = await (await page.request.get(`${BASE}/lp/${slug}`)).text();
+    if (!html.includes(modelo)) throw new Error(`página não passou a falar do ${modelo}`);
 
     // Duplicar e excluir as duas.
     await ir(page, "/admin/landing-pages");

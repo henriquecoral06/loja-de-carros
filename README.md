@@ -142,7 +142,7 @@ apagados quando nenhuma outra página (por exemplo, uma duplicada) ainda usa o a
 
 ## Integrações
 
-**Eventos das tags** (carregam depois do “Aceitar” no aviso de cookies, se a opção estiver ligada). Os de
+**Eventos das tags.** O código das tags vai no `<head>` de toda página pública (o painel não é medido), então o Tag Assistant, o diagnóstico do Google Ads e o Pixel Helper encontram a instalação. Com “pedir consentimento” ligado, elas começam em Modo de Consentimento (Google `denied`, Meta `revoke`) e o “Aceitar” libera os cookies; o Google ainda mede conversões sem cookies, de forma modelada. O teste ponta a ponta bloqueia as chamadas ao Google e ao Meta, para não gerar conversão falsa. Os de
 conversão usam o evento do Meta e o rótulo do Google Ads escolhidos em Integrações → Conversões:
 
 | Momento | Meta | Google | dataLayer (GTM) |

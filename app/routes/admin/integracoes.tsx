@@ -223,8 +223,8 @@ export default function Integracoes({ loaderData: d, actionData }: Route.Compone
             <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-lg border border-linha p-4">
               <input type="checkbox" name="exigirConsentimento" defaultChecked={d.exigirConsentimento} className="mt-0.5 size-4 accent-marca-600" />
               <span>
-                <span className="block text-sm font-semibold text-tinta">Pedir consentimento de cookies antes de carregar as tags</span>
-                <span className="block text-sm text-suave">Recomendado pela LGPD: o Pixel e as tags do Google só carregam depois do “Aceitar”. A API de Conversões (servidor) não depende do aviso.</span>
+                <span className="block text-sm font-semibold text-tinta">Pedir consentimento de cookies (LGPD)</span>
+                <span className="block text-sm text-suave">As tags ficam instaladas em todas as páginas (o Tag Assistant, o Google Ads e o Pixel Helper encontram), em Modo de Consentimento: nenhum cookie de anúncio é gravado até o visitante clicar em “Aceitar”. O Google ainda mede conversões sem cookies, de forma modelada. A API de Conversões (servidor) não depende do aviso.</span>
               </span>
             </label>
           </Secao>
