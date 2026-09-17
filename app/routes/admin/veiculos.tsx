@@ -10,6 +10,7 @@ import { exigirUsuario } from "~/.server/sessao";
 import { exigirMesmaOrigem } from "~/.server/seguranca";
 import { novoToken } from "~/.server/token";
 import { Aviso, Cabecalho, classeTabela as t, PillVeiculo } from "~/components/admin/ui";
+import { VerificadorFeed } from "~/components/admin/VerificadorFeed";
 import { CarroPlaceholder } from "~/components/CarroPlaceholder";
 import { anos, data, km, moeda } from "~/lib/formato";
 import { metaAdmin } from "~/lib/site";
@@ -41,7 +42,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     )!);
   }
 
-  const [lista, [{ total }], loja] = await Promise.all([
+  const [lista, [{ total }], loja, [{ total: aVenda }]] = await Promise.all([
     db.select({
       id: anuncios.id, codigo: anuncios.codigo, slug: anuncios.slug, versao: anuncios.versao, preco: anuncios.preco,
       anoFabricacao: anuncios.anoFabricacao, anoModelo: anuncios.anoModelo, km: anuncios.km, cambio: anuncios.cambio,
@@ -56,12 +57,13 @@ export async function loader({ request }: Route.LoaderArgs) {
       .orderBy(desc(anuncios.atualizadoEm)).limit(500),
     db.select({ total: count() }).from(anuncios),
     lojaCompleta(),
+    db.select({ total: count() }).from(anuncios).where(eq(anuncios.status, "ativo")),
   ]);
 
   return {
     veiculos: lista.map((a) => ({ ...a, capa: a.capa ? urlImagem(a.capa) : null })),
     total, filtros: { q, status, carroceria },
-    feed: { ativo: loja.feedAtivo, url: loja.feedToken ? `${url.origin}/feed/estoque.xml?token=${loja.feedToken}` : "" },
+    feed: { ativo: loja.feedAtivo, url: loja.feedToken ? `${url.origin}/feed/estoque.xml?token=${loja.feedToken}` : "", aVenda },
   };
 }
 
@@ -234,7 +236,7 @@ function Linha({ v }: { v: Veiculo }) {
   );
 }
 
-function Feed({ feed }: { feed: { ativo: boolean; url: string } }) {
+function Feed({ feed }: { feed: { ativo: boolean; url: string; aVenda: number } }) {
   const fetcher = useFetcher();
   const [copiado, setCopiado] = useState(false);
   const ativo = fetcher.formData ? fetcher.formData.get("ativo") === "true" : feed.ativo;
@@ -271,6 +273,7 @@ function Feed({ feed }: { feed: { ativo: boolean; url: string } }) {
             </button>
           </div>
         )}
+        {ativo && feed.url && !fetcher.formData && <VerificadorFeed key={feed.url} url={feed.url} aVenda={feed.aVenda} />}
       </div>
     </details>
   );

@@ -288,6 +288,10 @@ else {
     const url = await page.locator("input[aria-label='Endereço do feed']").inputValue();
     const r = await page.request.get(url);
     if (r.status() !== 200 || !(await r.text()).includes("<estoque")) throw new Error(`feed ${r.status()}`);
+    await page.click("button:has-text('Verificar feed')");
+    await page.getByText("XML válido").waitFor({ timeout: 60000 });
+    const problemas = await page.locator("[role=status] li:has(.text-erro)").allInnerTexts();
+    if (problemas.some((p) => /XML inválido|no feed, mas|respondeu HTTP/.test(p))) throw new Error(`verificador: ${problemas.join(" | ")}`);
     await postar(page, () => page.click("button:has-text('Desativar feed')"));
   });
 

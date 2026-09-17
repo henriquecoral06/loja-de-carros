@@ -167,7 +167,7 @@ rodam com `waitUntil`: o visitante não espera ninguém responder.
 
 **Feed XML.** `GET /feed/estoque.xml?token=…` (ativado em Veículos → Exportar para portais): veículos à venda
 com código, marca, modelo, versão, anos, km, preço, câmbio, combustível, carroceria, cor, portas, opcionais,
-descrição, URL e fotos. Formato genérico — cada portal tem o seu; adapte `app/routes/feed.ts` ao do integrador.
+descrição, URL e fotos. Formato genérico — cada portal tem o seu; adapte `app/routes/feed.ts` ao do integrador. Em Veículos → Exportar para portais, **Verificar feed** lê o link como um portal leria e confere XML, quantidade, campos obrigatórios e se as fotos abrem, sem precisar de conta em portal.
 
 ---
 
