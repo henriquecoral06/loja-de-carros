@@ -52,12 +52,14 @@ export function scriptTags(c: ConfigRastreamento) {
     "gtag('consent','default',{ad_storage:estado,analytics_storage:estado,ad_user_data:estado,ad_personalization:estado,wait_for_update:500});",
     "gtag('set','ads_data_redaction',!ok);gtag('set','url_passthrough',true);",
     "gtag('js',new Date());",
-    // page_view manual: o site troca de página sem recarregar.
-    googleAdsId && `gtag('config',${js(googleAdsId)},{send_page_view:false});`,
-    ga4Id && `gtag('config',${js(ga4Id)},{send_page_view:false});`,
+    // Igual ao código oficial: a tag manda o page_view da primeira página
+    // sozinha. As navegações seguintes (o site não recarrega) são enviadas
+    // pelo app/lib/rastreamento.ts.
+    googleAdsId && `gtag('config',${js(googleAdsId)});`,
+    ga4Id && `gtag('config',${js(ga4Id)});`,
     gtmId && `(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s);j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i;f.parentNode.insertBefore(j,f)})(window,document,'script','dataLayer',${js(gtmId)});`,
     metaPixelId && "!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');",
-    metaPixelId && `if(!ok)fbq('consent','revoke');fbq('init',${js(metaPixelId)});`,
+    metaPixelId && `if(!ok)fbq('consent','revoke');fbq('init',${js(metaPixelId)});fbq('track','PageView');`,
   ];
   return linhas.filter(Boolean).join("\n");
 }

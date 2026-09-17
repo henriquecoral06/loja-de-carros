@@ -20,8 +20,8 @@ export function Rastreamento() {
 
   useEffect(() => {
     if (!config || !temTag) return;
+    // O page_view da primeira página vem das próprias tags (código oficial).
     iniciarTags(config);
-    rastrear("pagina");
     if (config.exigirConsentimento && lerConsentimento() === null) setAviso(true);
     // Só na montagem: as navegações seguintes são tratadas abaixo.
     // eslint-disable-next-line react-hooks/exhaustive-deps

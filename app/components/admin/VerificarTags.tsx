@@ -79,7 +79,7 @@ export function VerificarTags({ ids, exigirConsentimento, paginas }: { ids: Ids;
           ou Gerenciador de Eventos → Testar eventos.
         </p>
         {exigirConsentimento && <p>Com o aviso de cookies ligado, clique em <strong className="text-tinta">Aceitar</strong> no site antes de testar: só então o Pixel envia eventos e o Google grava cookies.</p>}
-        <p>No Google Ads, a meta de conversão aparece como “Inativa” ou “Não verificada” até acontecer a primeira conversão (formulário ou WhatsApp) — isso não significa que a tag está faltando.</p>
+        <p><strong className="text-tinta">Por que o depurador mostra só o Google Analytics:</strong> a tag do Google Ads envia dados quando acontece uma <strong className="text-tinta">conversão</strong> (formulário enviado ou clique no WhatsApp), não a cada visita. A cada página, quem envia é o Analytics ligado à mesma tag. Para ver o Google Ads no depurador, envie o formulário do site uma vez e depois exclua o lead em Leads. No Google Ads, a conversão fica “Inativa” até a primeira acontecer.</p>
       </div>
     </Secao>
   );

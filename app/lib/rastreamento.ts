@@ -62,6 +62,7 @@ export function concederConsentimento() {
     // O PageView desta página foi retido enquanto o consentimento estava negado.
     j.fbq("track", "PageView");
   }
+  // O Google guarda os eventos anteriores e os reenvia ao receber o consentimento.
   j.dataLayer?.push({ event: "consentimento_aceito" });
 }
 

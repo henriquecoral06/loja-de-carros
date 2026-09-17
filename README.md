@@ -142,6 +142,8 @@ apagados quando nenhuma outra página (por exemplo, uma duplicada) ainda usa o a
 
 ## Integrações
 
+**Como conferir.** O `page_view` da primeira página sai da própria tag (igual ao código oficial do Google e ao `fbq('track','PageView')` do Meta); as navegações seguintes são enviadas pelo `app/lib/rastreamento.ts`. O Google Ads só envia dados em **conversões** (formulário e WhatsApp) — a cada página, quem envia é o GA4 ligado à mesma tag, então depuradores como o Tag Assistant listam só o GA4 até acontecer uma conversão.
+
 **Eventos das tags.** O código das tags vai no `<head>` de toda página pública (o painel não é medido), então o Tag Assistant, o diagnóstico do Google Ads e o Pixel Helper encontram a instalação. Com “pedir consentimento” ligado, elas começam em Modo de Consentimento (Google `denied`, Meta `revoke`) e o “Aceitar” libera os cookies; o Google ainda mede conversões sem cookies, de forma modelada. O teste ponta a ponta bloqueia as chamadas ao Google e ao Meta, para não gerar conversão falsa. Os de
 conversão usam o evento do Meta e o rótulo do Google Ads escolhidos em Integrações → Conversões:
 
