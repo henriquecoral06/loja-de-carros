@@ -1,3 +1,4 @@
+import { aplicarModelo } from "~/lib/webhook-modelo";
 import { chamar, registrarEnvio } from "./envios";
 
 export type PayloadLead = {
@@ -26,8 +27,9 @@ async function assinar(segredo: string, corpo: string) {
  * - `X-Webhook-Signature: sha256=<HMAC-SHA256 do corpo>` — para CRMs que validam assinatura;
  * - `X-Webhook-Secret: <segredo>` — para Make/Zapier/n8n, que só comparam um cabeçalho.
  */
-export async function entregarWebhook(url: string, segredo: string, payload: PayloadLead) {
-  const corpo = JSON.stringify(payload);
+export async function entregarWebhook(url: string, segredo: string, payload: PayloadLead, modelo = "") {
+  // Com modelo, o corpo segue o formato que o CRM espera.
+  const corpo = JSON.stringify(modelo.trim() ? aplicarModelo(modelo, payload) : payload);
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     "User-Agent": "loja-de-carros-webhook/1.0",

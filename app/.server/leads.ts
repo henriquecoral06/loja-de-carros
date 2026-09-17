@@ -100,7 +100,7 @@ export async function criarLead(n: NovoLead) {
   };
 
   const tarefas: Promise<unknown>[] = [];
-  if (integ.webhookUrl) tarefas.push(entregarWebhook(integ.webhookUrl, integ.webhookSegredo, payload));
+  if (integ.webhookUrl) tarefas.push(entregarWebhook(integ.webhookUrl, integ.webhookSegredo, payload, integ.webhookModelo));
 
   if (integ.resendApiKey) {
     tarefas.push(enviarEmail(integ, `Novo lead: ${n.dados.nome}${veiculo ? ` — ${veiculo.marca} ${veiculo.modelo}` : ""}`, [

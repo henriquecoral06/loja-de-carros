@@ -68,6 +68,8 @@ export const integracoes = sqliteTable("integracoes", {
   id: integer("id").primaryKey(),
   webhookUrl: text("webhook_url").notNull().default(""),
   webhookSegredo: text("webhook_segredo").notNull().default(""),
+  // Modelo JSON do corpo com {{marcadores}} (ver app/lib/webhook-modelo.ts). Vazio = formato padrão.
+  webhookModelo: text("webhook_modelo").notNull().default(""),
   // API de leads: guarda só o SHA-256 do token e os 4 últimos caracteres.
   apiTokenHash: text("api_token_hash").notNull().default(""),
   apiTokenFinal: text("api_token_final").notNull().default(""),

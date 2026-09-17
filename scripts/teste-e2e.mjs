@@ -410,9 +410,18 @@ else {
     await page.click("button:has-text('Revogar')");
     await page.waitForLoadState("networkidle");
     await page.click("button:has-text('Testar webhook')");
-    await page.getByText(/Salve a URL do webhook|Enviado|Falhou/).waitFor({ timeout: 15000 });
+    await page.locator("p[role=status]").filter({ hasText: /Salve a URL do webhook|Enviado|Falhou/ }).first().waitFor({ timeout: 15000 });
     await page.click("button:has-text('Testar e-mail')");
-    await page.getByText(/não configurado|Enviado|Falhou/).waitFor({ timeout: 15000 });
+    await page.locator("p[role=status]").filter({ hasText: /não configurado|Enviado|Falhou/ }).first().waitFor({ timeout: 15000 });
+    // Só leitura: nada é salvo depois daqui, para não mexer na configuração real.
+    await page.click("button:has-text('Verificar instalação')");
+    await page.locator("ul[role=status]").waitFor({ timeout: 30000 });
+    const tags = await page.locator("ul[role=status]").innerText();
+    if (/não encontrada|Não consegui|não encontrado/.test(tags)) throw new Error(`verificação de tags: ${tags.replace(/\n/g, " | ")}`);
+    await page.click("button:has-text('Personalizado')");
+    await page.getByText("Prévia do que o CRM recebe").waitFor({ timeout: 10000 });
+    const previa = await page.locator("fieldset pre").last().innerText();
+    if (!previa.includes('"entity"') || previa.includes("{{")) throw new Error(`prévia do modelo do webhook: ${previa.slice(0, 120)}`);
   });
 
   await passo("configurações: salvar sem mudar, acesso, senha errada", async () => {

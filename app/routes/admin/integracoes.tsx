@@ -1,6 +1,8 @@
 import { Check, Copy, KeyRound, Send } from "lucide-react";
 import { useState } from "react";
 import { data, Form, useFetcher, useNavigation } from "react-router";
+import { eq } from "drizzle-orm";
+import { db, schema } from "~/.server/db";
 import { enviarEmail } from "~/.server/email";
 import { ultimosEnvios } from "~/.server/envios";
 import { obterIntegracoes, salvarIntegracoes } from "~/.server/integracoes";
@@ -11,6 +13,7 @@ import { dentroDoLimite, exigirMesmaOrigem } from "~/.server/seguranca";
 import { novoToken, sha256Hex } from "~/.server/token";
 import { entregarWebhook, type PayloadLead } from "~/.server/webhook";
 import { Aviso, BarraSalvar, Cabecalho, classeTabela as t, Secao } from "~/components/admin/ui";
+import { VerificarTags } from "~/components/admin/VerificarTags";
 import { CampoTexto } from "~/components/Campo";
 import {
   DESCRICAO_CONVERSAO, EVENTOS_META, lerConversoes, TIPOS_CONVERSAO, validarEventoPersonalizado, validarRotuloGoogle, type Conversoes,
@@ -18,6 +21,7 @@ import {
 import { dataHora } from "~/lib/formato";
 import { metaAdmin } from "~/lib/site";
 import { cn } from "~/lib/ui";
+import { CAMPOS_MODELO, MODELO_EXEMPLO, aplicarModelo, validarModelo } from "~/lib/webhook-modelo";
 import type { Route } from "./+types/integracoes";
 
 export function meta({ matches }: Route.MetaArgs) {
@@ -29,13 +33,14 @@ export async function loader({ request }: Route.LoaderArgs) {
   const [i, envios] = await Promise.all([obterIntegracoes(), ultimosEnvios(12)]);
   // Segredos não voltam para a tela: só se existem.
   return {
-    webhookUrl: i.webhookUrl, temSegredo: Boolean(i.webhookSegredo),
+    webhookUrl: i.webhookUrl, temSegredo: Boolean(i.webhookSegredo), webhookModelo: i.webhookModelo,
     api: { ativo: Boolean(i.apiTokenHash), final: i.apiTokenFinal, criadoEm: i.apiTokenCriadoEm },
     metaPixelId: i.metaPixelId, metaCodigoTeste: i.metaCodigoTeste, temTokenCapi: Boolean(i.metaTokenCapi),
     googleAdsId: i.googleAdsId, ga4Id: i.ga4Id, gtmId: i.gtmId, exigirConsentimento: i.exigirConsentimento,
     conversoes: lerConversoes(i.conversoes),
     temResend: Boolean(i.resendApiKey), resendRemetente: i.resendRemetente, resendDestinatarios: i.resendDestinatarios,
     envios, origem: new URL(request.url).origin,
+    paginasTeste: ["/", "/carros", ...(await db.select({ slug: schema.landingPages.slug }).from(schema.landingPages).where(eq(schema.landingPages.status, "ativa")).limit(2)).map((l) => `/lp/${l.slug}`)],
   };
 }
 
@@ -95,7 +100,10 @@ export async function action({ request }: Route.ActionArgs) {
     let r: { ok: boolean; status: number; texto: string };
     if (intencao === "testar-webhook") {
       if (!atual.webhookUrl) return { teste: { ok: false, texto: "Salve a URL do webhook antes de testar." } };
-      r = await entregarWebhook(atual.webhookUrl, atual.webhookSegredo, exemplo(loja.nome, origem, "teste", new Date().toISOString()));
+      r = await entregarWebhook(atual.webhookUrl, atual.webhookSegredo, exemplo(loja.nome, origem, "teste", new Date().toISOString()), atual.webhookModelo);
+      if (!r.ok && r.status >= 400 && r.status < 500 && r.status !== 401 && r.status !== 403) {
+        r = { ...r, texto: `${r.texto} — o CRM recusou o formato dos dados. Em “Formato do envio”, use “Personalizado” com o formato que o CRM espera.` };
+      }
     } else if (intencao === "testar-email") {
       r = await enviarEmail(atual, `Teste de e-mail — ${loja.nome}`, [["Status", "Se você recebeu este e-mail, os avisos de novos leads estão funcionando."]]);
     } else {
@@ -107,10 +115,19 @@ export async function action({ request }: Route.ActionArgs) {
 
   // ---- salvar ----
   const txt = (k: string) => String(form.get(k) ?? "").trim();
+  // Quem cola o código inteiro da tag (ou a URL do gtag.js) tem o ID extraído.
+  const idDe = (k: string, padrao: RegExp) => {
+    const bruto = txt(k);
+    if (!bruto || FORMATOS[k][0].test(bruto.toUpperCase())) return bruto;
+    return bruto.match(padrao)?.slice(1).find(Boolean) ?? bruto;
+  };
   const erros: Erros = {};
   const v = {
-    webhookUrl: txt("webhookUrl"), metaPixelId: txt("metaPixelId"), metaCodigoTeste: txt("metaCodigoTeste").toUpperCase(),
-    googleAdsId: txt("googleAdsId").toUpperCase(), ga4Id: txt("ga4Id").toUpperCase(), gtmId: txt("gtmId").toUpperCase(),
+    webhookUrl: txt("webhookUrl"),
+    webhookModelo: form.get("formatoWebhook") === "personalizado" ? txt("webhookModelo") : "",
+    metaPixelId: idDe("metaPixelId", /fbq\(\s*['"]init['"]\s*,\s*['"]?(\d{10,20})|[?&]id=(\d{10,20})|\b(\d{14,17})\b/).replace(/\s/g, ""),
+    metaCodigoTeste: txt("metaCodigoTeste").toUpperCase(),
+    googleAdsId: idDe("googleAdsId", /\b(AW-\d{6,15})\b/i).toUpperCase(), ga4Id: idDe("ga4Id", /\b(G-[A-Z0-9]{4,15})\b/i).toUpperCase(), gtmId: idDe("gtmId", /\b(GTM-[A-Z0-9]{4,12})\b/i).toUpperCase(),
     resendRemetente: txt("resendRemetente"), resendDestinatarios: txt("resendDestinatarios"),
     exigirConsentimento: form.get("exigirConsentimento") === "on",
   };
@@ -119,6 +136,14 @@ export async function action({ request }: Route.ActionArgs) {
     if (valor && !regex.test(valor)) erros[campo] = msg;
   }
   if (v.webhookUrl) { const p = urlWebhookValida(v.webhookUrl); if (p) erros.webhookUrl = p; }
+  if (form.get("formatoWebhook") === "personalizado") {
+    const problema = v.webhookModelo ? validarModelo(v.webhookModelo) : "Escreva o modelo ou volte para o formato padrão.";
+    if (problema) erros.webhookModelo = problema;
+  }
+  // Dicas para IDs no campo errado (os mais confundidos).
+  if (erros.googleAdsId && /^G-/.test(v.googleAdsId)) erros.googleAdsId = "Esse é um ID do Google Analytics (G-…): use o campo ao lado.";
+  if (erros.googleAdsId && /^GTM-/.test(v.googleAdsId)) erros.googleAdsId = "Esse é um ID do Tag Manager (GTM-…): use o campo ao lado.";
+  if (erros.metaPixelId) erros.metaPixelId = "Cole o ID do Pixel (só números, ex.: 123456789012345) ou o código base do Pixel.";
   if (v.resendRemetente && !/^([^<>]{1,80}<)?[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+>?$/.test(v.resendRemetente)) erros.resendRemetente = "Ex.: Loja <leads@seudominio.com.br>";
   const destinos = v.resendDestinatarios.split(",").map((e) => e.trim()).filter(Boolean);
   if (destinos.some((e) => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) || destinos.length > 10) erros.resendDestinatarios = "E-mails separados por vírgula (até 10).";
@@ -190,16 +215,13 @@ export default function Integracoes({ loaderData: d, actionData }: Route.Compone
               <CampoTexto id="webhookUrl" rotulo="URL do webhook" type="url" placeholder="https://hook.seu-crm.com/…" defaultValue={d.webhookUrl} erro={erros.webhookUrl} />
               <CampoSecreto id="webhookSegredo" rotulo="Segredo (opcional)" configurado={d.temSegredo}
                 dica="Enviado nos cabeçalhos X-Webhook-Secret e X-Webhook-Signature (HMAC-SHA256 do corpo)." gerar />
-              <details className="rounded-lg bg-fundo">
-                <summary className="cursor-pointer px-4 py-2.5 text-sm font-semibold text-tinta">Exemplo de payload</summary>
-                <pre className="overflow-x-auto px-4 pb-4 text-xs leading-relaxed text-texto">{JSON.stringify(exemplo("Sua loja", d.origem, "lead.novo"), null, 2)}</pre>
-              </details>
+              <FormatoWebhook modeloSalvo={d.webhookModelo} erro={erros.webhookModelo} padrao={exemplo("Sua loja", d.origem, "lead.novo")} />
             </div>
           </Secao>
 
           <Secao titulo="Meta (Facebook/Instagram)" descricao="O pixel é instalado em todas as páginas do site. Com o token da API de Conversões, o evento de formulário também é enviado pelo servidor, com deduplicação por event_id.">
             <div className="grid gap-4 md:grid-cols-2">
-              <CampoTexto id="metaPixelId" rotulo="ID do Pixel" inputMode="numeric" placeholder="123456789012345" defaultValue={d.metaPixelId} erro={erros.metaPixelId} />
+              <CampoTexto key={`metaPixelId-${d.metaPixelId}`} id="metaPixelId" rotulo="ID do Pixel" inputMode="numeric" placeholder="123456789012345" defaultValue={d.metaPixelId} erro={erros.metaPixelId} />
               <CampoTexto id="metaCodigoTeste" rotulo="Código de evento de teste (opcional)" placeholder="TEST12345" defaultValue={d.metaCodigoTeste} erro={erros.metaCodigoTeste}
                 dica="Do Gerenciador de Eventos → Testar eventos. Remova em produção." />
               <div className="md:col-span-2">
@@ -210,11 +232,14 @@ export default function Integracoes({ loaderData: d, actionData }: Route.Compone
 
           <Secao titulo="Google" descricao="Informe o ID da tag do Google Ads (formato AW-XXXXXXXXX). Os rótulos de conversão são definidos por tipo de conversão, abaixo.">
             <div className="grid gap-4 md:grid-cols-3">
-              <CampoTexto id="googleAdsId" rotulo="ID de conversão (tag do Google)" placeholder="AW-123456789" defaultValue={d.googleAdsId} erro={erros.googleAdsId} />
-              <CampoTexto id="ga4Id" rotulo="Google Analytics 4 (opcional)" placeholder="G-XXXXXXXXXX" defaultValue={d.ga4Id} erro={erros.ga4Id} />
-              <CampoTexto id="gtmId" rotulo="Tag Manager (opcional)" placeholder="GTM-XXXXXXX" defaultValue={d.gtmId} erro={erros.gtmId} />
+              <CampoTexto key={`googleAdsId-${d.googleAdsId}`} id="googleAdsId" rotulo="ID de conversão (tag do Google)" placeholder="AW-123456789" defaultValue={d.googleAdsId} erro={erros.googleAdsId} />
+              <CampoTexto key={`ga4Id-${d.ga4Id}`} id="ga4Id" rotulo="Google Analytics 4 (opcional)" placeholder="G-XXXXXXXXXX" defaultValue={d.ga4Id} erro={erros.ga4Id} />
+              <CampoTexto key={`gtmId-${d.gtmId}`} id="gtmId" rotulo="Tag Manager (opcional)" placeholder="GTM-XXXXXXX" defaultValue={d.gtmId} erro={erros.gtmId} />
             </div>
+            <p className="mt-3 text-xs text-suave">Pode colar o código inteiro que o Google ou o Meta mostram: o ID é extraído ao salvar.</p>
           </Secao>
+
+          <VerificarTags ids={{ metaPixelId: d.metaPixelId, googleAdsId: d.googleAdsId, ga4Id: d.ga4Id, gtmId: d.gtmId }} exigirConsentimento={d.exigirConsentimento} paginas={d.paginasTeste} />
 
           <Secao titulo="Conversões" descricao="Escolha o que rastrear e qual evento disparar em cada plataforma.">
             <div className="grid gap-3">
@@ -251,8 +276,11 @@ export default function Integracoes({ loaderData: d, actionData }: Route.Compone
                 <thead><tr>{["Canal", "Status", "Quando"].map((h) => <th key={h} className="pb-2 text-left text-xs font-semibold uppercase tracking-wide text-suave">{h}</th>)}</tr></thead>
                 <tbody>
                   {d.envios.map((e) => (
-                    <tr key={e.id} className="border-t border-linha" title={e.detalhe}>
-                      <td className="py-2 pr-2 capitalize text-texto">{e.canal === "meta" ? "Meta CAPI" : e.canal === "email" ? "E-mail" : "Webhook"}</td>
+                    <tr key={e.id} className="border-t border-linha align-top" title={e.detalhe}>
+                      <td className="py-2 pr-2 text-texto">
+                        {e.canal === "meta" ? "Meta CAPI" : e.canal === "email" ? "E-mail" : "Webhook"}
+                        {!e.sucesso && e.detalhe && <span className="mt-0.5 block break-words text-xs text-erro">{e.detalhe.slice(0, 140)}</span>}
+                      </td>
                       <td className={cn("numeros py-2 pr-2 font-semibold", e.sucesso ? "text-sucesso" : "text-erro")}>{e.status || "falha"}</td>
                       <td className="numeros py-2 text-xs text-suave">{dataHora(e.criadoEm)}</td>
                     </tr>
@@ -404,3 +432,55 @@ function Testes() {
 }
 
 export { ErroPainel as ErrorBoundary } from "~/components/admin/ErroPainel";
+
+/** Formato do corpo: padrão da loja ou modelo JSON no formato que o CRM espera, com prévia ao vivo. */
+function FormatoWebhook({ modeloSalvo, erro, padrao }: { modeloSalvo: string; erro?: string; padrao: PayloadLead }) {
+  const [formato, setFormato] = useState<"padrao" | "personalizado">(modeloSalvo ? "personalizado" : "padrao");
+  const [modelo, setModelo] = useState(modeloSalvo || MODELO_EXEMPLO);
+  const problema = formato === "personalizado" ? validarModelo(modelo) : null;
+  let previa = "";
+  if (formato === "padrao") previa = JSON.stringify(padrao, null, 2);
+  else if (!problema && modelo.trim()) previa = JSON.stringify(aplicarModelo(modelo, padrao), null, 2);
+
+  return (
+    <fieldset className="grid gap-3">
+      <legend className="rotulo">Formato do envio</legend>
+      <input type="hidden" name="formatoWebhook" value={formato} />
+      <div className="grid gap-2 sm:grid-cols-2">
+        {([["padrao", "Padrão", "JSON completo da loja (lead, veículo, vendedor, campanha). Serve para Make, n8n, Zapier."],
+          ["personalizado", "Personalizado", "Monte o corpo no formato que o seu CRM exige, com os campos do lead."]] as const).map(([valor, titulo, texto]) => (
+          <button key={valor} type="button" onClick={() => setFormato(valor)} aria-pressed={formato === valor}
+            className={cn("rounded-xl border p-3 text-left text-sm", formato === valor ? "border-marca-600 ring-2 ring-marca-600/15" : "border-linha")}>
+            <span className="block font-semibold text-tinta">{titulo}</span><span className="text-suave">{texto}</span>
+          </button>
+        ))}
+      </div>
+      {formato === "personalizado" && (
+        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,16rem)]">
+          <div>
+            <label htmlFor="webhookModelo" className="rotulo">Modelo do corpo (JSON)</label>
+            <textarea id="webhookModelo" name="webhookModelo" value={modelo} onChange={(e) => setModelo(e.target.value)} rows={12} spellCheck={false}
+              className="campo h-auto py-3 font-mono text-xs leading-relaxed" aria-invalid={erro || problema ? true : undefined} aria-describedby="webhookModelo-ajuda" />
+            <p id="webhookModelo-ajuda" className={cn("mt-1.5 text-sm", erro || problema ? "text-erro" : "text-suave")}>
+              {erro ?? problema ?? "Copie o exemplo da documentação do CRM e troque os valores pelos campos {{…}}. O exemplo acima é só um ponto de partida."}
+            </p>
+          </div>
+          <div className="rounded-lg bg-fundo p-3">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-suave">Campos disponíveis</p>
+            <ul className="grid max-h-72 gap-1 overflow-y-auto text-xs">
+              {CAMPOS_MODELO.map((c) => (
+                <li key={c.campo}><code className="font-semibold text-tinta">{`{{${c.campo}}}`}</code> <span className="text-suave">{c.descricao}</span></li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
+      {previa && (
+        <details className="rounded-lg bg-fundo" open={formato === "personalizado"}>
+          <summary className="cursor-pointer px-4 py-2.5 text-sm font-semibold text-tinta">Prévia do que o CRM recebe (lead de exemplo)</summary>
+          <pre className="overflow-x-auto px-4 pb-4 text-xs leading-relaxed text-texto">{previa}</pre>
+        </details>
+      )}
+    </fieldset>
+  );
+}

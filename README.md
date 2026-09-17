@@ -165,6 +165,8 @@ rodam com `waitUntil`: o visitante não espera ninguém responder.
 **API de leads.** `GET /api/leads?since=2026-09-01T00:00:00Z&status=novo&limit=100` com
 `Authorization: Bearer <token>`. O banco guarda só o SHA-256 do token.
 
+**Formato do webhook.** O padrão é o JSON completo da loja. CRMs que exigem outro formato (ex.: `{ "entity": "Lead", "data": { … } }`) usam **Formato do envio → Personalizado**: um modelo JSON com marcadores `{{lead.nome}}`, `{{veiculo.titulo}}`, `{{rastreio.utm_campaign}}`… (lista completa na tela, código em `app/lib/webhook-modelo.ts`). Um valor que é só o marcador mantém o tipo (preço continua número). A tela mostra a prévia do que o CRM recebe.
+
 **Feed XML.** `GET /feed/estoque.xml?token=…` (ativado em Veículos → Exportar para portais): veículos à venda
 com código, marca, modelo, versão, anos, km, preço, câmbio, combustível, carroceria, cor, portas, opcionais,
 descrição, URL e fotos. Formato genérico — cada portal tem o seu; adapte `app/routes/feed.ts` ao do integrador. Em Veículos → Exportar para portais, **Verificar feed** lê o link como um portal leria e confere XML, quantidade, campos obrigatórios e se as fotos abrem, sem precisar de conta em portal.

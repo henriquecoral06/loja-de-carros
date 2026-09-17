@@ -3,7 +3,7 @@ import { lerConversoes } from "~/lib/conversoes";
 import { db, schema } from "./db";
 
 const PADRAO: typeof schema.integracoes.$inferSelect = {
-  id: 1, webhookUrl: "", webhookSegredo: "", apiTokenHash: "", apiTokenFinal: "", apiTokenCriadoEm: null,
+  id: 1, webhookUrl: "", webhookSegredo: "", webhookModelo: "", apiTokenHash: "", apiTokenFinal: "", apiTokenCriadoEm: null,
   metaPixelId: "", metaCodigoTeste: "", metaTokenCapi: "", googleAdsId: "", ga4Id: "", gtmId: "",
   conversoes: "{}", exigirConsentimento: true, resendApiKey: "", resendRemetente: "", resendDestinatarios: "",
   atualizadoEm: 0,

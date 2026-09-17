@@ -22,6 +22,13 @@
       "when": 1789653026511,
       "tag": "0002_landing_pages_editor",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1789668847070,
+      "tag": "0003_webhook_modelo",
+      "breakpoints": true
     }
   ]
 }

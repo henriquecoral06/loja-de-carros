@@ -1,0 +1,1 @@
+ALTER TABLE `integracoes` ADD `webhook_modelo` text DEFAULT '' NOT NULL;
