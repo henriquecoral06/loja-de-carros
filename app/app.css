@@ -33,6 +33,9 @@
   --color-linha: #e4e5e9;
   --color-linha-forte: #cfd1d7;
   --color-fundo: #f2f3f5;
+  /* Barra lateral do painel: neutra, não segue a cor da loja. */
+  --color-painel: #1f2023;
+  --color-painel-2: #2b2c30;
   --color-noite: #22232d;
   --color-noite-2: #2e2f3b;
 

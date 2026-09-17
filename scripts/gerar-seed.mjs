@@ -63,7 +63,14 @@ for (const [marca, lista] of Object.entries(CATALOGO)) {
 // ---- loja e equipe ----
 const agora = Date.now();
 const dia = 86_400_000;
-sql.push(`insert into loja (id, nome, slogan, sobre, whatsapp, telefone, email, endereco, bairro, cidade, uf, cep, horario, cnpj, instagram) values (1, ${q("Prime Veículos")}, ${q("Seminovos com procedência e garantia")}, ${q("Há mais de 15 anos vendendo carros revisados, com laudo cautelar e garantia. Aceitamos seu usado na troca e facilitamos o financiamento.")}, ${q("31998765432")}, ${q("3134567890")}, ${q("contato@primeveiculos.com.br")}, ${q("Av. do Contorno, 5000")}, ${q("Funcionários")}, ${q("Belo Horizonte")}, ${q("MG")}, ${q("30110-000")}, ${q("Segunda a sexta, 8h às 18h · Sábado, 8h às 13h")}, ${q("00.000.000/0001-00")}, ${q("primeveiculos")});`);
+sql.push(`insert into loja (id, nome, slogan, sobre, cnpj, whatsapp_ddi, whatsapp, telefone_ddi, telefone, email, endereco, bairro, cidade, uf, cep, horario, instagram, hero_titulo, hero_subtitulo, texto_venda_carro, whatsapp_mensagem, atualizado_em) values (1, ${q("Prime Veículos")}, ${q("Seminovos com procedência e garantia")}, ${q("Há mais de 15 anos vendendo carros revisados, com laudo cautelar e garantia.\n\nAceitamos seu usado na troca e facilitamos o financiamento com os principais bancos.")}, ${q("00.000.000/0001-00")}, '55', ${q("31998765432")}, '55', ${q("3134567890")}, ${q("contato@primeveiculos.com.br")}, ${q("Av. do Contorno, 5000")}, ${q("Funcionários")}, ${q("Belo Horizonte")}, ${q("MG")}, ${q("30110000")}, ${q("Segunda a sexta, 8h às 18h · Sábado, 8h às 13h")}, ${q("https://instagram.com/primeveiculos")}, ${q("Seminovos com procedência e garantia")}, '', ${q("Compramos seu carro com avaliação justa e pagamento rápido. Se preferir, use o valor como entrada em um carro do nosso estoque.")}, ${q("Olá! Vim pelo site e gostaria de mais informações.")}, ${agora});`);
+
+// ---- vendedores ----
+const VENDEDORES = [
+  { id: randomUUID(), nome: "Carlos Mendes", whatsapp: "31991112233", email: "carlos@primeveiculos.com.br" },
+  { id: randomUUID(), nome: "Fernanda Lima", whatsapp: "31992223344", email: "fernanda@primeveiculos.com.br" },
+];
+VENDEDORES.forEach((v) => sql.push(`insert into vendedores (id, nome, whatsapp_ddi, whatsapp, email, ativo, criado_em) values (${q(v.id)}, ${q(v.nome)}, '55', ${q(v.whatsapp)}, ${q(v.email)}, 1, ${agora});`));
 
 const admin = { id: randomUUID(), nome: "Administrador", email: "admin@loja.com" };
 sql.push(`insert into usuarios (id, nome, email, senha_hash, criado_em) values (${q(admin.id)}, ${q(admin.nome)}, ${q(admin.email)}, ${q(hashSenha(SENHA_DEMO))}, ${agora - 400 * dia});`);
@@ -140,17 +147,38 @@ const DESCRICOES = [
   "Veículo de garagem, uso apenas urbano. Documentação em dia, pronto para transferência.",
 ];
 
+const ids = [];
 ANUNCIOS.forEach(([marca, modelo, versao, fab, mod, kmRodado, preco, cambio, combustivel, carroceria, cor, portas, destaque, opc], i) => {
   const id = randomUUID();
   const slug = `${slugify(`${marca} ${modelo} ${versao} ${mod}`).slice(0, 70)}-${curto()}`;
   const criado = agora - (i * 1.3 + 0.2) * dia;
-  sql.push(`insert into anuncios (id, slug, marca_id, modelo_id, versao, ano_fabricacao, ano_modelo, km, preco, cambio, combustivel, carroceria, cor, portas, opcionais, descricao, destaque, status, visualizacoes, criado_por, criado_em, atualizado_em) values (${q(id)}, ${q(slug)}, ${idsMarca[marca]}, ${idsModelo[`${marca}|${modelo}`]}, ${q(versao)}, ${fab}, ${mod}, ${kmRodado}, ${preco}, ${q(cambio)}, ${q(combustivel)}, ${q(carroceria)}, ${q(cor)}, ${portas}, ${q(JSON.stringify(opc))}, ${q(DESCRICOES[i % DESCRICOES.length])}, ${destaque ? 1 : 0}, 'ativo', ${Math.floor(20 + ((i * 37) % 400))}, ${q(admin.id)}, ${Math.round(criado)}, ${Math.round(criado)});`);
+  const vendedor = i % 3 === 2 ? null : VENDEDORES[i % 2].id;
+  ids.push({ id, slug, marca, modelo, versao, mod, preco, vendedor });
+  sql.push(`insert into anuncios (id, codigo, slug, vendedor_id, marca_id, modelo_id, versao, ano_fabricacao, ano_modelo, km, preco, cambio, combustivel, carroceria, cor, portas, opcionais, descricao, destaque, status, visualizacoes, criado_por, criado_em, atualizado_em) values (${q(id)}, ${i + 1}, ${q(slug)}, ${q(vendedor)}, ${idsMarca[marca]}, ${idsModelo[`${marca}|${modelo}`]}, ${q(versao)}, ${fab}, ${mod}, ${kmRodado}, ${preco}, ${q(cambio)}, ${q(combustivel)}, ${q(carroceria)}, ${q(cor)}, ${portas}, ${q(JSON.stringify(opc))}, ${q(DESCRICOES[i % DESCRICOES.length])}, ${destaque ? 1 : 0}, 'ativo', ${Math.floor(20 + ((i * 37) % 400))}, ${q(admin.id)}, ${Math.round(criado)}, ${Math.round(criado)});`);
 
   const fotos = [FOTOS[modelo], carroceria === "Picape" ? INTERIOR_PICAPE : INTERIORES[i % INTERIORES.length]];
   if (!FOTOS[modelo]) throw new Error(`Sem foto para ${modelo}`);
   fotos.forEach((foto, ordem) => {
     sql.push(`insert into fotos (id, anuncio_id, chave, ordem, criado_em) values (${q(randomUUID())}, ${q(id)}, ${q(unsplash(foto))}, ${ordem}, ${Math.round(criado)});`);
   });
+});
+
+// ---- landing page e leads de exemplo ----
+const lpId = randomUUID();
+const hilux = ids.find((x) => x.modelo === "Hilux");
+sql.push(`insert into landing_pages (id, slug, anuncio_id, titulo, headline, subtitulo, destaques, texto_botao, mostrar_preco, estilo, status, visitas, criado_em, atualizado_em) values (${q(lpId)}, 'toyota-hilux-srx-2022', ${q(hilux.id)}, ${q("Hilux SRX 2022 — campanha Meta")}, ${q("Toyota Hilux SRX 2.8 Diesel 4x4")}, ${q("Revisada, com laudo cautelar aprovado e garantia de motor e câmbio.")}, ${q(JSON.stringify(["Único dono", "IPVA 2026 pago", "Revisões na concessionária", "Aceitamos seu carro na troca"]))}, 'Quero esta Hilux', 1, 'impacto', 'ativa', 41, ${agora - 3 * dia}, ${agora - dia});`);
+
+const LEADS = [
+  { nome: "Rafael Souza", telefone: "31988112233", email: "rafael@email.com", carro: "Corolla", origem: "veiculo", status: "novo", texto: "Olá, o Corolla ainda está disponível? Posso ver no sábado?", horas: 3 },
+  { nome: "Juliana Castro", telefone: "31988223344", email: "juliana@email.com", carro: "Hilux", origem: "landing_page", status: "novo", texto: "Interesse pela landing page \"Hilux SRX 2022 — campanha Meta\".", horas: 20, rastreio: { utm_source: "facebook", utm_medium: "paid", utm_campaign: "hilux-srx", fbclid: "exemplo" } },
+  { nome: "Marcos Oliveira", telefone: "31988334455", email: "", carro: "Compass", origem: "veiculo", status: "contatado", texto: "Aceitam meu Renegade 2019 na troca?", horas: 30, notas: "Ligou dia 15, vai trazer o Renegade para avaliação." },
+  { nome: "Patrícia Gomes", telefone: "31988445566", email: "patricia@email.com", carro: null, origem: "venda_seu_carro", status: "negociacao", texto: "[Venda seu carro] Honda Fit EX 2017 · 72.000 km", horas: 50 },
+  { nome: "Roberto Silva", telefone: "31988556677", email: "roberto@email.com", carro: "S10", origem: "veiculo", status: "perdido", texto: "Qual a menor taxa de financiamento?", horas: 90, rastreio: { utm_source: "google", utm_medium: "cpc", utm_campaign: "picapes-bh", gclid: "exemplo" } },
+];
+LEADS.forEach((l) => {
+  const carro = l.carro ? ids.find((x) => x.modelo === l.carro) : null;
+  const criado = agora - l.horas * 3_600_000;
+  sql.push(`insert into leads (id, anuncio_id, landing_page_id, vendedor_id, origem, nome, email, telefone, texto, status, notas, rastreio, criado_em, atualizado_em) values (${q(randomUUID())}, ${q(carro?.id)}, ${q(l.origem === "landing_page" ? lpId : null)}, ${q(carro?.vendedor)}, ${q(l.origem)}, ${q(l.nome)}, ${q(l.email)}, ${q(l.telefone)}, ${q(l.texto)}, ${q(l.status)}, ${q(l.notas ?? "")}, ${q(JSON.stringify(l.rastreio ?? {}))}, ${criado}, ${criado});`);
 });
 
 mkdirSync("seed", { recursive: true });

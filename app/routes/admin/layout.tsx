@@ -1,6 +1,7 @@
 import { count, eq } from "drizzle-orm";
-import { ExternalLink, Inbox, KeyRound, LayoutGrid, LogOut, Palette, PlugZap, Plus, Store, Users } from "lucide-react";
-import { Form, Link, NavLink, Outlet } from "react-router";
+import { ExternalLink, Inbox, LayoutDashboard, LayoutTemplate, LogOut, Menu, PlugZap, Settings, UsersRound, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Form, Link, NavLink, Outlet, useLocation } from "react-router";
 import { db, schema } from "~/.server/db";
 import { exigirUsuario } from "~/.server/sessao";
 import { cn } from "~/lib/ui";
@@ -9,94 +10,111 @@ import type { Route } from "./+types/layout";
 
 export async function loader({ request }: Route.LoaderArgs) {
   const usuario = await exigirUsuario(request);
-  const [{ naoLidas }] = await db.select({ naoLidas: count() }).from(schema.mensagens).where(eq(schema.mensagens.lida, false));
-  return { usuario, naoLidas };
+  const [{ novos }] = await db.select({ novos: count() }).from(schema.leads).where(eq(schema.leads.status, "novo"));
+  return { usuario, novos };
+}
+
+function IconeCarro({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M5 17h14v-4.5l-1.8-4.6A2 2 0 0 0 15.3 6.6H8.7a2 2 0 0 0-1.9 1.3L5 12.5V17Z" /><path d="M5 12.5h14" />
+      <circle cx="8" cy="17" r="1.6" /><circle cx="16" cy="17" r="1.6" />
+    </svg>
+  );
 }
 
 export default function AdminLayout({ loaderData }: Route.ComponentProps) {
-  const { usuario, naoLidas } = loaderData;
+  const { usuario, novos } = loaderData;
   const loja = useLoja();
-  const lojaPreenchida = loja.atualizadoEm > 0 && Boolean(loja.whatsapp);
+  const { pathname } = useLocation();
+  const [aberto, setAberto] = useState(false);
+  useEffect(() => setAberto(false), [pathname]);
+
   const itens = [
-    { to: "/admin", rotulo: "Estoque", icone: LayoutGrid, fim: true },
-    { to: "/admin/mensagens", rotulo: "Mensagens", icone: Inbox, contador: naoLidas },
-    { to: "/admin/loja", rotulo: "Dados da loja", icone: Store },
-    { to: "/admin/aparencia", rotulo: "Aparência", icone: Palette },
+    { to: "/admin", rotulo: "Dashboard", icone: LayoutDashboard, fim: true },
+    { to: "/admin/veiculos", rotulo: "Veículos", icone: IconeCarro },
+    { to: "/admin/landing-pages", rotulo: "Landing Pages", icone: LayoutTemplate },
+    { to: "/admin/leads", rotulo: "Leads", icone: Inbox, contador: novos },
+    { to: "/admin/vendedores", rotulo: "Vendedores", icone: UsersRound },
     { to: "/admin/integracoes", rotulo: "Integrações", icone: PlugZap },
-    { to: "/admin/equipe", rotulo: "Equipe", icone: Users },
-    { to: "/admin/senha", rotulo: "Minha senha", icone: KeyRound },
+    { to: "/admin/configuracoes", rotulo: "Configurações", icone: Settings },
   ];
 
-  return (
-    <>
-      <header className="sticky top-0 z-40 bg-noite text-white">
-        <div className="flex h-14 items-center gap-3 px-4 sm:px-6">
-          <Link to="/admin" className="flex min-w-0 items-center gap-2.5">
-            {loja.logoClaro ? (
-              <img src={loja.logoClaro} alt={loja.nome} className="h-7 max-w-[160px] object-contain" />
-            ) : loja.logo ? (
-              <span className="rounded-md bg-white px-2 py-1"><img src={loja.logo} alt={loja.nome} className="h-6 max-w-[140px] object-contain" /></span>
-            ) : (
-              <>
-                <span className="grid size-8 shrink-0 place-items-center rounded-md bg-marca-600 text-sm font-extrabold text-sobre-marca">
-                  {loja.nome.trim().charAt(0).toUpperCase()}
-                </span>
-                <span className="truncate font-bold">{loja.nome}</span>
-              </>
-            )}
-            <span className="hidden rounded bg-white/10 px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-white/75 sm:inline">Painel</span>
-          </Link>
-          <div className="ml-auto flex items-center gap-1">
-            <a href="/" target="_blank" rel="noopener" className="inline-flex h-9 items-center gap-1.5 rounded-md px-3 text-sm font-medium text-white/80 hover:bg-white/10 hover:text-white">
-              <ExternalLink className="size-4" aria-hidden="true" /> <span className="hidden sm:inline">Ver site</span><span className="sr-only sm:hidden">Ver site</span>
-            </a>
-            <span className="hidden px-2 text-sm text-white/60 md:inline">{usuario.nome.split(" ")[0]}</span>
-            <Form method="post" action="/admin/sair">
-              <button className="inline-flex h-9 items-center gap-1.5 rounded-md px-3 text-sm font-medium text-white/80 hover:bg-white/10 hover:text-white">
-                <LogOut className="size-4" aria-hidden="true" /> Sair
-              </button>
-            </Form>
-          </div>
-        </div>
-      </header>
+  const marca = (
+    <Link to="/admin" className="flex min-w-0 items-center gap-3">
+      <span className="grid size-10 shrink-0 place-items-center overflow-hidden rounded-lg bg-white">
+        {loja.logo ? <img src={loja.logo} alt="" className="max-h-7 max-w-8 object-contain" /> : <IconeCarro className="size-6 text-tinta" />}
+      </span>
+      <span className="min-w-0">
+        <span className="block truncate text-[15px] font-bold text-white">{loja.nome}</span>
+        <span className="block text-xs text-white/55">Painel administrativo</span>
+      </span>
+    </Link>
+  );
 
-      <div className="mx-auto grid w-full max-w-[1400px] flex-1 grid-cols-[minmax(0,1fr)] gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[230px_minmax(0,1fr)]">
-        <nav aria-label="Painel" className="-mx-4 overflow-x-auto px-4 sm:-mx-6 sm:px-6 lg:mx-0 lg:overflow-visible lg:px-0">
-          <div className="flex gap-1 lg:sticky lg:top-20 lg:flex-col">
-            <Link to="/admin/veiculos/novo" className="botao-primario mr-2 h-10 shrink-0 px-4 text-sm lg:mb-3 lg:mr-0">
-              <Plus className="size-4" aria-hidden="true" /> Novo veículo
-            </Link>
-            <ul className="flex gap-1 lg:flex-col">
-              {itens.map(({ to, rotulo, icone: Icone, fim, contador }) => (
-                <li key={to} className="shrink-0">
-                  <NavLink to={to} end={fim}
-                    className={({ isActive }) => cn(
-                      // relative: prende o texto sr-only do contador, senão ele escapa da rolagem e alarga a página no celular.
-                      "relative flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors",
-                      isActive ? "bg-white text-marca-700 shadow-card" : "text-suave hover:bg-white/70 hover:text-tinta")}>
-                    <Icone className="size-[18px]" aria-hidden="true" />
-                    {rotulo}
-                    {!!contador && (
-                      <span className="numeros ml-auto rounded-full bg-marca-600 px-2 py-0.5 text-xs text-sobre-marca">
-                        {contador}<span className="sr-only"> não lidas</span>
-                      </span>
-                    )}
-                  </NavLink>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </nav>
-        <main className="min-w-0">
-          {!lojaPreenchida && (
-            <div role="status" className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-alerta/20 bg-alerta-fundo px-4 py-3 text-alerta">
-              <p className="text-sm font-medium">Preencha nome, WhatsApp e endereço da loja para eles aparecerem no site.</p>
-              <Link to="/admin/loja" className="text-sm font-semibold underline">Preencher agora</Link>
-            </div>
-          )}
-          <Outlet />
-        </main>
+  const barra = (
+    <div className="flex h-full flex-col">
+      <div className="px-4 py-5">{marca}</div>
+      <nav aria-label="Painel" className="flex-1 overflow-y-auto px-3">
+        <ul className="grid gap-0.5">
+          {itens.map(({ to, rotulo, icone: Icone, fim, contador }) => (
+            <li key={to}>
+              <NavLink to={to} end={fim}
+                className={({ isActive }) => cn("relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-[15px] font-medium transition-colors",
+                  isActive ? "bg-white/10 text-white" : "text-white/75 hover:bg-white/5 hover:text-white")}>
+                <Icone className="size-[18px] shrink-0" />
+                {rotulo}
+                {!!contador && (
+                  <span className="numeros ml-auto rounded-full bg-marca-600 px-2 py-0.5 text-xs font-semibold text-sobre-marca">
+                    {contador}<span className="sr-only"> novos</span>
+                  </span>
+                )}
+              </NavLink>
+            </li>
+          ))}
+          <li>
+            <a href="/" target="_blank" rel="noopener" className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-[15px] font-medium text-white/75 hover:bg-white/5 hover:text-white">
+              <ExternalLink className="size-[18px]" aria-hidden="true" /> Ver site
+            </a>
+          </li>
+        </ul>
+      </nav>
+      <div className="border-t border-white/10 px-4 py-4">
+        <p className="truncate text-sm font-semibold text-white">{usuario.nome}</p>
+        <p className="truncate text-xs text-white/55">{usuario.email}</p>
+        <Form method="post" action="/admin/sair" className="mt-3">
+          <button className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-white/75 hover:bg-white/5 hover:text-white">
+            <LogOut className="size-4" aria-hidden="true" /> Sair
+          </button>
+        </Form>
       </div>
-    </>
+    </div>
+  );
+
+  return (
+    <div className="min-h-dvh bg-[#f6f6f7]">
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 bg-painel lg:block">{barra}</aside>
+
+      <header className="sticky top-0 z-30 flex h-14 items-center gap-3 bg-painel px-4 lg:hidden">
+        <button type="button" onClick={() => setAberto(true)} className="grid size-10 place-items-center rounded-lg text-white hover:bg-white/10" aria-label="Abrir menu">
+          <Menu className="size-6" />
+        </button>
+        <div className="min-w-0 flex-1">{marca}</div>
+      </header>
+      {aberto && (
+        <div className="fixed inset-0 z-50 bg-black/50 lg:hidden" onClick={(e) => e.target === e.currentTarget && setAberto(false)}>
+          <aside className="relative h-full w-72 max-w-[85%] bg-painel">
+            <button type="button" onClick={() => setAberto(false)} className="absolute right-2 top-5 grid size-10 place-items-center rounded-lg text-white hover:bg-white/10" aria-label="Fechar menu">
+              <X className="size-5" />
+            </button>
+            {barra}
+          </aside>
+        </div>
+      )}
+
+      <main className="min-w-0 px-4 pb-28 pt-6 sm:px-8 sm:pt-8 lg:ml-64">
+        <Outlet />
+      </main>
+    </div>
   );
 }

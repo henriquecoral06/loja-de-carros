@@ -7,6 +7,7 @@ import { IconeWhatsApp, LinkWhatsApp } from "~/components/WhatsApp";
 import { inteiro, moeda } from "~/lib/formato";
 import { lojaDasRotas } from "~/lib/site";
 import { useLoja } from "~/lib/useLoja";
+import { videoDeFundo, type VideoFundo } from "~/lib/video";
 import type { Route } from "./+types/home";
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -52,20 +53,23 @@ export default function Home({ loaderData }: Route.ComponentProps) {
   const total = marcas.reduce((s, m) => s + m.total, 0);
   const [marcaSel, setMarcaSel] = useState("");
   const anoAtual = new Date().getFullYear();
+  const video = videoDeFundo(loja.heroVideo);
 
   return (
     <>
       <section className="relative isolate overflow-hidden bg-noite">
         <img src={loja.banner} alt="" className="absolute inset-0 -z-10 size-full object-cover" fetchPriority="high" />
+        {video && <VideoHero video={video} />}
         {/* Degradê garante leitura do texto branco sobre qualquer foto de banner. */}
         <div aria-hidden="true" className="absolute inset-0 -z-10 bg-gradient-to-r from-noite via-noite/85 to-noite/30" />
         <div className="conteiner pb-32 pt-14 sm:pb-36 sm:pt-20">
           <h1 className="max-w-2xl text-4xl font-extrabold leading-[1.08] tracking-tight text-white sm:text-5xl">
-            {loja.slogan || "Seu próximo carro está aqui"}
+            {loja.heroTitulo || loja.slogan || "Seu próximo carro está aqui"}
           </h1>
           <p className="mt-4 max-w-xl text-lg text-white/80">
-            <span className="numeros font-bold text-white">{inteiro(total)}</span> {total === 1 ? "carro disponível" : "carros disponíveis"}
-            {loja.cidade ? ` em ${loja.cidade}` : ""}
+            {loja.heroSubtitulo || (
+              <><span className="numeros font-bold text-white">{inteiro(total)}</span> {total === 1 ? "carro disponível" : "carros disponíveis"}{loja.cidade ? ` em ${loja.cidade}` : ""}</>
+            )}
           </p>
         </div>
       </section>
@@ -207,5 +211,23 @@ export default function Home({ loaderData }: Route.ComponentProps) {
         </div>
       </section>
     </>
+  );
+}
+
+/**
+ * Vídeo sem som e em loop por trás do texto. A foto do banner fica embaixo
+ * como capa enquanto carrega; quem pediu menos movimento no sistema não vê o vídeo.
+ */
+function VideoHero({ video }: { video: NonNullable<VideoFundo> }) {
+  return (
+    <div aria-hidden="true" className="absolute inset-0 -z-10 overflow-hidden motion-reduce:hidden">
+      {video.tipo === "arquivo" ? (
+        <video src={video.src} autoPlay muted loop playsInline className="size-full object-cover" />
+      ) : (
+        // 16:9 cobrindo a área toda, como object-cover faria.
+        <iframe src={video.src} title="Vídeo de fundo" tabIndex={-1} allow="autoplay; encrypted-media"
+          className="pointer-events-none absolute left-1/2 top-1/2 h-[max(100%,56.25vw)] w-[max(100%,177.78vh)] -translate-x-1/2 -translate-y-1/2 border-0" />
+      )}
+    </div>
   );
 }

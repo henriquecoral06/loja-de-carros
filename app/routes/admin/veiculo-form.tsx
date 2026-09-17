@@ -1,4 +1,4 @@
-import { asc, eq, inArray } from "drizzle-orm";
+import { asc, eq, inArray, max } from "drizzle-orm";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { data, Form, Link, redirect, useNavigation } from "react-router";
 import { catalogo } from "~/.server/anuncios";
@@ -12,7 +12,7 @@ import { GerenciadorFotos } from "~/components/GerenciadorFotos";
 import { apenasDigitos, inteiro, slugify } from "~/lib/formato";
 import { metaAdmin, SITE } from "~/lib/site";
 import {
-  ANO_MINIMO, anoMaximo, CAMBIOS, CARROCERIAS, COMBUSTIVEIS, CORES, OPCIONAIS, ROTULO_STATUS, STATUS_ANUNCIO,
+  ANO_MINIMO, anoMaximo, CAMBIOS, CARROCERIAS, COMBUSTIVEIS, CORES, codigoVeiculo, OPCIONAIS, ROTULO_STATUS, STATUS_ANUNCIO,
 } from "~/lib/veiculos";
 import type { Route } from "./+types/veiculo-form";
 
@@ -22,9 +22,12 @@ export function meta({ params, matches }: Route.MetaArgs) {
 
 export async function loader({ request, params }: Route.LoaderArgs) {
   await exigirUsuario(request);
-  const cat = await catalogo();
+  const [cat, vendedores] = await Promise.all([
+    catalogo(),
+    db.select({ id: schema.vendedores.id, nome: schema.vendedores.nome, ativo: schema.vendedores.ativo }).from(schema.vendedores).orderBy(asc(schema.vendedores.nome)),
+  ]);
 
-  if (!params.id) return { catalogo: cat, anuncio: null, fotos: [] };
+  if (!params.id) return { catalogo: cat, vendedores, anuncio: null, fotos: [] };
 
   const anuncio = await anuncioPorId(params.id);
   const fotos = await db.select({ id: schema.fotos.id, chave: schema.fotos.chave }).from(schema.fotos)
@@ -32,6 +35,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 
   return {
     catalogo: cat,
+    vendedores,
     anuncio: { ...anuncio, opcionais: JSON.parse(anuncio.opcionais) as string[] },
     fotos: fotos.map((f) => ({ id: f.id, url: urlImagem(f.chave) })),
   };
@@ -59,6 +63,7 @@ export async function action({ request, params }: Route.ActionArgs) {
     cor: texto("cor"), portas: numero("portas"),
     opcionais: form.getAll("opcionais").map(String).filter((o) => naLista(o, OPCIONAIS)),
     descricao: texto("descricao"), destaque: form.get("destaque") === "on", status: texto("status") || "ativo",
+    vendedorId: texto("vendedorId") || null,
   };
 
   const erros: Erros = {};
@@ -80,6 +85,10 @@ export async function action({ request, params }: Route.ActionArgs) {
   if (!(v.portas >= 2 && v.portas <= 5)) erros.portas = "Escolha o número de portas.";
   if (v.descricao.length > 3000) erros.descricao = "A descrição pode ter até 3.000 caracteres.";
   if (!naLista(v.status, STATUS_ANUNCIO)) erros.status = "Situação inválida.";
+  if (v.vendedorId) {
+    const [vendedor] = await db.select({ id: schema.vendedores.id }).from(schema.vendedores).where(eq(schema.vendedores.id, v.vendedorId)).limit(1);
+    if (!vendedor) v.vendedorId = null;
+  }
 
   // ---- fotos ----
   const novas = form.getAll("fotos_novas").filter((f): f is File => f instanceof File && f.size > 0);
@@ -129,11 +138,13 @@ export async function action({ request, params }: Route.ActionArgs) {
     marcaId: v.marcaId, modeloId: v.modeloId, versao: v.versao, anoFabricacao: v.anoFabricacao, anoModelo: v.anoModelo,
     km: v.km, preco: v.preco, cambio: v.cambio as never, combustivel: v.combustivel as never, carroceria: v.carroceria as never,
     cor: v.cor, portas: v.portas, opcionais: JSON.stringify(v.opcionais), descricao: v.descricao,
-    destaque: v.destaque, status: v.status as never, atualizadoEm: agora,
+    destaque: v.destaque, status: v.status as never, vendedorId: v.vendedorId, atualizadoEm: agora,
   };
 
   if (!existente) {
-    await db.insert(schema.anuncios).values({ id, slug, criadoPor: usuario.id, criadoEm: agora, ...dados });
+    // Código sequencial do estoque. UNIQUE no banco: duas criações simultâneas não repetem número.
+    const [{ ultimo }] = await db.select({ ultimo: max(schema.anuncios.codigo) }).from(schema.anuncios);
+    await db.insert(schema.anuncios).values({ id, codigo: (ultimo ?? 0) + 1, slug, criadoPor: usuario.id, criadoEm: agora, ...dados });
   }
 
   // Sobe as fotos novas. Se o R2 falhar, desfaz o que subiu e, se o
@@ -163,14 +174,14 @@ export async function action({ request, params }: Route.ActionArgs) {
   // Arquivo só sai do R2 depois que o banco confirmou.
   await removerObjetos(removidas.map((f) => f.chave));
 
-  throw redirect(`/admin?salvo=${slug}`);
+  throw redirect(`/admin/veiculos?salvo=${slug}`);
 }
 
 const ANOS = Array.from({ length: anoMaximo() - ANO_MINIMO + 1 }, (_, i) => anoMaximo() - i);
 const formatarMilhar = (t: string) => { const d = apenasDigitos(t).slice(0, 9); return d ? inteiro(Number(d)) : ""; };
 
 export default function VeiculoForm({ loaderData, actionData }: Route.ComponentProps) {
-  const { catalogo: cat, anuncio: a, fotos } = loaderData;
+  const { catalogo: cat, vendedores, anuncio: a, fotos } = loaderData;
   const erros: Erros = actionData?.erros ?? {};
   const navigation = useNavigation();
   const enviando = navigation.state === "submitting";
@@ -197,9 +208,9 @@ export default function VeiculoForm({ loaderData, actionData }: Route.ComponentP
   const tituloSecao = "text-lg font-bold text-tinta";
 
   return (
-    <Form ref={formRef} method="post" encType="multipart/form-data" noValidate className="grid gap-4 pb-28">
+    <Form ref={formRef} method="post" encType="multipart/form-data" noValidate className="grid max-w-4xl gap-4">
       <div>
-        <h1 className="text-2xl font-extrabold tracking-tight text-tinta">{a ? "Editar veículo" : "Novo veículo"}</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-tinta sm:text-[28px]">{a ? "Editar veículo" : "Novo veículo"}{a && <span className="numeros ml-2 text-base font-medium text-suave">cód. {codigoVeiculo(a.codigo)}</span>}</h1>
         <p className="text-suave">{a ? "As mudanças aparecem no site assim que você salvar." : "Cadastros completos, com boas fotos, recebem mais contatos."}</p>
       </div>
 
@@ -268,7 +279,7 @@ export default function VeiculoForm({ loaderData, actionData }: Route.ComponentP
         </div>
       </section>
 
-      <section className={secao} aria-labelledby="sec-fotos">
+      <section id="fotos" className={secao} aria-labelledby="sec-fotos">
         <h3 id="sec-fotos" className={tituloSecao}>Fotos</h3>
         <p className="mb-4 mt-1 text-sm text-suave">Mostre a frente, a traseira, as laterais, o interior e o painel com a quilometragem.</p>
         <GerenciadorFotos existentes={fotos} erro={erros.fotos} />
@@ -301,7 +312,11 @@ export default function VeiculoForm({ loaderData, actionData }: Route.ComponentP
             dica="Pausado some do site; vendido continua no link, mas sai da busca.">
             {STATUS_ANUNCIO.map((st) => <option key={st} value={st}>{ROTULO_STATUS[st]}</option>)}
           </CampoSelecao>
-          <label className="flex cursor-pointer items-start gap-3 self-center rounded-lg border border-linha p-4 sm:mt-6">
+          <CampoSelecao id="vendedorId" rotulo="Vendedor responsável" defaultValue={a?.vendedorId ?? ""} dica="Recebe os cliques de WhatsApp deste carro. Sem vendedor, vai para a loja.">
+            <option value="">Sem vendedor (WhatsApp da loja)</option>
+            {vendedores.map((vd) => <option key={vd.id} value={vd.id}>{vd.nome}{vd.ativo ? "" : " (inativo)"}</option>)}
+          </CampoSelecao>
+          <label className="flex cursor-pointer items-start gap-3 self-center rounded-lg border border-linha p-4 sm:col-span-2">
             <input type="checkbox" name="destaque" defaultChecked={a?.destaque} className="mt-0.5 size-4 accent-marca-600" />
             <span>
               <span className="block font-semibold text-tinta">Destacar na página inicial</span>
@@ -311,9 +326,9 @@ export default function VeiculoForm({ loaderData, actionData }: Route.ComponentP
         </div>
       </section>
 
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-linha bg-white/95 backdrop-blur">
-        <div className="conteiner flex items-center justify-end gap-3 py-3">
-          <Link to="/admin" className="botao-fantasma">Cancelar</Link>
+      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-linha bg-white/95 backdrop-blur lg:left-64">
+        <div className="flex items-center justify-end gap-3 px-4 py-3 sm:px-8">
+          <Link to="/admin/veiculos" className="botao-fantasma">Cancelar</Link>
           <button type="submit" disabled={enviando} className="botao-primario min-w-44">
             {enviando ? "Salvando…" : a ? "Salvar alterações" : "Cadastrar veículo"}
           </button>

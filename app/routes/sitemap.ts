@@ -18,7 +18,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     `<url><loc>${escapar(origem + loc)}</loc>${lastmod ? `<lastmod>${new Date(lastmod).toISOString().slice(0, 10)}</lastmod>` : ""}</url>`;
 
   const corpo = [
-    url("/"), url("/carros"), url("/sobre"), url("/contato"),
+    url("/"), url("/carros"), url("/venda-seu-carro"), url("/sobre"), url("/contato"),
     ...marcas.map((m) => url(`/carros/${m.slug}`)),
     ...anuncios.map((a) => url(`/carro/${a.slug}`, a.atualizadoEm)),
   ].join("");

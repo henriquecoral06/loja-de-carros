@@ -4,6 +4,25 @@ export const CAMBIOS = ["Manual", "Automático", "CVT", "Automatizado"] as const
 export const COMBUSTIVEIS = ["Flex", "Gasolina", "Etanol", "Diesel", "Híbrido", "Elétrico"] as const;
 export const CARROCERIAS = ["Hatch", "Sedã", "SUV", "Picape", "Minivan", "Cupê", "Conversível", "Perua"] as const;
 export const STATUS_ANUNCIO = ["ativo", "pausado", "vendido"] as const;
+export const STATUS_LEAD = ["novo", "contatado", "negociacao", "vendido", "perdido"] as const;
+export type StatusLead = (typeof STATUS_LEAD)[number];
+export const ROTULO_STATUS_LEAD: Record<StatusLead, string> = {
+  novo: "Novo", contatado: "Contatado", negociacao: "Em negociação", vendido: "Vendido", perdido: "Perdido",
+};
+
+export const ORIGENS_LEAD = ["veiculo", "contato", "venda_seu_carro", "landing_page"] as const;
+export type OrigemLead = (typeof ORIGENS_LEAD)[number];
+export const ROTULO_ORIGEM: Record<OrigemLead, string> = {
+  veiculo: "Página do veículo", contato: "Contato", venda_seu_carro: "Venda seu carro", landing_page: "Landing page",
+};
+
+export const ESTILOS_LP = ["classico", "escuro", "impacto"] as const;
+export type EstiloLP = (typeof ESTILOS_LP)[number];
+export const ROTULO_ESTILO_LP: Record<EstiloLP, string> = { classico: "Clássico", escuro: "Escuro", impacto: "Impacto" };
+
+/** Código do estoque exibido: 7 → "0007". */
+export const codigoVeiculo = (codigo: number) => String(codigo).padStart(4, "0");
+
 export const ROTULO_STATUS = { ativo: "À venda", pausado: "Pausado", vendido: "Vendido" } as const;
 
 export type Cambio = (typeof CAMBIOS)[number];

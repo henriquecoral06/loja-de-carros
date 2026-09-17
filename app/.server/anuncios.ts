@@ -138,6 +138,7 @@ export async function porSlug(slug: string) {
     ...camposCard,
     cor: anuncios.cor, portas: anuncios.portas, opcionais: anuncios.opcionais,
     descricao: anuncios.descricao, status: anuncios.status, visualizacoes: anuncios.visualizacoes,
+    codigo: anuncios.codigo, vendedorId: anuncios.vendedorId,
     marcaSlug: marcas.slug, modeloSlug: modelos.slug,
   }).from(anuncios)
     .innerJoin(marcas, eq(marcas.id, anuncios.marcaId))
@@ -146,13 +147,20 @@ export async function porSlug(slug: string) {
 
   if (!anuncio) return null;
 
-  const listaFotos = await db.select({ id: fotos.id, chave: fotos.chave }).from(fotos)
-    .where(eq(fotos.anuncioId, anuncio.id)).orderBy(asc(fotos.ordem));
+  const [listaFotos, [vendedor]] = await Promise.all([
+    db.select({ id: fotos.id, chave: fotos.chave }).from(fotos).where(eq(fotos.anuncioId, anuncio.id)).orderBy(asc(fotos.ordem)),
+    anuncio.vendedorId
+      ? db.select({ nome: schema.vendedores.nome, whatsapp: schema.vendedores.whatsapp, whatsappDdi: schema.vendedores.whatsappDdi, fotoChave: schema.vendedores.fotoChave, ativo: schema.vendedores.ativo })
+          .from(schema.vendedores).where(eq(schema.vendedores.id, anuncio.vendedorId)).limit(1)
+      : Promise.resolve([]),
+  ]);
 
   return {
     ...paraCard(anuncio),
     opcionais: JSON.parse(anuncio.opcionais) as string[],
     fotos: listaFotos.map((f) => ({ id: f.id, url: urlImagem(f.chave) })),
+    // Vendedor inativo não atende mais: o contato volta para a loja.
+    vendedor: vendedor?.ativo ? { nome: vendedor.nome, whatsapp: vendedor.whatsapp, whatsappDdi: vendedor.whatsappDdi, foto: vendedor.fotoChave ? urlImagem(vendedor.fotoChave) : null } : null,
   };
 }
 

@@ -59,7 +59,7 @@ export async function validarLogo(arquivo: File, { aceitaSvg }: { aceitaSvg: boo
   return { ok: false as const, erro: aceitaSvg ? "Envie PNG, JPG, WebP ou SVG." : "Envie JPG, PNG ou WebP." };
 }
 
-export async function salvarArquivoLoja(prefixo: "logo" | "logo-claro" | "banner", bytes: ArrayBuffer, tipo: Tipo) {
+export async function salvarArquivoLoja(prefixo: "logo" | "logo-claro" | "banner" | "vendedor", bytes: ArrayBuffer, tipo: Tipo) {
   const chave = `loja/${prefixo}-${crypto.randomUUID()}.${tipo.extensao}`;
   await env.IMAGENS.put(chave, bytes, {
     httpMetadata: { contentType: tipo.mime, cacheControl: "public, max-age=31536000, immutable" },

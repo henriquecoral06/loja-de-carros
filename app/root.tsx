@@ -25,6 +25,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const dados = useRouteLoaderData<typeof loader>("root");
   const primaria = dados?.loja.corPrimaria ?? "";
   const escura = dados?.loja.corEscura ?? "";
+  const secundaria = dados?.loja.corSecundaria ?? "";
   // O ícone da aba acompanha a cor da loja: ?c= só muda o cache.
   const icone = `/icone.svg?c=${paleta(primaria, escura)["marca-600"].slice(1)}`;
 
@@ -38,7 +39,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Meta />
         <Links />
         {/* Só hex validado entra aqui (ver app/lib/cores.ts). */}
-        <style dangerouslySetInnerHTML={{ __html: cssTema(primaria, escura) }} />
+        <style dangerouslySetInnerHTML={{ __html: cssTema(primaria, escura, secundaria) }} />
       </head>
       <body className="flex min-h-dvh flex-col">
         {children}

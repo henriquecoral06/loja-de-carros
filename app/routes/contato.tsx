@@ -1,14 +1,11 @@
 import { Clock, Mail, MapPin, Phone } from "lucide-react";
 import { useEffect } from "react";
 import { data, useFetcher } from "react-router";
-import { db, schema } from "~/.server/db";
-import { obterLoja } from "~/.server/loja";
-import { validarMensagem, type ErrosMensagem } from "~/.server/mensagens";
-import { enviarLeadAoCrm } from "~/.server/webhook";
+import { criarLead, validarLead, type ErrosLead } from "~/.server/leads";
 import { dentroDoLimite, exigirMesmaOrigem, ipDe } from "~/.server/seguranca";
 import { CamposMensagem } from "~/components/CamposMensagem";
-import { IconeWhatsApp, LinkWhatsApp } from "~/components/WhatsApp";
-import { cep, telefone } from "~/lib/formato";
+import { IconeWhatsApp, LinkTelefone, LinkWhatsApp } from "~/components/WhatsApp";
+import { cep } from "~/lib/formato";
 import { rastrear } from "~/lib/rastreamento";
 import { lojaDasRotas } from "~/lib/site";
 import { useLoja } from "~/lib/useLoja";
@@ -27,28 +24,23 @@ export async function action({ request }: Route.ActionArgs) {
   const form = await request.formData();
   if (form.get("empresa")) return { enviada: true };
 
-  const resultado = validarMensagem(form);
+  const resultado = validarLead(form);
   if ("erros" in resultado) return data({ erros: resultado.erros }, { status: 400 });
 
   if (!(await dentroDoLimite(`mensagem:${ipDe(request)}`, 8, 3_600_000))) {
     return data({ erro: "Você enviou muitas mensagens em pouco tempo. Tente de novo mais tarde." }, { status: 429 });
   }
-  const id = crypto.randomUUID();
-  await db.insert(schema.mensagens).values({ id, anuncioId: null, ...resultado.mensagem });
-  await enviarLeadAoCrm({
-    id, criado_em: new Date().toISOString(), origem: "contato", veiculo: null, rastreio: resultado.rastreio,
-    lead: { nome: resultado.mensagem.nome, email: resultado.mensagem.email, telefone: resultado.mensagem.telefone, mensagem: resultado.mensagem.texto },
-  }, (await obterLoja()).nome);
-  return { enviada: true };
+  await criarLead({ request, origem: "contato", dados: resultado.dados, rastreio: resultado.rastreio, eventId: resultado.eventId });
+  return { enviada: true, eventId: resultado.eventId };
 }
 
-type Resposta = { enviada?: boolean; erro?: string; erros?: ErrosMensagem };
+type Resposta = { enviada?: boolean; eventId?: string; erro?: string; erros?: ErrosLead };
 
 export default function Contato() {
   const loja = useLoja();
   const envio = useFetcher<Resposta>();
   const enviada = Boolean(envio.data?.enviada);
-  useEffect(() => { if (enviada) rastrear("lead", { origem: "contato" }); }, [enviada]);
+  useEffect(() => { if (enviada) rastrear("formulario", { origem: "contato", eventId: envio.data?.eventId }); }, [enviada]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const linha1 = [loja.endereco, loja.bairro].filter(Boolean).join(", ");
   const linha2 = [[loja.cidade, loja.uf].filter(Boolean).join(" - "), loja.cep && `CEP ${cep(loja.cep)}`].filter(Boolean).join(" · ");
@@ -99,7 +91,7 @@ export default function Contato() {
             {loja.telefone && (
               <li className="flex gap-3">
                 <Phone className={icone} aria-hidden="true" />
-                <a href={`tel:+55${loja.telefone}`} onClick={() => rastrear("telefone")} className="numeros hover:underline">{telefone(loja.telefone)}</a>
+                <LinkTelefone numero={loja.telefone} ddi={loja.telefoneDdi} className="numeros hover:underline" />
               </li>
             )}
             {loja.email && <li className="flex gap-3"><Mail className={icone} aria-hidden="true" /><a href={`mailto:${loja.email}`} className="min-w-0 break-all hover:underline">{loja.email}</a></li>}

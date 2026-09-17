@@ -1,14 +1,16 @@
 import { Clock, Mail, MapPin, Phone } from "lucide-react";
 import { Link } from "react-router";
-import { cep, telefone } from "~/lib/formato";
-import { rastrear } from "~/lib/rastreamento";
+import { cep } from "~/lib/formato";
 import { useLoja } from "~/lib/useLoja";
 import { CARROCERIAS } from "~/lib/veiculos";
 import { Logo } from "./Logo";
+import { LinkTelefone } from "./WhatsApp";
 
 export function SiteFooter() {
   const loja = useLoja();
   const cidade = [loja.cidade, loja.uf].filter(Boolean).join(" - ");
+  const redes = ([["Instagram", loja.instagram], ["Facebook", loja.facebook], ["TikTok", loja.tiktok], ["YouTube", loja.youtube]] as const)
+    .filter(([, url]) => /^https:\/\//.test(url));
   const titulo = "text-xs font-bold uppercase tracking-[0.12em] text-white";
   const link = "inline-block py-1.5 transition-colors hover:text-white";
 
@@ -18,10 +20,11 @@ export function SiteFooter() {
         <div>
           <Logo loja={loja} claro />
           {loja.slogan && <p className="mt-5 max-w-xs leading-relaxed">{loja.slogan}</p>}
-          {(loja.instagram || loja.facebook) && (
-            <ul className="mt-5 flex gap-4 text-sm font-semibold">
-              {loja.instagram && <li><a href={`https://instagram.com/${loja.instagram}`} target="_blank" rel="noopener noreferrer" className="inline-block py-1 text-white hover:underline">Instagram</a></li>}
-              {loja.facebook && <li><a href={loja.facebook} target="_blank" rel="noopener noreferrer" className="inline-block py-1 text-white hover:underline">Facebook</a></li>}
+          {redes.length > 0 && (
+            <ul className="mt-5 flex flex-wrap gap-x-4 gap-y-1 text-sm font-semibold">
+              {redes.map(([nome, url]) => (
+                <li key={nome}><a href={url} target="_blank" rel="noopener noreferrer" className="inline-block py-1 text-white hover:underline">{nome}</a></li>
+              ))}
             </ul>
           )}
         </div>
@@ -39,6 +42,7 @@ export function SiteFooter() {
           <h2 id="rodape-institucional" className={titulo}>Institucional</h2>
           <ul className="mt-4">
             <li><Link to="/carros" className={link}>Estoque completo</Link></li>
+            <li><Link to="/venda-seu-carro" className={link}>Venda seu carro</Link></li>
             <li><Link to="/sobre" className={link}>Sobre a loja</Link></li>
             <li><Link to="/contato" className={link}>Contato</Link></li>
             <li><Link to="/privacidade" className={link}>Privacidade</Link></li>
@@ -63,7 +67,7 @@ export function SiteFooter() {
             {loja.telefone && (
               <li className="flex gap-2.5">
                 <Phone className="mt-1 size-4 shrink-0 text-white/50" aria-hidden="true" />
-                <a href={`tel:+55${loja.telefone}`} onClick={() => rastrear("telefone")} className="numeros hover:text-white">{telefone(loja.telefone)}</a>
+                <LinkTelefone numero={loja.telefone} ddi={loja.telefoneDdi} className="numeros hover:text-white" />
               </li>
             )}
             {loja.email && (

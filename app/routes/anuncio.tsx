@@ -1,22 +1,19 @@
-import { eq } from "drizzle-orm";
 import { isbot } from "isbot";
 import { ArrowRight, Calendar, Check, Clock, Cog, DoorOpen, Fuel, Gauge, MapPin, Palette, Pencil, Phone, TriangleAlert } from "lucide-react";
 import { useEffect } from "react";
 import { data, Link, useFetcher } from "react-router";
 import { porSlug, registrarVisualizacao, similares } from "~/.server/anuncios";
-import { db, schema } from "~/.server/db";
-import { obterLoja } from "~/.server/loja";
-import { validarMensagem, type ErrosMensagem } from "~/.server/mensagens";
-import { enviarLeadAoCrm } from "~/.server/webhook";
+import { criarLead, validarLead, type ErrosLead } from "~/.server/leads";
 import { obterUsuario } from "~/.server/sessao";
 import { dentroDoLimite, exigirMesmaOrigem, ipDe } from "~/.server/seguranca";
 import { AnuncioCard } from "~/components/AnuncioCard";
 import { CamposMensagem } from "~/components/CamposMensagem";
 import { Galeria } from "~/components/Galeria";
-import { IconeWhatsApp, LinkWhatsApp } from "~/components/WhatsApp";
-import { anos, km, moeda, telefone } from "~/lib/formato";
+import { IconeWhatsApp, LinkTelefone, LinkWhatsApp } from "~/components/WhatsApp";
+import { anos, km, moeda } from "~/lib/formato";
 import { rastrear } from "~/lib/rastreamento";
 import { lojaDasRotas } from "~/lib/site";
+import { codigoVeiculo } from "~/lib/veiculos";
 import { useLoja } from "~/lib/useLoja";
 import type { Route } from "./+types/anuncio";
 
@@ -97,26 +94,15 @@ export async function action({ request, params }: Route.ActionArgs) {
   // Campo invisível: gente não preenche, robô preenche. Finge sucesso.
   if (form.get("empresa")) return { enviada: true };
 
-  const resultado = validarMensagem(form);
+  const resultado = validarLead(form);
   if ("erros" in resultado) return data({ erros: resultado.erros }, { status: 400 });
 
   if (!(await dentroDoLimite(`mensagem:${ipDe(request)}`, 8, 3_600_000))) {
     return data({ erro: "Você enviou muitas mensagens em pouco tempo. Tente de novo mais tarde." }, { status: 429 });
   }
 
-  const id = crypto.randomUUID();
-  await db.insert(schema.mensagens).values({ id, anuncioId: anuncio.id, ...resultado.mensagem });
-  const origem = new URL(request.url).origin;
-  await enviarLeadAoCrm({
-    id, criado_em: new Date().toISOString(), origem: "pagina_do_veiculo",
-    lead: { nome: resultado.mensagem.nome, email: resultado.mensagem.email, telefone: resultado.mensagem.telefone, mensagem: resultado.mensagem.texto },
-    veiculo: {
-      id: anuncio.id, titulo: `${anuncio.marca} ${anuncio.modelo} ${anuncio.versao} ${anuncio.anoModelo}`, marca: anuncio.marca, modelo: anuncio.modelo,
-      versao: anuncio.versao, ano_modelo: anuncio.anoModelo, preco: anuncio.preco, url: `${origem}/carro/${anuncio.slug}`,
-    },
-    rastreio: resultado.rastreio,
-  }, (await obterLoja()).nome);
-  return { enviada: true };
+  await criarLead({ request, origem: "veiculo", anuncioId: anuncio.id, dados: resultado.dados, rastreio: resultado.rastreio, eventId: resultado.eventId });
+  return { enviada: true, eventId: resultado.eventId };
 }
 
 export default function Anuncio({ loaderData }: Route.ComponentProps) {
@@ -218,7 +204,8 @@ export default function Anuncio({ loaderData }: Route.ComponentProps) {
             {a.destaque && <span className="mb-2 inline-block rounded bg-marca-600 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-sobre-marca">Destaque</span>}
             <h1 className="text-2xl font-extrabold uppercase leading-tight tracking-tight text-tinta">{titulo}</h1>
             <p className="mt-1 text-suave">{a.versao}</p>
-            <p className="numeros mt-4 text-[34px] font-extrabold leading-none tracking-tight text-tinta">{moeda(a.preco)}</p>
+            <p className="numeros mt-1 text-xs text-fraco">Cód. {codigoVeiculo(a.codigo)}</p>
+            <p className="numeros mt-3 text-[34px] font-extrabold leading-none tracking-tight text-tinta">{moeda(a.preco)}</p>
             <ul className="numeros mt-4 flex flex-wrap gap-2 text-sm">
               <li className="rounded-md bg-fundo px-2.5 py-1 font-medium text-texto">{anos(a.anoFabricacao, a.anoModelo)}</li>
               <li className="rounded-md bg-fundo px-2.5 py-1 font-medium text-texto">{km(a.km)}</li>
@@ -227,13 +214,21 @@ export default function Anuncio({ loaderData }: Route.ComponentProps) {
 
             {ativo && (
               <div className="mt-6 grid gap-2 border-t border-linha pt-6">
-                <LinkWhatsApp mensagem={textoWhats} veiculo={eventoVeiculo} className="botao-primario w-full">
+                <LinkWhatsApp mensagem={textoWhats} numero={a.vendedor} veiculo={eventoVeiculo} className="botao-primario w-full">
                   <IconeWhatsApp className="size-[18px]" /> Tenho interesse
                 </LinkWhatsApp>
                 {loja.telefone && (
-                  <a href={`tel:+55${loja.telefone}`} onClick={() => rastrear("telefone", eventoVeiculo)} className="botao-secundario numeros w-full">
-                    <Phone className="size-[18px]" aria-hidden="true" /> {telefone(loja.telefone)}
-                  </a>
+                  <LinkTelefone numero={loja.telefone} ddi={loja.telefoneDdi} veiculo={eventoVeiculo} className="botao-secundario numeros w-full">
+                    <Phone className="size-[18px]" aria-hidden="true" /> Ligar para a loja
+                  </LinkTelefone>
+                )}
+                {a.vendedor && (
+                  <p className="mt-2 flex items-center gap-2.5 text-sm text-suave">
+                    {a.vendedor.foto
+                      ? <img src={a.vendedor.foto} alt="" className="size-8 rounded-full object-cover" />
+                      : <span className="grid size-8 place-items-center rounded-full bg-marca-50 text-xs font-bold text-marca-700" aria-hidden="true">{a.vendedor.nome.charAt(0)}</span>}
+                    Atendimento com <strong className="font-semibold text-tinta">{a.vendedor.nome}</strong>
+                  </p>
                 )}
               </div>
             )}
@@ -276,12 +271,12 @@ export default function Anuncio({ loaderData }: Route.ComponentProps) {
   );
 }
 
-type RespostaMensagem = { erro?: string; enviada?: boolean; erros?: ErrosMensagem };
+type RespostaMensagem = { erro?: string; enviada?: boolean; eventId?: string; erros?: ErrosLead };
 
 function FormMensagem({ anuncio: a, evento }: { anuncio: { marca: string; modelo: string; anoModelo: number }; evento: { id: string; nome: string; valor: number } }) {
   const mensagem = useFetcher<RespostaMensagem>();
   const enviada = Boolean(mensagem.data?.enviada);
-  useEffect(() => { if (enviada) rastrear("lead", { ...evento, origem: "pagina_do_veiculo" }); }, [enviada]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (enviada) rastrear("formulario", { ...evento, origem: "veiculo", eventId: mensagem.data?.eventId }); }, [enviada]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <section aria-labelledby="titulo-mensagem" className="cartao order-4 p-5 sm:p-6 lg:mt-4">

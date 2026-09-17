@@ -2,18 +2,21 @@
  * Meta Pixel, Google Ads, GA4 e Google Tag Manager, configurados em
  * Admin → Integrações. Tudo aqui roda só no navegador.
  *
- * Eventos enviados:
- *   pagina    → PageView (Meta) · page_view (Google) — a cada navegação
- *   veiculo   → ViewContent · view_item               — página de um carro
- *   whatsapp  → Contact · conversão "WhatsApp"        — clique no WhatsApp
- *   telefone  → Contact                               — clique no telefone
- *   lead      → Lead · generate_lead + conversão      — formulário enviado
- * Com GTM, os mesmos nomes vão para o dataLayer (`event: "lead"` etc.).
+ * Eventos:
+ *   pagina      → PageView (Meta) · page_view (Google) — a cada navegação
+ *   veiculo     → ViewContent · view_item               — página de um carro
+ *   formulario  → evento escolhido no painel + conversão — formulário enviado
+ *   whatsapp    → evento escolhido no painel + conversão — clique no WhatsApp
+ *   ligar       → evento escolhido no painel + conversão — clique no telefone
+ * Com GTM, os mesmos nomes vão para o dataLayer (`event: "formulario"` etc.).
+ * O `eventId` do formulário é o mesmo que o servidor manda à API de
+ * Conversões: o Meta conta uma vez só.
  */
 import type { ConfigRastreamento } from "~/.server/integracoes";
+import { eventoMetaDe, type TipoConversao } from "./conversoes";
 
-type Evento = "pagina" | "veiculo" | "whatsapp" | "telefone" | "lead";
-type Dados = { id?: string; nome?: string; valor?: number; origem?: string };
+type Evento = "pagina" | "veiculo" | TipoConversao;
+type Dados = { id?: string; nome?: string; valor?: number; origem?: string; eventId?: string };
 
 type Janela = Window & {
   fbq?: ((...args: unknown[]) => void) & { callMethod?: unknown; queue?: unknown[]; loaded?: boolean; version?: string; push?: unknown };
@@ -78,21 +81,25 @@ export function rastrear(evento: Evento, dados: Dados = {}) {
   const c = config;
   const valor = dados.valor ? { value: dados.valor, currency: "BRL" } : {};
 
-  if (j.fbq) {
-    if (evento === "pagina") j.fbq("track", "PageView");
-    if (evento === "veiculo") j.fbq("track", "ViewContent", { content_ids: [dados.id], content_name: dados.nome, content_type: "vehicle", ...valor });
-    if (evento === "whatsapp" || evento === "telefone") j.fbq("track", "Contact", { content_name: dados.nome });
-    if (evento === "lead") j.fbq("track", "Lead", { content_name: dados.nome, ...valor });
-  }
-
-  if (j.gtag) {
-    if (evento === "pagina") j.gtag("event", "page_view", { page_location: location.href, page_title: document.title });
-    if (evento === "veiculo") j.gtag("event", "view_item", { items: [{ item_id: dados.id, item_name: dados.nome, price: dados.valor }], ...valor });
-    if (evento === "whatsapp" && c.googleAdsId && c.googleAdsRotuloWhatsapp) j.gtag("event", "conversion", { send_to: `${c.googleAdsId}/${c.googleAdsRotuloWhatsapp}` });
-    if (evento === "whatsapp" || evento === "telefone") j.gtag("event", "contact", { method: evento, item_name: dados.nome });
-    if (evento === "lead") {
-      j.gtag("event", "generate_lead", { item_name: dados.nome, ...valor });
-      if (c.googleAdsId && c.googleAdsRotuloLead) j.gtag("event", "conversion", { send_to: `${c.googleAdsId}/${c.googleAdsRotuloLead}`, ...valor });
+  if (evento === "pagina" || evento === "veiculo") {
+    if (evento === "pagina") {
+      j.fbq?.("track", "PageView");
+      j.gtag?.("event", "page_view", { page_location: location.href, page_title: document.title });
+    } else {
+      j.fbq?.("track", "ViewContent", { content_ids: [dados.id], content_name: dados.nome, content_type: "vehicle", ...valor });
+      j.gtag?.("event", "view_item", { items: [{ item_id: dados.id, item_name: dados.nome, price: dados.valor }], ...valor });
+    }
+  } else {
+    const conf = c.conversoes[evento];
+    if (!conf.rastrear) return;
+    const meta = eventoMetaDe(conf);
+    if (meta && j.fbq) {
+      const opcoes = dados.eventId ? { eventID: dados.eventId } : undefined;
+      j.fbq(meta.personalizado ? "trackCustom" : "track", meta.nome, { content_name: dados.nome, ...valor }, opcoes);
+    }
+    if (j.gtag) {
+      j.gtag("event", evento === "formulario" ? "generate_lead" : "contact", { method: evento, item_name: dados.nome, ...valor });
+      if (c.googleAdsId && conf.rotuloGoogle) j.gtag("event", "conversion", { send_to: `${c.googleAdsId}/${conf.rotuloGoogle}`, ...valor });
     }
   }
 

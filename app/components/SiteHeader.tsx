@@ -8,6 +8,7 @@ import { IconeWhatsApp, LinkWhatsApp } from "./WhatsApp";
 
 const LINKS = [
   { para: "/carros", rotulo: "Estoque" },
+  { para: "/venda-seu-carro", rotulo: "Venda seu carro" },
   { para: "/sobre", rotulo: "A loja" },
   { para: "/contato", rotulo: "Contato" },
 ];

@@ -7,7 +7,7 @@ import type { CSSProperties } from "react";
  */
 
 export const COR_HEX = /^#[0-9a-f]{6}$/i;
-export const CORES_PADRAO = { primaria: "#d3141f", escura: "#22232d" } as const;
+export const CORES_PADRAO = { primaria: "#d3141f", secundaria: "#a80f18", escura: "#22232d" } as const;
 
 type RGB = [number, number, number];
 
@@ -49,7 +49,7 @@ function escurecerAte(hex: string, alvo: number, minimo = 0) {
   return cor;
 }
 
-export function paleta(primariaEntrada: string, escuraEntrada: string) {
+export function paleta(primariaEntrada: string, escuraEntrada: string, secundariaEntrada = "") {
   const primaria = COR_HEX.test(primariaEntrada) ? primariaEntrada.toLowerCase() : CORES_PADRAO.primaria;
   const escura = COR_HEX.test(escuraEntrada) ? escuraEntrada.toLowerCase() : CORES_PADRAO.escura;
 
@@ -65,7 +65,8 @@ export function paleta(primariaEntrada: string, escuraEntrada: string) {
     // 700 e 800 aparecem como texto de link sobre branco: sempre legíveis.
     "marca-700": escurecerAte(primaria, 4.8, 0.12),
     "marca-800": escurecerAte(primaria, 7, 0.28),
-    "marca-hover": misturar(primaria, sobreMarca === BRANCO ? PRETO : BRANCO, 0.14),
+    // Cor secundária escolhida no painel; sem ela, a principal um pouco mais escura.
+    "marca-hover": COR_HEX.test(secundariaEntrada) ? secundariaEntrada.toLowerCase() : misturar(primaria, sobreMarca === BRANCO ? PRETO : BRANCO, 0.14),
     "sobre-marca": sobreMarca,
     noite: escura,
     "noite-2": misturar(escura, BRANCO, 0.07),
@@ -73,14 +74,14 @@ export function paleta(primariaEntrada: string, escuraEntrada: string) {
 }
 
 /** Bloco CSS com as variáveis do tema. Só produz hex validado: sem injeção de CSS. */
-export function cssTema(primaria: string, escura: string) {
-  const p = paleta(primaria, escura);
+export function cssTema(primaria: string, escura: string, secundaria = "") {
+  const p = paleta(primaria, escura, secundaria);
   return `:root{${Object.entries(p).map(([k, v]) => `--color-${k}:${v}`).join(";")}}`;
 }
 
 /** Variáveis como objeto de estilo React, para a prévia no painel. */
-export function estiloTema(primaria: string, escura: string) {
-  return Object.fromEntries(Object.entries(paleta(primaria, escura)).map(([k, v]) => [`--color-${k}`, v])) as CSSProperties;
+export function estiloTema(primaria: string, escura: string, secundaria = "") {
+  return Object.fromEntries(Object.entries(paleta(primaria, escura, secundaria)).map(([k, v]) => [`--color-${k}`, v])) as CSSProperties;
 }
 
 /** Problemas de legibilidade que o painel mostra antes de salvar. */
@@ -95,10 +96,10 @@ export function avisosCores(primaria: string, escura: string) {
 }
 
 export const PREDEFINIDAS = [
-  { nome: "Vermelho", primaria: "#d3141f", escura: "#22232d" },
-  { nome: "Azul", primaria: "#0b5cd6", escura: "#0f1b2d" },
-  { nome: "Verde", primaria: "#066c3c", escura: "#131211" },
-  { nome: "Laranja", primaria: "#c2410c", escura: "#1c1917" },
-  { nome: "Grafite", primaria: "#1f2937", escura: "#0b0f19" },
-  { nome: "Roxo", primaria: "#6d28d9", escura: "#1a1333" },
+  { nome: "Vermelho", primaria: "#d3141f", secundaria: "#a80f18", escura: "#22232d" },
+  { nome: "Azul", primaria: "#0b5cd6", secundaria: "#0848a8", escura: "#0f1b2d" },
+  { nome: "Verde", primaria: "#0f8a5f", secundaria: "#0b6b4a", escura: "#1f2320" },
+  { nome: "Laranja", primaria: "#c2410c", secundaria: "#9a330a", escura: "#1c1917" },
+  { nome: "Grafite", primaria: "#1f2937", secundaria: "#111827", escura: "#0b0f19" },
+  { nome: "Roxo", primaria: "#6d28d9", secundaria: "#5521ab", escura: "#1a1333" },
 ] as const;

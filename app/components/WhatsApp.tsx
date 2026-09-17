@@ -1,5 +1,5 @@
 import type { AnchorHTMLAttributes } from "react";
-import { linkWhatsApp } from "~/lib/formato";
+import { linkTelefone, linkWhatsApp, telefone } from "~/lib/formato";
 import { rastrear } from "~/lib/rastreamento";
 import { useLoja } from "~/lib/useLoja";
 
@@ -13,23 +13,37 @@ export function IconeWhatsApp({ className }: { className?: string }) {
 
 type Props = Omit<AnchorHTMLAttributes<HTMLAnchorElement>, "href"> & {
   mensagem?: string;
+  /** Número de outro atendente (vendedor do carro). Sem ele, usa o WhatsApp da loja. */
+  numero?: { whatsapp: string; whatsappDdi: string } | null;
   /** Carro de onde partiu o clique, para o evento de conversão. */
   veiculo?: { id: string; nome: string; valor: number };
 };
 
-/** Link para o WhatsApp da loja que registra o clique como contato nas tags de anúncio. */
-export function LinkWhatsApp({ mensagem, veiculo, onClick, children, ...props }: Props) {
+/** Link para o WhatsApp que registra o clique como conversão nas tags de anúncio. */
+export function LinkWhatsApp({ mensagem, numero, veiculo, onClick, children, ...props }: Props) {
   const loja = useLoja();
-  if (!loja.whatsapp) return null;
+  const destino = numero?.whatsapp ? numero : loja;
+  if (!destino.whatsapp) return null;
   return (
-    <a {...props} href={linkWhatsApp(loja.whatsapp, mensagem ?? `Olá! Vim pelo site ${loja.nome}.`)} target="_blank" rel="noopener noreferrer"
+    <a {...props} href={linkWhatsApp(destino.whatsapp, mensagem ?? loja.whatsappMensagem, destino.whatsappDdi)} target="_blank" rel="noopener noreferrer"
       onClick={(e) => { rastrear("whatsapp", veiculo ?? {}); onClick?.(e); }}>
       {children}
     </a>
   );
 }
 
+/** Link tel: que registra o clique como conversão "ligar". */
+export function LinkTelefone({ numero, ddi, veiculo, className, children }: { numero: string; ddi: string; veiculo?: { id: string; nome: string; valor: number }; className?: string; children?: React.ReactNode }) {
+  return (
+    <a href={linkTelefone(numero, ddi)} onClick={() => rastrear("ligar", veiculo ?? {})} className={className}>
+      {children ?? telefone(numero, ddi)}
+    </a>
+  );
+}
+
 export function BotaoWhatsAppFlutuante() {
+  const loja = useLoja();
+  if (!loja.whatsappFlutuante) return null;
   return (
     <LinkWhatsApp aria-label="Falar com a loja no WhatsApp"
       className="fixed bottom-5 right-5 z-40 grid size-14 place-items-center rounded-full bg-[#128c4a] text-white shadow-flutuante transition-transform hover:scale-105">
