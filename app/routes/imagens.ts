@@ -11,7 +11,7 @@ import type { Route } from "./+types/imagens";
 export async function loader({ params, request }: Route.LoaderArgs) {
   const chave = params["*"];
   // Só os prefixos públicos.
-  if (!chave || !(chave.startsWith("anuncios/") || chave.startsWith("loja/")) || chave.includes("..")) {
+  if (!chave || !(chave.startsWith("anuncios/") || chave.startsWith("loja/") || chave.startsWith("lp/")) || chave.includes("..")) {
     return new Response("Não encontrado", { status: 404 });
   }
 
@@ -31,6 +31,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     ETag: etag,
   });
   // SVG aberto direto no navegador vira documento: sem script, sem nada externo.
+  if (chave.endsWith(".pdf")) headers.set("Content-Disposition", 'inline; filename="material.pdf"');
   if (chave.endsWith(".svg")) headers.set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; img-src data:; sandbox");
   if (request.headers.get("If-None-Match") === etag) return new Response(null, { status: 304, headers });
 

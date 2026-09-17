@@ -12,15 +12,26 @@ const r2 = () => (env as { IMAGENS?: R2Bucket }).IMAGENS;
 export const tamanhoMaximo = () => (r2() ? 8 * 1024 * 1024 : 1_900_000);
 export const TAMANHO_MAXIMO = 8 * 1024 * 1024;
 
+/** O D1 aceita até 2 MB por linha: arquivos maiores (PDF) vão em partes `chave#p001`, `#p002`… */
+const PARTE = 1_800_000;
+const chaveParte = (chave: string, n: number) => `${chave}#p${String(n).padStart(3, "0")}`;
+
 async function guardar(chave: string, bytes: ArrayBuffer, mime: string) {
   const bucket = r2();
   if (bucket) {
     await bucket.put(chave, bytes, { httpMetadata: { contentType: mime, cacheControl: "public, max-age=31536000, immutable" } });
     return;
   }
-  await env.DB.prepare("insert into arquivos (chave, tipo, tamanho, dados, criado_em) values (?, ?, ?, ?, ?)")
-    .bind(chave, mime, bytes.byteLength, bytes, Date.now()).run();
+  const inserir = "insert into arquivos (chave, tipo, tamanho, dados, criado_em) values (?, ?, ?, ?, ?)";
+  // Primeira parte na linha principal (com o tamanho total); o resto em linhas próprias.
+  const agora = Date.now();
+  await env.DB.prepare(inserir).bind(chave, mime, bytes.byteLength, bytes.slice(0, PARTE), agora).run();
+  for (let i = 1; i * PARTE < bytes.byteLength; i++) {
+    await env.DB.prepare(inserir).bind(chaveParte(chave, i), mime, 0, bytes.slice(i * PARTE, (i + 1) * PARTE), agora).run();
+  }
 }
+
+const paraBytes = (dados: ArrayBuffer | number[]): Uint8Array<ArrayBuffer> => (Array.isArray(dados) ? Uint8Array.from(dados) : new Uint8Array(dados));
 
 /** Lê uma imagem guardada. `null` se não existe. */
 export async function lerArquivo(chave: string): Promise<{ tipo: string; corpo: ReadableStream | Uint8Array<ArrayBuffer>; etag: string } | null> {
@@ -29,9 +40,23 @@ export async function lerArquivo(chave: string): Promise<{ tipo: string; corpo: 
     const objeto = await bucket.get(chave);
     if (objeto) return { tipo: objeto.httpMetadata?.contentType ?? "application/octet-stream", corpo: objeto.body, etag: objeto.httpEtag };
   }
-  const linha = await env.DB.prepare("select tipo, dados from arquivos where chave = ?").bind(chave).first<{ tipo: string; dados: ArrayBuffer | number[] }>();
+  const linha = await env.DB.prepare("select tipo, tamanho, dados from arquivos where chave = ?").bind(chave).first<{ tipo: string; tamanho: number; dados: ArrayBuffer | number[] }>();
   if (!linha) return null;
-  const dados: Uint8Array<ArrayBuffer> = Array.isArray(linha.dados) ? Uint8Array.from(linha.dados) : new Uint8Array(linha.dados);
+  let dados = paraBytes(linha.dados);
+  if (linha.tamanho > dados.byteLength) {
+    // Arquivo em partes: uma consulta por parte, para nenhuma resposta passar do limite do D1.
+    const completo = new Uint8Array(new ArrayBuffer(linha.tamanho));
+    completo.set(dados, 0);
+    let pos = dados.byteLength;
+    for (let i = 1; pos < linha.tamanho; i++) {
+      const parte = await env.DB.prepare("select dados from arquivos where chave = ?").bind(chaveParte(chave, i)).first<{ dados: ArrayBuffer | number[] }>();
+      if (!parte) return null;
+      const b = paraBytes(parte.dados);
+      completo.set(b, pos);
+      pos += b.byteLength;
+    }
+    dados = completo;
+  }
   return { tipo: linha.tipo, corpo: dados, etag: `"${chave.split("/").pop()}"` };
 }
 
@@ -90,6 +115,24 @@ export async function validarLogo(arquivo: File, { aceitaSvg }: { aceitaSvg: boo
   return { ok: false as const, erro: aceitaSvg ? "Envie PNG, JPG, WebP ou SVG." : "Envie JPG, PNG ou WebP." };
 }
 
+/** Imagens e material (PDF) das landing pages. */
+export async function salvarArquivoLP(bytes: ArrayBuffer, tipo: Tipo) {
+  const chave = `lp/${crypto.randomUUID()}.${tipo.extensao}`;
+  await guardar(chave, bytes, tipo.mime);
+  return chave;
+}
+
+export const TAMANHO_MAXIMO_PDF = 10 * 1024 * 1024;
+
+export async function validarPdf(arquivo: File) {
+  if (!arquivo.size) return { ok: false as const, erro: "Arquivo vazio." };
+  if (arquivo.size > TAMANHO_MAXIMO_PDF) return { ok: false as const, erro: "O PDF passa de 10 MB. Comprima o arquivo e envie de novo." };
+  const bytes = await arquivo.arrayBuffer();
+  const cabecalho = String.fromCharCode(...new Uint8Array(bytes.slice(0, 5)));
+  if (cabecalho !== "%PDF-") return { ok: false as const, erro: "Envie um arquivo PDF." };
+  return { ok: true as const, bytes, tipo: { mime: "application/pdf", extensao: "pdf" } };
+}
+
 export async function salvarArquivoLoja(prefixo: "logo" | "logo-claro" | "banner" | "vendedor", bytes: ArrayBuffer, tipo: Tipo) {
   const chave = `loja/${prefixo}-${crypto.randomUUID()}.${tipo.extensao}`;
   await guardar(chave, bytes, tipo.mime);
@@ -103,10 +146,13 @@ export async function removerObjetos(chaves: string[]) {
   const bucket = r2();
   if (bucket) await bucket.delete(nossas);
   // Sempre limpa o D1 também: cobre imagens enviadas antes de ativar o R2.
-  // Em lotes de 90: o D1 aceita no máximo 100 parâmetros por consulta.
-  for (let i = 0; i < nossas.length; i += 90) {
-    const lote = nossas.slice(i, i + 90);
-    await env.DB.prepare(`delete from arquivos where chave in (${lote.map(() => "?").join(",")})`).bind(...lote).run();
+  // Em lotes de 40: o D1 aceita no máximo 100 parâmetros por consulta (cada chave usa dois).
+  for (let i = 0; i < nossas.length; i += 40) {
+    const lote = nossas.slice(i, i + 40);
+    const marcas = lote.map(() => "?").join(",");
+    // `substr(...)` pega as partes `chave#p001…` de arquivos grandes.
+    await env.DB.prepare(`delete from arquivos where chave in (${marcas}) or (instr(chave, '#p') > 0 and substr(chave, 1, instr(chave, '#p') - 1) in (${marcas}))`)
+      .bind(...lote, ...lote).run();
   }
 }
 
@@ -116,3 +162,6 @@ export async function removerObjetos(chaves: string[]) {
  * por /imagens.
  */
 export const urlImagem = (chave: string) => (/^https?:\/\//.test(chave) ? chave : `/imagens/${chave}`);
+
+/** Chave guardada a partir da URL pública (`/imagens/lp/…` → `lp/…`); `null` se não é nossa. */
+export const chaveDaUrl = (url: string) => (url.startsWith("/imagens/") ? url.slice("/imagens/".length) : null);

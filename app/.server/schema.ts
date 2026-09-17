@@ -1,6 +1,6 @@
 import { sql } from "drizzle-orm";
 import { blob, index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
-import { CAMBIOS, CARROCERIAS, COMBUSTIVEIS, ESTILOS_LP, ORIGENS_LEAD, STATUS_ANUNCIO, STATUS_LEAD } from "../lib/veiculos";
+import { CAMBIOS, CARROCERIAS, COMBUSTIVEIS, ESTILOS_LP, ORIGENS_LEAD, STATUS_ANUNCIO, STATUS_LEAD, STATUS_LP } from "../lib/veiculos";
 
 /*
  * Site de UMA loja. Quem anuncia é a própria loja: não há cadastro
@@ -219,15 +219,61 @@ export const landingPages = sqliteTable(
     id: text("id").primaryKey(),
     slug: text("slug").notNull().unique(),
     anuncioId: text("anuncio_id").notNull().references(() => anuncios.id, { onDelete: "cascade" }),
+    // Nome interno, só aparece no painel.
     titulo: text("titulo").notNull(),
+    status: text("status", { enum: STATUS_LP }).notNull().default("rascunho"),
+    estilo: text("estilo", { enum: ESTILOS_LP }).notNull().default("editorial"),
+    // Tema de 13 cores (JSON, ver app/lib/lp/tema.ts). Vazio = paleta do estilo.
+    tema: text("tema").notNull().default(""),
+    estiloBotao: text("estilo_botao", { enum: ["pilula", "arredondado", "quadrado"] }).notNull().default("arredondado"),
+    // Topo
+    nomeExibido: text("nome_exibido").notNull().default(""),
     headline: text("headline").notNull(),
     subtitulo: text("subtitulo").notNull().default(""),
-    // Lista JSON de frases curtas ("IPVA 2026 pago", "Único dono"...).
-    destaques: text("destaques").notNull().default("[]"),
     textoBotao: text("texto_botao").notNull().default("Quero este carro"),
     mostrarPreco: integer("mostrar_preco", { mode: "boolean" }).notNull().default(true),
-    estilo: text("estilo", { enum: ESTILOS_LP }).notNull().default("classico"),
-    status: text("status", { enum: ["ativa", "pausada"] }).notNull().default("ativa"),
+    // URL de uma foto do carro ou /imagens/lp/… enviada. Vazio = capa do carro.
+    imagemTopo: text("imagem_topo").notNull().default(""),
+    videoTopo: text("video_topo").notNull().default(""),
+    veuTopo: integer("veu_topo").notNull().default(50),
+    logoTopo: text("logo_topo").notNull().default(""),
+    // Seções
+    secao1Titulo: text("secao1_titulo").notNull().default(""),
+    secao1Texto: text("secao1_texto").notNull().default(""),
+    secao2Titulo: text("secao2_titulo").notNull().default(""),
+    secao2Texto: text("secao2_texto").notNull().default(""),
+    secao2Imagem: text("secao2_imagem").notNull().default(""),
+    // Lista JSON [{rotulo, icone}]. Vazia = opcionais do carro.
+    destaques: text("destaques").notNull().default("[]"),
+    numerosTitulo: text("numeros_titulo").notNull().default(""),
+    numeros: text("numeros").notNull().default("[]"),
+    videoUrl: text("video_url").notNull().default(""),
+    videoTitulo: text("video_titulo").notNull().default(""),
+    fichaTitulo: text("ficha_titulo").notNull().default(""),
+    etapasTitulo: text("etapas_titulo").notNull().default(""),
+    etapas: text("etapas").notNull().default("[]"),
+    localTitulo: text("local_titulo").notNull().default(""),
+    localTexto: text("local_texto").notNull().default(""),
+    mapaEndereco: text("mapa_endereco").notNull().default(""),
+    mostrarMapa: integer("mostrar_mapa", { mode: "boolean" }).notNull().default(true),
+    depoimentosTitulo: text("depoimentos_titulo").notNull().default(""),
+    depoimentos: text("depoimentos").notNull().default("[]"),
+    faq: text("faq").notNull().default("[]"),
+    ctaTitulo: text("cta_titulo").notNull().default(""),
+    ctaSubtitulo: text("cta_subtitulo").notNull().default(""),
+    // Material para download (PDF): pede contato, gera lead e libera o arquivo.
+    materialChave: text("material_chave").notNull().default(""),
+    materialRotulo: text("material_rotulo").notNull().default(""),
+    // WhatsApp: mensagem dos botões e número/mensagem do botão flutuante (vazio = vendedor do carro ou loja).
+    mensagemWhatsapp: text("mensagem_whatsapp").notNull().default(""),
+    flutuanteDdi: text("flutuante_ddi").notNull().default("55"),
+    flutuanteNumero: text("flutuante_numero").notNull().default(""),
+    flutuanteMensagem: text("flutuante_mensagem").notNull().default(""),
+    // Estrutura: seções ocultas e ordem (JSON de chaves, ver app/lib/lp/secoes.ts).
+    secoesOcultas: text("secoes_ocultas").notNull().default("[]"),
+    ordemSecoes: text("ordem_secoes").notNull().default("[]"),
+    seoTitulo: text("seo_titulo").notNull().default(""),
+    seoDescricao: text("seo_descricao").notNull().default(""),
     visitas: integer("visitas").notNull().default(0),
     criadoEm: integer("criado_em").notNull().default(agora),
     atualizadoEm: integer("atualizado_em").notNull().default(agora),

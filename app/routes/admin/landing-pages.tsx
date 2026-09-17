@@ -1,8 +1,10 @@
+import { waitUntil } from "cloudflare:workers";
 import { desc, eq } from "drizzle-orm";
 import { Check, CopyPlus, ExternalLink, Link2, Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Link, redirect, useFetcher } from "react-router";
 import { db, schema } from "~/.server/db";
+import { arquivosDaLP, removerArquivosSemUso } from "~/.server/landing";
 import { exigirUsuario } from "~/.server/sessao";
 import { exigirMesmaOrigem } from "~/.server/seguranca";
 import { Cabecalho, classeTabela as t } from "~/components/admin/ui";
@@ -40,6 +42,7 @@ export async function action({ request }: Route.ActionArgs) {
 
   if (form.get("intencao") === "excluir") {
     await db.delete(schema.landingPages).where(eq(schema.landingPages.id, id));
+    waitUntil(removerArquivosSemUso(arquivosDaLP(atual), id));
     return { ok: true };
   }
   if (form.get("intencao") === "duplicar") {
@@ -47,7 +50,7 @@ export async function action({ request }: Route.ActionArgs) {
     const agora = Date.now();
     await db.insert(schema.landingPages).values({
       ...atual, id: novoId, slug: `${atual.slug.slice(0, 60)}-copia-${novoId.slice(0, 4)}`, titulo: `${atual.titulo} (cópia)`,
-      status: "pausada", visitas: 0, criadoEm: agora, atualizadoEm: agora,
+      status: "rascunho", visitas: 0, criadoEm: agora, atualizadoEm: agora,
     });
     throw redirect(`/admin/landing-pages/${novoId}`);
   }
@@ -58,7 +61,7 @@ export default function LandingPages({ loaderData }: Route.ComponentProps) {
   const { lista, origem } = loaderData;
   return (
     <div>
-      <Cabecalho titulo="Landing Pages" descricao="Páginas isoladas por veículo, sem o menu do site, para campanhas de tráfego pago.">
+      <Cabecalho titulo="Landing Pages" descricao="Páginas de campanha por veículo, com 8 estilos e seções que você escolhe e reordena.">
         <Link to="/admin/landing-pages/nova" className="botao-primario h-10 px-4 text-sm"><Plus className="size-4" aria-hidden="true" /> Nova landing page</Link>
       </Cabecalho>
 
@@ -97,12 +100,12 @@ function Linha({ l, origem }: { l: Route.ComponentProps["loaderData"]["lista"][n
       </td>
       <td className={cn(t.td, "max-w-[280px] text-suave")}>
         <p className="truncate">{codigoVeiculo(l.codigo)} · {l.marca} {l.modelo} {l.versao} {l.anoModelo}</p>
-        {l.statusVeiculo !== "ativo" && <p className="text-xs font-medium text-alerta">Veículo {l.statusVeiculo}: a página mostra aviso de vendido</p>}
+        {l.statusVeiculo !== "ativo" && <p className="text-xs font-medium text-alerta">Veículo {l.statusVeiculo}: visitantes não veem a página</p>}
       </td>
       <td className={cn(t.td, "text-suave")}>{ROTULO_ESTILO_LP[l.estilo]}</td>
       <td className={t.td}>
         <span className={cn("rounded-full px-2.5 py-0.5 text-xs font-semibold", l.status === "ativa" ? "bg-sucesso-fundo text-sucesso" : "bg-alerta-fundo text-alerta")}>
-          {l.status === "ativa" ? "Ativa" : "Pausada"}
+          {l.status === "ativa" ? "Ativa" : "Rascunho"}
         </span>
       </td>
       <td className={cn(t.td, "numeros text-suave")}>{l.visitas}</td>

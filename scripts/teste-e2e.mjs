@@ -265,24 +265,63 @@ else {
     await ir(page, "/admin/veiculos");
     await page.click("summary:has-text('Exportar para portais')");
     await postar(page, () => page.click("button:has-text('Ativar feed')"));
-    await page.locator("input[aria-label='Endereço do feed']").waitFor({ timeout: 10000 });
+    await page.locator("input[aria-label='Endereço do feed']").waitFor({ timeout: 20000 });
     const url = await page.locator("input[aria-label='Endereço do feed']").inputValue();
     const r = await page.request.get(url);
     if (r.status() !== 200 || !(await r.text()).includes("<estoque")) throw new Error(`feed ${r.status()}`);
     await postar(page, () => page.click("button:has-text('Desativar feed')"));
   });
 
-  await passo("landing page: criar, duplicar, excluir", async () => {
+  await passo("landing page: criar, editar, material, duplicar, excluir", async () => {
+    // Etapa 1: carro, ponto de partida e estilo.
     await ir(page, "/admin/landing-pages/nova");
-    await page.selectOption("#anuncioId", { index: 1 });
+    await page.selectOption("#veiculo", { index: 1 });
+    await page.click("label:has-text('Tech')");
+    await Promise.all([page.waitForURL(/continuar=1/), page.click("button:has-text('Continuar')")]);
+    await semErroNaTela(page);
+    // Etapa 2: editor completo.
+    const slug = `${TAG.toLowerCase()}-lp`;
     await page.fill("#titulo", `${TAG} campanha`);
-    await page.fill("#slug", `${TAG.toLowerCase()}-lp`);
+    await page.fill("#slug", slug);
     await page.fill("#headline", "Oferta especial de teste");
-    await page.fill("#destaques", "Único dono\nIPVA pago");
-    await page.click("label:has-text('Impacto')");
-    await Promise.all([page.waitForURL(/\/admin\/landing-pages$/, { timeout: 20000 }), page.click("button:has-text('Publicar landing page')")]);
-    const r = await page.request.get(`${BASE}/lp/${TAG.toLowerCase()}-lp`);
+    await page.selectOption("#status", "ativa");
+    await Promise.all([page.waitForURL(/criada=1/, { timeout: 20000 }), page.click("button:has-text('Criar landing page')")]);
+    await semErroNaTela(page);
+    let r = await page.request.get(`${BASE}/lp/${slug}`);
     if (r.status() !== 200) throw new Error(`lp pública ${r.status()}`);
+
+    // Troca de estilo, seção oculta e PDF de 3 MB (no D1 vai em partes).
+    await page.selectOption("#estilo", "noturno");
+    await page.click("button[aria-label='Ocultar Depoimentos da página']");
+    const pdf = Buffer.concat([Buffer.from("%PDF-1.4\n"), Buffer.alloc(3 * 1024 * 1024, 32), Buffer.from("\n%%EOF\n")]);
+    await page.click("h2:has-text('Material para download')");
+    await page.setInputFiles("#materialArquivo", { name: "laudo.pdf", mimeType: "application/pdf", buffer: pdf });
+    await page.fill("#materialRotulo", "Baixar o laudo");
+    await postar(page, () => page.click("button:has-text('Salvar alterações')"));
+    await page.getByText("Salvo às").waitFor({ timeout: 20000 });
+    await semErroNaTela(page);
+
+    // Página pública: estilo novo, sem depoimentos e com o material liberado por lead.
+    const { ctx: publico, page: lp } = await novaPagina();
+    await ir(lp, `/lp/${slug}`);
+    if (await lp.locator("[data-secao=depoimentos]").count()) throw new Error("seção oculta apareceu");
+    await lp.locator("button:has-text('Baixar o laudo')").first().click();
+    await lp.fill("#lp-material-nome", `${TAG} Material`);
+    await lp.fill("#lp-material-telefone", "31988887771");
+    const [resp] = await Promise.all([
+      lp.waitForResponse((x) => x.request().method() === "POST" && x.url().includes(`/lp/${slug}`)),
+      lp.click("button:has-text('Receber o material')"),
+    ]);
+    if (resp.status() !== 200) throw new Error(`material respondeu ${resp.status()}`);
+    await lp.getByText("Abrir o material").waitFor({ timeout: 10000 });
+    const href = await lp.locator("a:has-text('Abrir o material')").getAttribute("href");
+    r = await lp.request.get(BASE + href);
+    const corpo = await r.body();
+    if (r.status() !== 200 || corpo.length !== pdf.length || !corpo.subarray(0, 5).equals(Buffer.from("%PDF-"))) throw new Error(`PDF baixado: ${r.status()} ${corpo.length} bytes`);
+    await publico.close();
+
+    // Duplicar e excluir as duas.
+    await ir(page, "/admin/landing-pages");
     const linha = page.locator("tr", { hasText: `${TAG} campanha` }).first();
     await Promise.all([page.waitForURL(/\/admin\/landing-pages\/.+/), linha.locator("button[title=Duplicar]").click()]);
     await semErroNaTela(page);
@@ -296,7 +335,7 @@ else {
     await ir(page, `/admin/leads?q=${TAG}`);
     const itens = page.locator("main li", { hasText: TAG });
     const n = await itens.count();
-    if (n < 4) throw new Error(`esperava 4 leads de teste, achei ${n}`);
+    if (n < 5) throw new Error(`esperava 5 leads de teste, achei ${n}`);
     await postar(page, () => itens.first().locator("select").selectOption("negociacao"));
     await itens.first().locator("textarea").fill("Anotação de teste");
     await postar(page, () => page.click("h1"));

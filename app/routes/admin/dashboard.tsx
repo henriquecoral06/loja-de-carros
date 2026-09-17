@@ -53,7 +53,7 @@ export default function Dashboard({ loaderData: d }: Route.ComponentProps) {
   ];
   const atalhos = [
     { to: "/admin/veiculos/novo", titulo: "Cadastrar veículo", texto: "Dados, fotos e opcionais", icone: Plus },
-    { to: "/admin/landing-pages/nova", titulo: "Nova landing page", texto: "Página de campanha em 3 passos", icone: LayoutTemplate },
+    { to: "/admin/landing-pages/nova", titulo: "Nova landing page", texto: "Página de campanha com 8 estilos", icone: LayoutTemplate },
     { to: "/admin/leads?status=novo", titulo: "Responder leads novos", texto: d.novos === 1 ? "1 aguardando contato" : `${d.novos} aguardando contato`, icone: Inbox },
     { to: "/admin/configuracoes", titulo: "Configurar o site", texto: "Logo, cores, contatos e banner", icone: Settings },
   ];

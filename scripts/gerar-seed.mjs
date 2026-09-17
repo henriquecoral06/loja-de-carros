@@ -166,7 +166,35 @@ ANUNCIOS.forEach(([marca, modelo, versao, fab, mod, kmRodado, preco, cambio, com
 // ---- landing page e leads de exemplo ----
 const lpId = randomUUID();
 const hilux = ids.find((x) => x.modelo === "Hilux");
-sql.push(`insert into landing_pages (id, slug, anuncio_id, titulo, headline, subtitulo, destaques, texto_botao, mostrar_preco, estilo, status, visitas, criado_em, atualizado_em) values (${q(lpId)}, 'toyota-hilux-srx-2022', ${q(hilux.id)}, ${q("Hilux SRX 2022 — campanha Meta")}, ${q("Toyota Hilux SRX 2.8 Diesel 4x4")}, ${q("Revisada, com laudo cautelar aprovado e garantia de motor e câmbio.")}, ${q(JSON.stringify(["Único dono", "IPVA 2026 pago", "Revisões na concessionária", "Aceitamos seu carro na troca"]))}, 'Quero esta Hilux', 1, 'impacto', 'ativa', 41, ${agora - 3 * dia}, ${agora - dia});`);
+const lp = {
+  id: lpId, slug: "toyota-hilux-srx-2022", anuncio_id: hilux.id, titulo: "Hilux SRX 2022 — campanha Meta", status: "ativa", estilo: "editorial", estilo_botao: "quadrado",
+  nome_exibido: "Oferta da semana", headline: "Toyota Hilux SRX 2.8 Diesel 4x4", subtitulo: "Revisada, com laudo cautelar aprovado e garantia de motor e câmbio.",
+  texto_botao: "Quero esta Hilux", mostrar_preco: 1,
+  secao1_titulo: "Força para o trabalho, conforto para a família.", secao1_texto: "Hilux SRX com um único dono, revisões feitas na concessionária e manual completo. Pronta para estrada, fazenda ou cidade.",
+  secao2_titulo: "Pronta para a próxima viagem.", secao2_texto: "Tração 4x4, câmbio automático e central multimídia com CarPlay. Tudo conferido na vistoria.",
+  destaques: JSON.stringify([
+    { rotulo: "Único dono", icone: "UserCheck" }, { rotulo: "IPVA 2026 pago", icone: "Receipt" }, { rotulo: "Revisões na concessionária", icone: "Wrench" },
+    { rotulo: "Laudo cautelar aprovado", icone: "FileCheck" }, { rotulo: "4x4 com reduzida", icone: "Mountain" }, { rotulo: "Aceitamos seu carro na troca", icone: "Handshake" },
+  ]),
+  ficha_titulo: "Ficha técnica", video_titulo: "Veja o carro em vídeo",
+  etapas_titulo: "Como comprar",
+  etapas: JSON.stringify([
+    { titulo: "Conversa", texto: "Tire suas dúvidas pelo WhatsApp ou formulário, sem compromisso." },
+    { titulo: "Test drive", texto: "Agende uma visita e dirija a Hilux no horário que for melhor para você." },
+    { titulo: "Proposta", texto: "Avaliamos seu usado na troca e simulamos o financiamento na hora." },
+    { titulo: "Entrega", texto: "Cuidamos da documentação e da transferência. Você sai dirigindo." },
+  ]),
+  local_titulo: "Venha fazer um test drive.", local_texto: "Agende sua visita e conheça a Hilux de perto, sem compromisso.",
+  depoimentos_titulo: "Quem já comprou com a gente",
+  faq: JSON.stringify([
+    { pergunta: "Posso agendar um test drive?", resposta: "Sim. Preencha o formulário ou chame no WhatsApp e combinamos o melhor horário." },
+    { pergunta: "Vocês aceitam meu carro na troca?", resposta: "Aceitamos. Avaliamos o seu usado na hora e o valor entra como parte do pagamento." },
+    { pergunta: "Tem financiamento?", resposta: "Trabalhamos com os principais bancos e simulamos as parcelas com a entrada que você tiver." },
+  ]),
+  cta_titulo: "Garanta esta Hilux antes que alguém leve.", cta_subtitulo: "Deixe seu contato e receba a proposta com as condições de pagamento.",
+  visitas: 41, criado_em: agora - 3 * dia, atualizado_em: agora - dia,
+};
+sql.push(`insert into landing_pages (${Object.keys(lp).join(", ")}) values (${Object.values(lp).map((x) => (typeof x === "number" ? x : q(x))).join(", ")});`);
 
 const LEADS = [
   { nome: "Rafael Souza", telefone: "31988112233", email: "rafael@email.com", carro: "Corolla", origem: "veiculo", status: "novo", texto: "Olá, o Corolla ainda está disponível? Posso ver no sábado?", horas: 3 },

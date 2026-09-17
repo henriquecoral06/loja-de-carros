@@ -16,9 +16,12 @@ export const ROTULO_ORIGEM: Record<OrigemLead, string> = {
   veiculo: "Página do veículo", contato: "Contato", venda_seu_carro: "Venda seu carro", landing_page: "Landing page",
 };
 
-export const ESTILOS_LP = ["classico", "escuro", "impacto"] as const;
+export const ESTILOS_LP = ["editorial", "vibrante", "clean", "luxo", "noturno", "tech", "moderno", "boutique"] as const;
 export type EstiloLP = (typeof ESTILOS_LP)[number];
-export const ROTULO_ESTILO_LP: Record<EstiloLP, string> = { classico: "Clássico", escuro: "Escuro", impacto: "Impacto" };
+export const ROTULO_ESTILO_LP: Record<EstiloLP, string> = {
+  editorial: "Editorial", vibrante: "Vibrante", clean: "Clean", luxo: "Luxo", noturno: "Noturno", tech: "Tech", moderno: "Moderno", boutique: "Boutique",
+};
+export const STATUS_LP = ["ativa", "rascunho"] as const;
 
 /** Código do estoque exibido: 7 → "0007". */
 export const codigoVeiculo = (codigo: number) => String(codigo).padStart(4, "0");

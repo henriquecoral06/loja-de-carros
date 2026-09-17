@@ -15,6 +15,13 @@
       "when": 1789649785567,
       "tag": "0001_arquivos",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1789653026511,
+      "tag": "0002_landing_pages_editor",
+      "breakpoints": true
     }
   ]
 }

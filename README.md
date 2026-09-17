@@ -24,14 +24,17 @@ imagem, sem banco fora da Cloudflare.
 - Estoque (`/carros`, `/carros/toyota`, `/carros/toyota/corolla`) com filtros, ordenação e paginação
 - Página do veículo com galeria, ficha, opcionais, WhatsApp do vendedor responsável (ou da loja), telefone e formulário
 - **Venda seu carro**: formulário de avaliação (marca/modelo, ano, km) que vira lead
-- **Landing pages** (`/lp/...`): uma página por carro, sem o menu do site, para tráfego pago — estilos Clássico, Escuro e Impacto
+- **Landing pages** (`/lp/...`): uma página por carro para tráfego pago, com 8 estilos (Editorial, Vibrante, Clean, Luxo,
+  Noturno, Tech, Moderno, Boutique), tema de 13 cores, seções que podem ser ocultadas e reordenadas, ficha técnica,
+  vídeo, mapa, depoimentos, dúvidas e material em PDF que só é liberado depois do contato (vira lead)
 - A loja, Contato, Termos e Privacidade; botão flutuante de WhatsApp configurável; SEO completo
 
 **Painel (`/admin`)** — barra lateral escura, só para a equipe
 - **Dashboard**: leads novos, leads em 30 dias, veículos à venda, landing pages ativas, atalhos e últimos leads
 - **Veículos**: tabela com busca por marca/modelo/código, filtros, status editável na linha, destaque, exclusão;
   código sequencial (0001, 0002…); **exportação XML** para portais com link protegido por token
-- **Landing Pages**: criar em 3 passos (veículo, conteúdo, estilo), duplicar, copiar link, visitas
+- **Landing Pages**: criar em 2 etapas (carro + ponto de partida + estilo, depois o editor por seções com painel de
+  cores, rascunho/ativa, pré-visualização e aviso de alterações não salvas), duplicar, copiar link, visitas
 - **Leads**: status (Novo, Contatado, Em negociação, Vendido, Perdido) e anotações que salvam sozinhos,
   busca, filtro, origem (página do carro, contato, venda seu carro, landing page) e campanha (utm/gclid/fbclid),
   WhatsApp com um clique e **exportação CSV**
@@ -91,7 +94,7 @@ BASE=https://sua-loja.workers.dev EMAIL=voce@loja.com SENHA=... npm run test:e2e
 
 Abre o Chrome instalado (sem janela) e usa o sistema como uma pessoa usaria: busca e filtros, página do
 carro, os quatro formulários do site, menu e filtros no celular; no painel, cadastro de veículo com e sem
-fotos, status, destaque, edição, feed XML, landing page (criar/duplicar/excluir), leads (status, anotação,
+fotos, status, destaque, edição, feed XML, landing page (criar, trocar estilo, ocultar seção, PDF de 3 MB, download pela página, duplicar, excluir), leads (status, anotação,
 CSV), vendedores, integrações (salvar, token da API, testes), configurações, acessos e senha errada.
 Falha se aparecer erro de servidor, erro de JavaScript ou tela de erro. Tudo que ele cria leva o prefixo
 `E2E` e é apagado no fim.
@@ -106,6 +109,10 @@ limpe o limite: `npx wrangler d1 execute DB --local --command "delete from limit
 - `db.batch([])` vazio funciona no D1 local e **falha no remoto**.
 - O D1 aceita no máximo **100 parâmetros** por consulta: nada de `IN (...)` com listas longas.
 - Trocar o `database_id` em `wrangler.jsonc` faz o ambiente local usar outro banco (vazio).
+- Migração que recria tabela (`DROP` + `RENAME`, como o drizzle-kit gera ao mudar um default) dispara os
+  `ON DELETE` das chaves estrangeiras: por isso `0002` só usa `ADD COLUMN`.
+- Componente declarado dentro de outro (`const Bloco = () => ...` no corpo do componente) remonta a cada
+  render; se tiver `useFetcher` dentro, entra em loop ("Maximum update depth exceeded").
 
 ### Onde ficam as imagens
 
@@ -114,6 +121,10 @@ então o site funciona completo sem ativar o R2. O navegador reduz cada foto par
 enviar (o D1 aceita até 2 MB por imagem) e `/imagens/...` responde com cache de um ano na borda da
 Cloudflare. Se a conta tiver R2, adicione o binding `IMAGENS` no `wrangler.jsonc`: o código passa a
 guardar no R2 sozinho.
+
+Arquivos maiores que o limite de uma linha do D1 (o PDF de material das landing pages, até 10 MB) são
+gravados em partes (`chave#p001`, `#p002`…) e remontados na leitura. Uploads de uma landing page só são
+apagados quando nenhuma outra página (por exemplo, uma duplicada) ainda usa o arquivo.
 
 ---
 
