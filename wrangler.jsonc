@@ -2,18 +2,18 @@
  * Configuração do Worker. Ver https://developers.cloudflare.com/workers/wrangler/configuration/
  *
  * Antes do primeiro deploy, crie o banco e troque o database_id abaixo:
- *   npx wrangler d1 create loja-de-carros
+ *   npx wrangler d1 create automoveisextremo-db
  *   npx wrangler secret put SESSION_SECRET
  *
  * Imagens enviadas pelo painel ficam no próprio D1 (tabela `arquivos`).
  * Opcional, com o R2 ativado na conta: crie o bucket e adicione
- *   "r2_buckets": [{ "binding": "IMAGENS", "bucket_name": "loja-de-carros-imagens" }]
+ *   "r2_buckets": [{ "binding": "IMAGENS", "bucket_name": "automoveisextremo-imagens" }]
  * — o código passa a usar o R2 sozinho.
  */
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "loja-de-carros",
-	"account_id": "2bfc6184fa90537b3b7bbb0e7a72f9bd",
+	"name": "automoveisextremo",
+	"account_id": "901c0fcf76c923b25df1d818a91389d5",
 	"compatibility_date": "2026-09-15",
 	"main": "./workers/app.ts",
 	"observability": {
@@ -23,8 +23,8 @@
 	"d1_databases": [
 		{
 			"binding": "DB",
-			"database_name": "loja-de-carros",
-			"database_id": "89769783-801f-4a9b-b870-1c55d45e2ebc",
+			"database_name": "automoveisextremo-db",
+			"database_id": "8a03fe6a-3e5e-4cb7-846e-833e2d3f289a",
 			"migrations_dir": "migrations"
 		}
 	]
