@@ -3,9 +3,7 @@ import type { ReactNode } from "react";
 import { IconeWhatsApp } from "~/components/WhatsApp";
 import { cn } from "~/lib/ui";
 import {
-  Ampliacao, BlocoDepoimentos, BlocoEtapas, BlocoNumeros, Botao, BotaoCta, BotaoMaterial, BotaoWa, CardsNavegacao, CartaoVendedor, Estrelas,
-  FichaTecnica, FormularioLP, IconeDestaque, ListaFaq, ListaOpcionais, LogoTopo, Mapa, Menu, MidiaTopo, Ordenadas, precoDe, Rodape, rotaMapa, V,
-  Video, WhatsFlutuante, type LP, type Partes,
+  Ampliacao, BlocoDepoimentos, BlocoEtapas, BlocoNumeros, Botao, BotaoCta, BotaoMaterial, BotaoWa, CardsNavegacao, CartaoVendedor, colunasDestaques, colunasGaleria, Estrelas, FichaTecnica, FormularioLP, IconeDestaque, ListaFaq, ListaOpcionais, LogoTopo, Mapa, Menu, MidiaTopo, Ordenadas, precoDe, Rodape, rotaMapa, type LP, type Partes, V, Video, WhatsFlutuante,
 } from "./base";
 
 /* Estilo Boutique: branco, serifa clássica, pílulas e tom acolhedor. */
@@ -36,6 +34,8 @@ const Cartao = ({ children, className = "" }: { children: ReactNode; className?:
 
 export function Boutique(d: LP) {
   const { lp, v, fotos, faq, fatos, destaques, chamada, endereco, video, material, galeria, faixa, ficha, numeros, etapas, depoimentos, setAberta, nomeCarro, loja } = d;
+  // Duas fotos ao lado do texto; sem a 3ª foto, usa a capa (e só uma, se o carro tiver uma foto).
+  const duplaConceito = [...new Set([fotos[1], fotos[2] ?? fotos[0]].filter((f): f is string => Boolean(f)))];
   const preco = precoDe(d);
   const rota = rotaMapa(d);
   const linhasLocal = [endereco, loja.horario, ...lp.localTexto.split(/\n+/)].map((s) => s?.trim()).filter(Boolean) as string[];
@@ -55,18 +55,18 @@ export function Boutique(d: LP) {
               ))}
             </dl>
           </div>
-          {(fotos[1] || fotos[2]) && (
+          {duplaConceito.length === 2 ? (
             <div className="grid grid-cols-2 gap-4">
-              {fotos[1] && <img src={fotos[1]} alt="" className="aspect-[3/4] w-full object-cover" style={{ borderRadius: V.card }} loading="lazy" />}
-              {fotos[2] && <img src={fotos[2]} alt="" className="mt-10 aspect-[3/4] w-full object-cover" style={{ borderRadius: V.card }} loading="lazy" />}
+              <img src={duplaConceito[0]} alt="" className="aspect-[3/4] w-full object-cover" style={{ borderRadius: V.card }} loading="lazy" />
+              <img src={duplaConceito[1]} alt="" className="mt-10 aspect-[3/4] w-full object-cover" style={{ borderRadius: V.card }} loading="lazy" />
             </div>
-          )}
+          ) : duplaConceito.length === 1 && <img src={duplaConceito[0]} alt="" className="aspect-[4/3] w-full object-cover" style={{ borderRadius: V.card }} loading="lazy" />}
         </div>
       </Secao>
     ),
     destaques: destaques.length > 0 && (
       <Secao id="diferenciais" rotulo="Sem surpresa" titulo="Tudo isto já vem no carro.">
-        <ul className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+        <ul className={cn("grid grid-cols-2 gap-6 sm:gap-8", colunasDestaques(destaques.length))}>
           {destaques.map((h, i) => (
             <li key={h.rotulo + i}>
               <span style={{ color: V.titulo }}><IconeDestaque nome={h.icone} className="size-6" /></span>
@@ -84,7 +84,7 @@ export function Boutique(d: LP) {
     ),
     galeria: galeria.length > 0 && (
       <Secao id="fotos" rotulo="Fotos" titulo="Olhe com calma." sub="Fotos reais, sem filtro.">
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className={cn("grid gap-4", colunasGaleria(Math.min(fotos.length, 6)))}>
           {fotos.slice(0, 6).map((src, i) => (
             <button key={src + i} type="button" onClick={() => setAberta(i)} className="group text-left" aria-label={`Ampliar foto ${i + 1}`}>
               <Cartao className="overflow-hidden">

@@ -24,13 +24,15 @@ imagem, sem banco fora da Cloudflare.
 - Estoque (`/carros`, `/carros/toyota`, `/carros/toyota/corolla`) com filtros, ordenação e paginação
 - Página do veículo com galeria, ficha, opcionais, WhatsApp do vendedor responsável (ou da loja), telefone e formulário
 - **Venda seu carro**: formulário de avaliação (marca/modelo, ano, km) que vira lead
-- **Landing pages** (`/lp/...`): uma página por carro para tráfego pago, com 8 estilos (Editorial, Vibrante, Clean, Luxo,
+- **Landing pages** (`/lp/...`): uma página por carro para tráfego pago, com 6 estilos (Editorial, Luxo,
   Noturno, Tech, Moderno, Boutique), tema de 13 cores, seções que podem ser ocultadas e reordenadas, ficha técnica,
   vídeo, mapa, depoimentos, dúvidas e material em PDF que só é liberado depois do contato (vira lead)
 - A loja, Contato, Termos e Privacidade; botão flutuante de WhatsApp configurável; SEO completo
 
 **Painel (`/admin`)** — barra lateral escura, só para a equipe
 - **Dashboard**: leads novos, leads em 30 dias, veículos à venda, landing pages ativas, atalhos e últimos leads
+- **Marcas e modelos**: cadastro próprio da loja, com busca; marca e modelo novos também podem ser adicionados
+  direto no cadastro do veículo
 - **Veículos**: tabela com busca por marca/modelo/código, filtros, status editável na linha, destaque, exclusão;
   código sequencial (0001, 0002…); **exportação XML** para portais com link protegido por token
 - **Landing Pages**: criar em 2 etapas (carro + ponto de partida + estilo, depois o editor por seções com painel de
@@ -135,7 +137,7 @@ apagados quando nenhuma outra página (por exemplo, uma duplicada) ainda usa o a
 | Logo, banner, vídeo, cores, textos | Painel → Configurações (a paleta completa sai de `app/lib/cores.ts`) |
 | Tags de anúncio, CRM, e-mail | Painel → Integrações |
 | Diferenciais da home ("Seu carro na troca"…) | `DIFERENCIAIS` em `app/routes/home.tsx` |
-| Marcas e modelos do catálogo | `scripts/gerar-seed.mjs` |
+| Marcas e modelos do catálogo | Painel → Marcas e modelos (a lista inicial vem de `scripts/gerar-seed.mjs`) |
 | Opcionais, cores, carrocerias | `app/lib/veiculos.ts` |
 
 ---

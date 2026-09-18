@@ -13,20 +13,6 @@ export const INFO_ESTILOS: InfoEstilo[] = [
     tema: { fundo: "#ffffff", titulo: "#1f3a5f", texto: "#3f3f46", fundoBloco: "#1f3a5f", tituloBloco: "#ffffff", textoBloco: "#d6dde8", botao: "#c0392b", textoBotao: "#ffffff", destaque: "#c0392b", rotulo: "#c0392b", rotuloBloco: "#d6dde8", fundoMenu: "#ffffff", textoMenu: "#1f3a5f" },
   },
   {
-    valor: "vibrante",
-    rotulo: "Vibrante",
-    descricao: "Cores vivas, divisórias curvas e seções centralizadas. Leve e chamativo, bom para feirões.",
-    botao: "pilula",
-    tema: { fundo: "#fbf7f2", titulo: "#1f6f66", texto: "#4b5563", fundoBloco: "#2a9d8f", tituloBloco: "#ffffff", textoBloco: "#e6f4f2", botao: "#c2410c", textoBotao: "#ffffff", destaque: "#e76f51", rotulo: "#c2410c", rotuloBloco: "#e6f4f2", fundoMenu: "#fbf7f2", textoMenu: "#1f6f66" },
-  },
-  {
-    valor: "clean",
-    rotulo: "Clean",
-    descricao: "Fundo branco, galeria no topo e card de contato fixo ao lado. Parecido com a página do carro.",
-    botao: "pilula",
-    tema: { fundo: "#ffffff", titulo: "#111827", texto: "#4b5563", fundoBloco: "#f7f7f7", tituloBloco: "#111827", textoBloco: "#4b5563", botao: "#0f7a53", textoBotao: "#ffffff", destaque: "#0f8a5f", rotulo: "#0f7a53", rotuloBloco: "#4b5563", fundoMenu: "#ffffff", textoMenu: "#111827" },
-  },
-  {
     valor: "luxo",
     rotulo: "Luxo",
     descricao: "Off-white, serifa elegante e detalhes dourados. Discreto e premium, para carros exclusivos.",

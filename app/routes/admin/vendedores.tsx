@@ -105,9 +105,10 @@ export default function Vendedores({ loaderData, actionData }: Route.ComponentPr
         {vendedores.length === 0 ? (
           <p className="rounded-xl border border-linha bg-white p-8 text-center text-suave">Nenhum vendedor cadastrado. Sem vendedor, os contatos vão para o WhatsApp da loja.</p>
         ) : (
-          <div className={cn(t.caixa, "overflow-x-auto")}>
-            <table className="w-full min-w-[640px]">
-              <thead><tr>{["Vendedor", "WhatsApp", "Carros", "Ativo", ""].map((h, i) => <th key={i} className={t.th}>{h}</th>)}</tr></thead>
+          <div className={t.caixa}>
+            {/* No celular cada linha vira um cartão; a tabela volta a partir do md. */}
+            <table className="w-full">
+              <thead className="hidden md:table-header-group"><tr>{["Vendedor", "WhatsApp", "Carros", "Ativo", ""].map((h, i) => <th key={i} className={t.th}>{h}</th>)}</tr></thead>
               <tbody>{vendedores.map((v) => <Linha key={v.id} v={v} />)}</tbody>
             </table>
           </div>
@@ -138,10 +139,11 @@ function Linha({ v }: { v: Route.ComponentProps["loaderData"]["vendedores"][numb
   const fetcher = useFetcher();
   if (fetcher.formData?.get("intencao") === "excluir") return null;
   const ativo = fetcher.formData?.get("intencao") === "ativo" ? fetcher.formData.get("valor") === "true" : v.ativo;
+  const md = "md:border-b md:border-linha md:px-4 md:py-3.5 md:align-middle md:text-sm";
 
   return (
-    <tr className={cn(!ativo && "opacity-60")}>
-      <td className={t.td}>
+    <tr className={cn("grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-x-2 gap-y-2 border-b border-linha p-4 last:border-0 md:table-row md:p-0", !ativo && "opacity-60")}>
+      <td className={cn(md, "min-w-0")}>
         <div className="flex items-center gap-3">
           {v.foto ? <img src={v.foto} alt="" className="size-10 rounded-full object-cover" />
             : <span className="grid size-10 place-items-center rounded-full bg-marca-50 font-bold text-marca-700" aria-hidden="true">{v.nome.charAt(0)}</span>}
@@ -151,13 +153,14 @@ function Linha({ v }: { v: Route.ComponentProps["loaderData"]["vendedores"][numb
           </div>
         </div>
       </td>
-      <td className={t.td}>
+      <td className={cn(md, "col-span-3 row-start-2 pl-[3.25rem] text-sm md:pl-4")}>
         <a href={linkWhatsApp(v.whatsapp, "Olá!", v.whatsappDdi)} target="_blank" rel="noopener noreferrer" className="numeros inline-flex items-center gap-1.5 whitespace-nowrap text-texto hover:underline">
           <IconeWhatsApp className="size-4 text-[#128c4a]" /> {telefone(v.whatsapp, v.whatsappDdi)}
         </a>
+        <span className="numeros text-suave md:hidden"> · {v.carros} {v.carros === 1 ? "carro" : "carros"}</span>
       </td>
-      <td className={cn(t.td, "numeros text-suave")}>{v.carros}</td>
-      <td className={t.td}>
+      <td className={cn(md, "numeros hidden text-suave md:table-cell")}>{v.carros}</td>
+      <td className={cn(md, "row-start-1 col-start-2")}>
         <fetcher.Form method="post">
           <input type="hidden" name="id" value={v.id} />
           <input type="hidden" name="valor" value={String(!ativo)} />
@@ -167,7 +170,7 @@ function Linha({ v }: { v: Route.ComponentProps["loaderData"]["vendedores"][numb
           </button>
         </fetcher.Form>
       </td>
-      <td className={t.td}>
+      <td className={cn(md, "row-start-1 col-start-3")}>
         <div className="flex justify-end gap-0.5">
           <Link to={`/admin/vendedores?editar=${v.id}`} className="grid size-9 place-items-center rounded-lg hover:bg-fundo" aria-label={`Editar ${v.nome}`} title="Editar"><Pencil className="size-[18px]" /></Link>
           <fetcher.Form method="post" onSubmit={(e) => { if (!confirm(`Excluir ${v.nome}? Os carros atendidos por ele voltam a usar o WhatsApp da loja.`)) e.preventDefault(); }}>

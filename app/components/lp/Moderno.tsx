@@ -3,8 +3,7 @@ import type { ReactNode } from "react";
 import { IconeWhatsApp } from "~/components/WhatsApp";
 import { cn } from "~/lib/ui";
 import {
-  Ampliacao, BlocoDepoimentos, BlocoEtapas, BlocoNumeros, Botao, BotaoCta, BotaoMaterial, BotaoWa, CardsNavegacao, CartaoVendedor, FichaTecnica,
-  FormularioLP, IconeDestaque, ListaOpcionais, LogoTopo, Mapa, Menu, Ordenadas, precoDe, Rodape, V, Video, WhatsFlutuante, type LP, type Partes,
+  Ampliacao, BlocoDepoimentos, BlocoEtapas, BlocoNumeros, Botao, BotaoCta, BotaoMaterial, BotaoWa, CardsNavegacao, CartaoVendedor, colunasGaleria, FichaTecnica, FormularioLP, IconeDestaque, ListaOpcionais, LogoTopo, Mapa, Menu, Ordenadas, precoDe, Rodape, type LP, type Partes, V, Video, WhatsFlutuante,
 } from "./base";
 
 /* Estilo Moderno: moldura arredondada, azul vivo e card do carro no topo. */
@@ -87,7 +86,7 @@ export function Moderno(d: LP) {
     galeria: galeria.length > 0 && (
       <Secao id="fotos" titulo="Veja cada detalhe" sub="Fotos reais do carro."
         direita={fotos.length > 6 && <Botao href="#fotos" onClick={() => setAberta(0)} variante="contorno" className="!px-5 !py-2.5 text-sm">Ver todas as fotos ({fotos.length}) →</Botao>}>
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className={cn("grid gap-5", colunasGaleria(Math.min(fotos.length, 6)))}>
           {fotos.slice(0, 6).map((src, i) => (
             <button key={src + i} type="button" onClick={() => setAberta(i)} className="group text-left" aria-label={`Ampliar foto ${i + 1}`}>
               <Cartao className="overflow-hidden">
@@ -192,7 +191,7 @@ export function Moderno(d: LP) {
             <div className="mt-10 grid max-w-md grid-cols-3 gap-4">
               {fatos.slice(0, 3).map((f) => (
                 <div key={f.rotulo}>
-                  <p className="text-xl font-extrabold sm:text-2xl" style={{ color: V.titulo }}>{f.valor}</p>
+                  <p className="text-lg font-extrabold sm:text-2xl" style={{ color: V.titulo }}>{f.valor}</p>
                   <p className="text-xs" style={{ color: V.texto }}>{f.rotulo}</p>
                 </div>
               ))}

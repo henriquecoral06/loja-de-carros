@@ -27,6 +27,7 @@ export default [
       route("veiculos", "routes/admin/veiculos.tsx"),
       route("veiculos/novo", "routes/admin/veiculo-form.tsx", { id: "veiculo-novo" }),
       route("veiculos/:id", "routes/admin/veiculo-form.tsx", { id: "veiculo-editar" }),
+      route("marcas", "routes/admin/marcas.tsx"),
       route("landing-pages", "routes/admin/landing-pages.tsx"),
       route("landing-pages/nova", "routes/admin/landing-page-form.tsx", { id: "lp-nova" }),
       route("landing-pages/:id", "routes/admin/landing-page-form.tsx", { id: "lp-editar" }),

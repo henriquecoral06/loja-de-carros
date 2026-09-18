@@ -1,12 +1,13 @@
 import { asc, eq, inArray, max } from "drizzle-orm";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { data, Form, Link, redirect, useNavigation } from "react-router";
+import { data, Form, Link, redirect, useFetcher, useNavigation } from "react-router";
 import { catalogo } from "~/.server/anuncios";
 import { db, schema } from "~/.server/db";
 import { removerObjetos, salvarFotoAnuncio, urlImagem, validarImagem } from "~/.server/imagens";
 import { anuncioPorId } from "~/.server/meus-anuncios";
 import { exigirUsuario } from "~/.server/sessao";
 import { exigirMesmaOrigem } from "~/.server/seguranca";
+import { SeletorBusca } from "~/components/admin/SeletorBusca";
 import { CampoArea, CampoSelecao, CampoTexto } from "~/components/Campo";
 import { GerenciadorFotos } from "~/components/GerenciadorFotos";
 import { apenasDigitos, inteiro, slugify } from "~/lib/formato";
@@ -206,7 +207,20 @@ export default function VeiculoForm({ loaderData, actionData }: Route.ComponentP
   const enviando = navigation.state === "submitting";
 
   const [marcaId, setMarcaId] = useState(a ? String(a.marcaId) : "");
+  const [modeloId, setModeloId] = useState(a ? String(a.modeloId) : "");
   const modelos = useMemo(() => cat.find((m) => String(m.id) === marcaId)?.modelos ?? [], [cat, marcaId]);
+  const nomeMarca = cat.find((m) => String(m.id) === marcaId)?.nome ?? "";
+
+  // "+ Adicionar marca/modelo": cria em Marcas e modelos e já deixa escolhido.
+  const catalogo = useFetcher<{ ok: boolean; id?: number; erro?: string; intencao?: string }>();
+  useEffect(() => {
+    const r = catalogo.data;
+    if (catalogo.state !== "idle" || !r?.ok || !r.id) return;
+    if (r.intencao === "criar-marca") { setMarcaId(String(r.id)); setModeloId(""); }
+    if (r.intencao === "criar-modelo") setModeloId(String(r.id));
+  }, [catalogo.state, catalogo.data]);
+  const criarNoCatalogo = (campos: Record<string, string>) => catalogo.submit(campos, { method: "post", action: "/admin/marcas" });
+  const criando = catalogo.state !== "idle" ? String(catalogo.formData?.get("intencao")) : "";
   const [anoFab, setAnoFab] = useState(a ? String(a.anoFabricacao) : "");
   const [preco, setPreco] = useState(a ? inteiro(a.preco) : "");
   const [kmRodado, setKmRodado] = useState(a ? inteiro(a.km) : "");
@@ -242,14 +256,16 @@ export default function VeiculoForm({ loaderData, actionData }: Route.ComponentP
       <section className={secao} aria-labelledby="sec-veiculo">
         <h3 id="sec-veiculo" className={tituloSecao}>Veículo</h3>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
-          <CampoSelecao id="marcaId" rotulo="Marca" value={marcaId} onChange={(e) => setMarcaId(e.target.value)} erro={erros.marcaId}>
-            <option value="" disabled>Selecione</option>
-            {cat.map((m) => <option key={m.id} value={m.id}>{m.nome}</option>)}
-          </CampoSelecao>
-          <CampoSelecao id="modeloId" rotulo="Modelo" defaultValue={a ? String(a.modeloId) : ""} key={marcaId} disabled={!marcaId} erro={erros.modeloId}>
-            <option value="" disabled>{marcaId ? "Selecione" : "Escolha a marca primeiro"}</option>
-            {modelos.map((m) => <option key={m.id} value={m.id}>{m.nome}</option>)}
-          </CampoSelecao>
+          <SeletorBusca id="marcaId" rotulo="Marca" valor={marcaId} aoMudar={(v) => { if (v !== marcaId) { setMarcaId(v); setModeloId(""); } }}
+            opcoes={cat.map((m) => ({ valor: String(m.id), rotulo: m.nome, detalhe: `${m.modelos.length} ${m.modelos.length === 1 ? "modelo" : "modelos"}` }))}
+            placeholder="Digite a marca" erro={erros.marcaId ?? (catalogo.data?.intencao === "criar-marca" ? catalogo.data.erro : undefined)}
+            criar={{ rotulo: (t) => `Adicionar a marca “${t}”`, aoCriar: (nome) => criarNoCatalogo({ intencao: "criar-marca", nome }), criando: criando === "criar-marca" }} />
+          <SeletorBusca id="modeloId" rotulo="Modelo" valor={modeloId} aoMudar={setModeloId} disabled={!marcaId}
+            opcoes={modelos.map((m) => ({ valor: String(m.id), rotulo: m.nome }))}
+            placeholder={marcaId ? `Digite o modelo da ${nomeMarca}` : "Escolha a marca primeiro"} vazio="Esta marca ainda não tem modelos. Digite o nome para adicionar."
+            erro={erros.modeloId ?? (catalogo.data?.intencao === "criar-modelo" ? catalogo.data.erro : undefined)}
+            dica={marcaId ? undefined : "Não achou a marca ou o modelo? Digite o nome e escolha “Adicionar”."}
+            criar={{ rotulo: (t) => `Adicionar o modelo “${t}” à ${nomeMarca}`, aoCriar: (nome) => criarNoCatalogo({ intencao: "criar-modelo", marcaId, nome }), criando: criando === "criar-modelo" }} />
           <CampoTexto id="versao" rotulo="Versão" placeholder="Ex.: XEi 2.0 Flex CVT" maxLength={80} defaultValue={a?.versao} erro={erros.versao} className="sm:col-span-2" />
           <CampoSelecao id="anoFabricacao" rotulo="Ano de fabricação" value={anoFab} onChange={(e) => setAnoFab(e.target.value)} erro={erros.anoFabricacao}>
             <option value="" disabled>Selecione</option>

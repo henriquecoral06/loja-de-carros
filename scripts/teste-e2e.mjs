@@ -92,6 +92,13 @@ async function postar(page, acao) {
   return r;
 }
 
+/** Campo com busca do painel (marca, modelo, carro): digita e escolhe a opção pelo texto. */
+async function escolher(page, id, texto, opcao = texto) {
+  await page.click(`#${id}`);
+  await page.fill(`#${id}`, texto);
+  await page.getByRole("option", { name: opcao }).first().click();
+}
+
 async function ir(page, caminho) {
   const r = await page.goto(BASE + caminho, { waitUntil: "networkidle" });
   if (!r || r.status() >= 400) throw new Error(`${caminho} respondeu ${r?.status()}`);
@@ -214,8 +221,8 @@ else {
     await ir(page, "/admin/veiculos/novo");
     const anos = await page.locator("#anoFabricacao option").allTextContents();
     if (!anos.includes(String(new Date().getFullYear()))) throw new Error(`lista de anos errada: ${anos.slice(1, 4)}`);
-    await page.selectOption("#marcaId", { label: "Honda" });
-    await page.selectOption("#modeloId", { label: "Civic" });
+    await escolher(page, "marcaId", "Honda", /^Honda/);
+    await escolher(page, "modeloId", "Civic", /^Civic$/);
     await page.fill("#versao", `${TAG} Sem Foto`);
     await page.selectOption("#anoFabricacao", "2021");
     await page.selectOption("#anoModelo", "2022");
@@ -233,8 +240,8 @@ else {
     await ir(page, "/admin/veiculos/novo");
     await page.click("button:has-text('Cadastrar veículo')");
     await page.getByText("Revise os campos marcados").waitFor();
-    await page.selectOption("#marcaId", { label: "Toyota" });
-    await page.selectOption("#modeloId", { label: "Corolla" });
+    await escolher(page, "marcaId", "Toyota", /^Toyota/);
+    await escolher(page, "modeloId", "Corolla", /^Corolla$/);
     await page.fill("#versao", `${TAG} Com Foto`);
     await page.selectOption("#anoFabricacao", "2022");
     await page.selectOption("#anoModelo", "2023");
@@ -298,7 +305,8 @@ else {
   await passo("landing page: criar, editar, material, duplicar, excluir", async () => {
     // Etapa 1: carro, ponto de partida e estilo.
     await ir(page, "/admin/landing-pages/nova");
-    await page.selectOption("#veiculo", { index: 1 });
+    await page.click("#veiculo");
+    await page.getByRole("option").first().click();
     await page.click("label:has-text('Tech')");
     await Promise.all([page.waitForURL(/continuar=1/), page.click("button:has-text('Continuar')")]);
     await semErroNaTela(page);
@@ -344,10 +352,11 @@ else {
     await publico.close();
 
     // Trocar o carro da página: aviso de textos de outro carro e "Preencher com os dados".
-    await page.selectOption("#anuncioId", { index: 2 });
+    await page.click("#anuncioId");
+    await page.getByRole("option").nth(2).click();
     await postar(page, () => page.click("button:has-text('Salvar alterações')"));
     await page.getByText("Salvo às").waitFor({ timeout: 20000 });
-    const modelo = (await page.locator("#anuncioId option:checked").innerText()).split(" · ")[1].split(" ")[1];
+    const modelo = (await page.inputValue("#anuncioId")).split(" ")[1];
     await page.click("button:has-text('Preencher com os dados do')");
     await postar(page, () => page.click("button:has-text('Salvar alterações')"));
     await page.getByText("Salvo às").waitFor({ timeout: 20000 });

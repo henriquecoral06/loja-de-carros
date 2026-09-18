@@ -53,7 +53,7 @@ export default function Dashboard({ loaderData: d }: Route.ComponentProps) {
   ];
   const atalhos = [
     { to: "/admin/veiculos/novo", titulo: "Cadastrar veículo", texto: "Dados, fotos e opcionais", icone: Plus },
-    { to: "/admin/landing-pages/nova", titulo: "Nova landing page", texto: "Página de campanha com 8 estilos", icone: LayoutTemplate },
+    { to: "/admin/landing-pages/nova", titulo: "Nova landing page", texto: "Página de campanha com 6 estilos", icone: LayoutTemplate },
     { to: "/admin/leads?status=novo", titulo: "Responder leads novos", texto: d.novos === 1 ? "1 aguardando contato" : `${d.novos} aguardando contato`, icone: Inbox },
     { to: "/admin/configuracoes", titulo: "Configurar o site", texto: "Logo, cores, contatos e banner", icone: Settings },
   ];
@@ -64,10 +64,10 @@ export default function Dashboard({ loaderData: d }: Route.ComponentProps) {
         <Link to="/admin/veiculos/novo" className="botao-primario h-10 px-4 text-sm"><Plus className="size-4" aria-hidden="true" /> Novo veículo</Link>
       </Cabecalho>
 
-      <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <ul className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
         {cards.map((c) => (
           <li key={c.rotulo}>
-            <Link to={c.to} className={cn("block h-full rounded-xl border p-5 transition-shadow hover:shadow-card-hover",
+            <Link to={c.to} className={cn("block h-full rounded-xl border p-4 transition-shadow hover:shadow-card-hover sm:p-5",
               c.destaque ? "border-marca-200 bg-marca-50" : "border-linha bg-white")}>
               <p className="text-sm text-suave">{c.rotulo}</p>
               <p className="numeros mt-2 text-3xl font-bold text-tinta">{c.valor}</p>
@@ -98,19 +98,21 @@ export default function Dashboard({ loaderData: d }: Route.ComponentProps) {
       {d.recentes.length === 0 ? (
         <p className="rounded-xl border border-linha bg-white p-8 text-center text-suave">Nenhum lead ainda. Os contatos do site aparecem aqui.</p>
       ) : (
-        <div className={cn(t.caixa, "overflow-x-auto")}>
-          <table className="w-full min-w-[720px]">
-            <thead><tr>{["Nome", "Contato", "Veículo", "Status", "Data"].map((h) => <th key={h} className={t.th}>{h}</th>)}</tr></thead>
+        <div className={t.caixa}>
+          {/* No celular cada linha vira um cartão; a tabela volta a partir do md. */}
+          <table className="w-full">
+            <thead className="hidden md:table-header-group"><tr>{["Nome", "Contato", "Veículo", "Status", "Data"].map((h) => <th key={h} className={t.th}>{h}</th>)}</tr></thead>
             <tbody>
               {d.recentes.map((l) => (
-                <tr key={l.id}>
-                  <td className={cn(t.td, "font-medium text-tinta")}><Link to={`/admin/leads?q=${encodeURIComponent(l.nome)}`} className="hover:underline">{l.nome}</Link></td>
-                  <td className={cn(t.td, "text-suave")}>{telefone(l.telefone)}{l.email && ` · ${l.email}`}</td>
-                  <td className={cn(t.td, "max-w-[320px] truncate text-suave")}>
+                <tr key={l.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-0.5 border-b border-linha p-4 text-sm last:border-0 md:table-row md:p-0">
+                  <td className={cn(md, "min-w-0 truncate font-medium text-tinta")}><Link to={`/admin/leads?q=${encodeURIComponent(l.nome)}`} className="hover:underline">{l.nome}</Link></td>
+                  <td className={cn(md, "col-span-2 row-start-2 min-w-0 truncate text-suave")}>{telefone(l.telefone)}{l.email && ` · ${l.email}`}</td>
+                  <td className={cn(md, "col-span-2 row-start-3 min-w-0 truncate text-suave md:max-w-[320px]")}>
                     {l.codigo ? `${codigoVeiculo(l.codigo)} · ${l.marca} ${l.modelo} ${l.anoModelo}` : ROTULO_ORIGEM[l.origem]}
+                    <span className="numeros md:hidden"> · {dataHora(l.criadoEm)}</span>
                   </td>
-                  <td className={t.td}><PillLead status={l.status} /></td>
-                  <td className={cn(t.td, "numeros whitespace-nowrap text-suave")}>{dataHora(l.criadoEm)}</td>
+                  <td className={cn(md, "col-start-2 row-start-1")}><PillLead status={l.status} /></td>
+                  <td className={cn(md, "numeros hidden whitespace-nowrap text-suave md:table-cell")}>{dataHora(l.criadoEm)}</td>
                 </tr>
               ))}
             </tbody>
@@ -120,5 +122,8 @@ export default function Dashboard({ loaderData: d }: Route.ComponentProps) {
     </div>
   );
 }
+
+/** Estilo de célula só a partir do md: no celular a linha é um cartão. */
+const md = "md:border-b md:border-linha md:px-4 md:py-3.5 md:align-middle";
 
 export { ErroPainel as ErrorBoundary } from "~/components/admin/ErroPainel";

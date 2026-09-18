@@ -5,8 +5,7 @@ import type { SecaoOrdenavel } from "~/lib/lp/secoes";
 import { cn } from "~/lib/ui";
 import { codigoVeiculo } from "~/lib/veiculos";
 import {
-  Ampliacao, BlocoDepoimentos, BlocoEtapas, BlocoNumeros, Botao, BotaoCta, BotaoMaterial, BotaoWa, CardsNavegacao, CartaoVendedor, FormularioLP,
-  IconeDestaque, ListaOpcionais, LogoTopo, Mapa, Menu, MidiaTopo, mosaico, Ordenadas, precoDe, Rodape, V, Video, WhatsFlutuante, type LP, type Partes,
+  Ampliacao, BlocoDepoimentos, BlocoEtapas, BlocoNumeros, Botao, BotaoCta, BotaoMaterial, BotaoWa, CardsNavegacao, CartaoVendedor, FormularioLP, IconeDestaque, ListaOpcionais, LogoTopo, Mapa, Menu, MidiaTopo, mosaico, Ordenadas, precoDe, Rodape, type LP, type Partes, V, Video, WhatsFlutuante,
 } from "./base";
 
 /* Estilo Tech: preto, rótulos técnicos numerados e dados em destaque. */
@@ -223,7 +222,7 @@ export function Tech(d: LP) {
               <div className="mt-10 grid max-w-xl grid-cols-3 gap-4 border-t border-white/15 pt-6">
                 {fatos.slice(0, 3).map((f) => (
                   <div key={f.rotulo}>
-                    <p className="text-xl font-semibold text-white sm:text-2xl">{f.valor}</p>
+                    <p className="text-lg font-semibold text-white sm:text-2xl">{f.valor}</p>
                     <p className="text-[10px] uppercase tracking-[0.2em] text-white/70" style={{ fontFamily: MONO }}>{f.rotulo}</p>
                   </div>
                 ))}

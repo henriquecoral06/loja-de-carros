@@ -1,5 +1,5 @@
 import { count, eq } from "drizzle-orm";
-import { ExternalLink, Inbox, LayoutDashboard, LayoutTemplate, LogOut, Menu, PlugZap, Settings, UsersRound, X } from "lucide-react";
+import { ExternalLink, Inbox, LayoutDashboard, LayoutTemplate, LogOut, Menu, PlugZap, Settings, Tags, UsersRound, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Form, Link, NavLink, Outlet, useLocation } from "react-router";
 import { db, schema } from "~/.server/db";
@@ -33,6 +33,7 @@ export default function AdminLayout({ loaderData }: Route.ComponentProps) {
   const itens = [
     { to: "/admin", rotulo: "Dashboard", icone: LayoutDashboard, fim: true },
     { to: "/admin/veiculos", rotulo: "Veículos", icone: IconeCarro },
+    { to: "/admin/marcas", rotulo: "Marcas e modelos", icone: Tags },
     { to: "/admin/landing-pages", rotulo: "Landing Pages", icone: LayoutTemplate },
     { to: "/admin/leads", rotulo: "Leads", icone: Inbox, contador: novos },
     { to: "/admin/vendedores", rotulo: "Vendedores", icone: UsersRound },

@@ -127,6 +127,21 @@ export type LP = ReturnType<typeof useLP>;
 /* Peças reutilizáveis                                                 */
 /* ------------------------------------------------------------------ */
 
+/**
+ * Colunas das grades de diferenciais: escolhe um número que divide a lista
+ * (6 itens = 3 colunas, 8 = 4), para não sobrar buraco na última linha.
+ * Classes escritas por extenso para o Tailwind encontrar.
+ */
+const COLUNAS_SM: Record<number, string> = { 2: "sm:grid-cols-2", 3: "sm:grid-cols-3" };
+const COLUNAS_LG: Record<number, string> = { 1: "lg:grid-cols-1", 2: "lg:grid-cols-2", 3: "lg:grid-cols-3", 4: "lg:grid-cols-4", 5: "lg:grid-cols-5", 6: "lg:grid-cols-6" };
+export function colunasDestaques(n: number, max = 4) {
+  const lg = n <= max ? n : [4, 3, 5, 6].filter((c) => c <= max).find((c) => n % c === 0) ?? max;
+  return cn(n % 3 === 0 && n > 3 ? COLUNAS_SM[3] : COLUNAS_SM[2], COLUNAS_LG[Math.max(1, lg)]);
+}
+
+/** Colunas da galeria: 2 ou 4 fotos em duas colunas, para não sobrar espaço vazio. */
+export const colunasGaleria = (n: number) => (n <= 1 ? "" : n === 2 || n === 4 ? "sm:grid-cols-2" : "sm:grid-cols-2 lg:grid-cols-3");
+
 export const V = {
   fundo: "var(--lp-fundo)",
   titulo: "var(--lp-titulo)",
@@ -266,7 +281,7 @@ export function CartaoVendedor({ d, escuro = false }: { d: LP; escuro?: boolean 
   const foto = vendedor?.foto ?? null;
   return (
     <div className="flex items-center gap-3">
-      <div className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-full bg-white text-lg font-bold shadow-sm" style={{ color: V.titulo }}>
+      <div className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-full text-lg font-bold shadow-sm" style={{ background: V.botao, color: V.textoBotao }}>
         {foto ? <img src={foto} alt="" className="size-full object-cover" /> : nome.charAt(0)}
       </div>
       <div style={{ color: escuro ? V.tituloBloco : V.titulo }}>
@@ -442,7 +457,7 @@ export function FormularioLP({ d, prefixo = "lp", escuro = false, compacto = fal
 /** Contêiner com as variáveis do tema, a fonte do estilo e os avisos para a equipe. */
 export function Casca({ d, children }: { d: LP; children: ReactNode }) {
   const { lp, tema, previa, equipe, disponivel } = d;
-  const fonte = FONTES_ESTILO[lp.estilo] ?? FONTES_ESTILO.clean;
+  const fonte = FONTES_ESTILO[lp.estilo] ?? FONTES_ESTILO.tech;
   return (
     <div className="min-h-dvh overflow-x-clip" style={{ ...(varsTema(tema, lp.estiloBotao, lp.estilo) as CSSProperties), background: V.fundo, color: V.texto, fontFamily: "var(--lp-fonte-corpo)" }}>
       {fonte.href && <link rel="stylesheet" href={fonte.href} precedence="lp-fonte" />}
@@ -498,8 +513,11 @@ export function Menu({ d, centralizado = false, fixo = true, caixaAlta = false, 
           {faq.length > 0 && <a href="#faq" className={link}>Dúvidas</a>}
         </nav>
         <div className="flex items-center gap-2">
-          {material ? <BotaoMaterial d={d} variante="menu" className="hidden !px-4 !py-2 text-xs sm:inline-flex" />
-            : mostrar("contato") ? <Botao href="#contato" variante="menu" className="hidden !px-4 !py-2 text-xs sm:inline-flex">Quero informações</Botao> : null}
+          {/* O botão tem display próprio: quem esconde no celular é o invólucro. */}
+          <span className="hidden sm:inline-flex">
+            {material ? <BotaoMaterial d={d} variante="menu" className="!px-4 !py-2 text-xs" />
+              : mostrar("contato") ? <Botao href="#contato" variante="menu" className="!px-4 !py-2 text-xs">Quero informações</Botao> : null}
+          </span>
           <BotaoWa d={d} className="!px-4 !py-2 text-xs">
             <IconeWhatsApp className="size-4" /> <span className="hidden sm:inline">Fale conosco</span><span className="sr-only sm:hidden">WhatsApp</span>
           </BotaoWa>
@@ -601,10 +619,10 @@ export function BlocoNumeros({ d, variante = "faixa", escuro = false, className 
   const linha = escuro ? "color-mix(in srgb, var(--lp-titulo-bloco) 18%, transparent)" : V.linha;
   if (variante === "cards") {
     return (
-      <div className={cn("grid gap-4 sm:grid-cols-2 lg:grid-cols-4", className)}>
+      <div className={cn("grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4", className)}>
         {numeros.map((n, i) => (
-          <div key={i} className="border p-5" style={{ borderColor: linha, borderRadius: V.card, background: escuro ? "color-mix(in srgb, var(--lp-titulo-bloco) 6%, transparent)" : V.cardFundo }}>
-            <p className="text-3xl font-extrabold tracking-tight" style={{ color: V.destaque }}>{n.valor}</p>
+          <div key={i} className="border p-4 sm:p-5" style={{ borderColor: linha, borderRadius: V.card, background: escuro ? "color-mix(in srgb, var(--lp-titulo-bloco) 6%, transparent)" : V.cardFundo }}>
+            <p className="text-2xl font-extrabold tracking-tight sm:text-3xl" style={{ color: V.destaque }}>{n.valor}</p>
             <p className="mt-1 text-sm" style={{ color: texto }}>{n.rotulo}</p>
           </div>
         ))}

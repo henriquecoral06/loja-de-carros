@@ -1,7 +1,7 @@
 import { waitUntil } from "cloudflare:workers";
-import { and, asc, eq, ne } from "drizzle-orm";
+import { and, asc, eq, ne, sql } from "drizzle-orm";
 import { ArrowDown, ArrowRight, ArrowUp, Check, ChevronDown, Copy, ExternalLink, Eye, EyeOff, MessageCircle, Plus, Sparkles, Trash2, Wand2 } from "lucide-react";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { data, Form, Link, redirect, useNavigation, useSearchParams } from "react-router";
 import { porSlug } from "~/.server/anuncios";
 import { db, schema } from "~/.server/db";
@@ -11,6 +11,7 @@ import { lojaCompleta } from "~/.server/loja";
 import { exigirUsuario } from "~/.server/sessao";
 import { exigirMesmaOrigem } from "~/.server/seguranca";
 import { ArquivoImagem, CampoTelefone, SeletorCor } from "~/components/admin/campos";
+import { SeletorBusca, type OpcaoBusca } from "~/components/admin/SeletorBusca";
 import { Aviso, Cabecalho } from "~/components/admin/ui";
 import { CampoArea, CampoSelecao, CampoTexto } from "~/components/Campo";
 import { anos, apenasDigitos, km, moeda, slugify } from "~/lib/formato";
@@ -19,7 +20,8 @@ import { INFO_ESTILOS, infoEstilo } from "~/lib/lp/estilos";
 import { componenteIcone, destaquesDosOpcionais, iconeValido, OPCOES_ICONE } from "~/lib/lp/icones";
 import { textosDoVeiculo, textosModelo, type SementeLP } from "~/lib/lp/padroes";
 import { ehOrdenavel, ehSecao, lerOcultas, lerOrdem, type SecaoLP, type SecaoOrdenavel } from "~/lib/lp/secoes";
-import { CAMPOS_TEMA, ehHex, ESTILOS_BOTAO, GRUPOS_TEMA, lerTema, type EstiloBotao, type TemaLP } from "~/lib/lp/tema";
+import { CAMPOS_TEMA, ehHex, ESTILOS_BOTAO, GRUPOS_TEMA, lerTema, temaDaLogo, type EstiloBotao, type TemaLP } from "~/lib/lp/tema";
+import { coresDaImagem } from "~/lib/imagem-cliente";
 import { metaAdmin } from "~/lib/site";
 import { cn } from "~/lib/ui";
 import { codigoVeiculo, ESTILOS_LP, type EstiloLP } from "~/lib/veiculos";
@@ -30,19 +32,35 @@ export function meta({ params, matches }: Route.MetaArgs) {
   return metaAdmin(params.id ? "Editar landing page" : "Nova landing page", matches);
 }
 
+/** Foto do Unsplash (seed) em tamanho de miniatura; as enviadas já vêm reduzidas. */
+const miniatura = (url: string) => (url.startsWith("https://images.unsplash.com") ? url.replace(/w=\d+&h=\d+/, "w=160&h=160") : url);
+
+/** Opções do seletor de carro: busca por código, marca, modelo, versão, ano e placa do preço. */
+type VeiculoOpcao = { id: string; codigo: number; marca: string; modelo: string; versao: string; anoFabricacao: number; anoModelo: number; km: number; preco: number; status: string; capa: string | null };
+const opcoesVeiculo = (lista: VeiculoOpcao[]): OpcaoBusca[] => lista.map((v) => ({
+  valor: v.id,
+  rotulo: `${v.marca} ${v.modelo} ${v.versao}`,
+  detalhe: `${codigoVeiculo(v.codigo)} · ${anos(v.anoFabricacao, v.anoModelo)} · ${km(v.km)} · ${moeda(v.preco)}`,
+  aviso: v.status === "ativo" ? undefined : v.status === "pausado" ? "pausado" : "vendido",
+  imagem: v.capa,
+  busca: String(v.codigo),
+}));
+
 const ehEstilo = (v: unknown): v is EstiloLP => (ESTILOS_LP as readonly unknown[]).includes(v);
 
 export async function loader({ request, params }: Route.LoaderArgs) {
   await exigirUsuario(request);
   const { anuncios, marcas, modelos } = schema;
   const url = new URL(request.url);
-  const veiculos = await db.select({
+  const lista = await db.select({
     id: anuncios.id, slug: anuncios.slug, codigo: anuncios.codigo, marca: marcas.nome, modelo: modelos.nome, versao: anuncios.versao,
-    anoModelo: anuncios.anoModelo, status: anuncios.status,
+    anoFabricacao: anuncios.anoFabricacao, anoModelo: anuncios.anoModelo, km: anuncios.km, preco: anuncios.preco, status: anuncios.status,
+    capa: sql<string | null>`(select ${schema.fotos.chave} from ${schema.fotos} where ${schema.fotos.anuncioId} = ${anuncios.id} order by ${schema.fotos.ordem} limit 1)`,
   }).from(anuncios)
     .innerJoin(marcas, eq(marcas.id, anuncios.marcaId))
     .innerJoin(modelos, eq(modelos.id, anuncios.modeloId))
     .orderBy(asc(marcas.nome), asc(modelos.nome));
+  const veiculos = lista.map((v) => ({ ...v, capa: v.capa ? miniatura(urlImagem(v.capa)) : null }));
 
   let lp: typeof schema.landingPages.$inferSelect | null = null;
   if (params.id) {
@@ -96,6 +114,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     ocultas: [...lerOcultas(lp?.secoesOcultas)],
     ordem: lerOrdem(lp?.ordemSecoes),
     origem: url.origin,
+    logo: loja.logoChave ? urlImagem(loja.logoChave) : null,
   };
 }
 
@@ -308,25 +327,45 @@ function CartaoSecao({ n, titulo, ajuda, children, oculta, alternar, mover, pode
 }
 
 /** Escolha de foto do carro (ou "automático"), com o upload já feito como opção. */
-function SeletorFoto({ nome, rotulo, fotos, valor, upload, dica }: { nome: string; rotulo: string; fotos: string[]; valor: string; upload?: string; dica?: string }) {
+function SeletorFoto({ nome, rotulo, fotos, valor, upload, dica, aoMudar }: { nome: string; rotulo: string; fotos: string[]; valor: string; upload?: string; dica?: string; aoMudar?: () => void }) {
   const [sel, setSel] = useState(valor);
-  const opcoes = upload ? [upload, ...fotos] : fotos;
+  // Imagem enviada removida: some da lista e é apagada do sistema ao salvar.
+  const [removida, setRemovida] = useState(false);
+  const enviada = removida ? undefined : upload;
+  const opcoes = enviada ? [enviada, ...fotos] : fotos;
   const item = "h-16 w-24 shrink-0 overflow-hidden rounded-lg border-2";
+  const escolher = (v: string) => { setSel(v); aoMudar?.(); };
+  const remover = () => {
+    setRemovida(true);
+    if (sel === upload) setSel("");
+    aoMudar?.();
+  };
   return (
     <fieldset>
       <legend className="rotulo">{rotulo}</legend>
       <input type="hidden" name={nome} value={sel} />
       <div className="flex gap-2 overflow-x-auto pb-2">
-        <button type="button" onClick={() => setSel("")} aria-pressed={sel === ""} className={cn(item, "grid place-items-center bg-fundo text-xs font-medium text-texto", sel === "" ? "border-marca-600" : "border-linha")}>Automático</button>
+        <button type="button" onClick={() => escolher("")} aria-pressed={sel === ""} className={cn(item, "grid place-items-center bg-fundo text-xs font-medium text-texto", sel === "" ? "border-marca-600" : "border-linha")}>Automático</button>
         {opcoes.map((src, i) => (
-          <button key={src} type="button" onClick={() => setSel(src)} aria-pressed={sel === src} aria-label={src === upload ? "Imagem enviada" : `Foto ${i + (upload ? 0 : 1)}`}
-            className={cn(item, "relative", sel === src ? "border-marca-600" : "border-transparent opacity-80 hover:opacity-100")}>
-            <img src={src} alt="" className="size-full object-cover" />
-            {src === upload && <span className="absolute inset-x-0 bottom-0 bg-tinta/75 text-[10px] text-white">Enviada</span>}
-          </button>
+          <div key={src} className="relative shrink-0">
+            <button type="button" onClick={() => escolher(src)} aria-pressed={sel === src} aria-label={src === enviada ? "Imagem enviada" : `Foto ${i + (enviada ? 0 : 1)}`}
+              className={cn(item, "relative block", sel === src ? "border-marca-600" : "border-transparent opacity-80 hover:opacity-100")}>
+              <img src={src} alt="" className="size-full object-cover" />
+              {src === enviada && <span className="absolute inset-x-0 bottom-0 bg-tinta/75 text-[10px] text-white">Enviada</span>}
+            </button>
+            {src === enviada && (
+              <button type="button" onClick={remover} title="Excluir imagem enviada" aria-label="Excluir imagem enviada"
+                className="absolute right-1 top-1 grid size-7 place-items-center rounded-full bg-white/95 text-erro shadow ring-1 ring-black/10 hover:bg-white">
+                <Trash2 className="size-3.5" aria-hidden="true" />
+              </button>
+            )}
+          </div>
         ))}
       </div>
-      {dica && <p className="text-xs text-suave">{dica}</p>}
+      {removida && upload
+        ? <p role="status" className="text-xs text-erro">A imagem enviada será excluída ao salvar.{" "}
+            <button type="button" className="font-semibold underline" onClick={() => { setRemovida(false); aoMudar?.(); }}>Desfazer</button></p>
+        : dica && <p className="text-xs text-suave">{dica}</p>}
     </fieldset>
   );
 }
@@ -358,17 +397,20 @@ const RemoverItem = ({ aoClicar, rotulo }: { aoClicar: () => void; rotulo: strin
 /* Etapa 1                                                             */
 /* ------------------------------------------------------------------ */
 
-function Etapa1({ veiculos, veiculoInicial }: { veiculos: { id: string; codigo: number; marca: string; modelo: string; versao: string; anoModelo: number; status: string }[]; veiculoInicial: string }) {
+function Etapa1({ veiculos, veiculoInicial }: { veiculos: VeiculoOpcao[]; veiculoInicial: string }) {
   const opcao = "flex cursor-pointer gap-3 rounded-xl border border-linha p-4 has-[:checked]:border-marca-600 has-[:checked]:ring-2 has-[:checked]:ring-marca-600/15";
+  const [veiculo, setVeiculo] = useState(veiculoInicial);
+  const opcoes = useMemo(() => opcoesVeiculo(veiculos.filter((v) => v.status === "ativo" || v.id === veiculoInicial)), [veiculos, veiculoInicial]);
+  const [erro, setErro] = useState("");
   return (
     <div className="max-w-5xl pb-10">
       <Cabecalho titulo="Nova landing page" descricao="Escolha o carro, como começar e o estilo. Depois você ajusta cada seção." />
-      <Form method="get" className="grid gap-4">
+      <Form method="get" className="grid gap-4" onSubmit={(e) => { if (!veiculo) { e.preventDefault(); setErro("Escolha o carro da página."); document.getElementById("veiculo")?.focus(); } }}>
         <input type="hidden" name="continuar" value="1" />
         <CartaoSecao n={1} titulo="Qual carro?" ajuda="A página usa as fotos, o preço, a ficha técnica e o vendedor deste carro.">
-          <CampoSelecao id="veiculo" rotulo="Veículo" defaultValue={veiculoInicial || veiculos.find((v) => v.status === "ativo")?.id || ""} required>
-            {veiculos.map((v) => <option key={v.id} value={v.id}>{codigoVeiculo(v.codigo)} · {v.marca} {v.modelo} {v.versao} {v.anoModelo}{v.status !== "ativo" ? ` (${v.status})` : ""}</option>)}
-          </CampoSelecao>
+          <SeletorBusca id="veiculo" rotulo="Veículo" valor={veiculo} aoMudar={(v) => { setVeiculo(v); setErro(""); }} opcoes={opcoes}
+            placeholder="Busque por marca, modelo, versão, ano ou código" erro={erro}
+            dica="Só aparecem os carros à venda." vazio="Nenhum carro à venda. Cadastre um veículo primeiro." />
           {veiculos.length === 0 && <p className="mt-2 text-sm text-erro">Cadastre um veículo primeiro.</p>}
         </CartaoSecao>
         <CartaoSecao n={2} titulo="Como começar?" ajuda="Você pode trocar qualquer texto depois.">
@@ -390,7 +432,7 @@ function Etapa1({ veiculos, veiculoInicial }: { veiculos: { id: string; codigo: 
           </div>
         </CartaoSecao>
         <CartaoSecao n={3} titulo="Qual estilo?" ajuda="Define o visual da página. Dá para trocar depois, no painel lateral.">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {INFO_ESTILOS.map((e, i) => (
               <label key={e.valor} className={cn(opcao, "flex-col")}>
                 <input type="radio" name="estilo" value={e.valor} defaultChecked={i === 0} className="sr-only" />
@@ -424,24 +466,6 @@ function MiniaturaEstilo({ estilo, tema }: { estilo: EstiloLP; tema: TemaLP }) {
           <div className="h-1/5 rounded-sm" style={{ background: tema.fundoBloco }} />
           <div className="grid grid-cols-4 gap-1">{[0, 1, 2, 3].map((i) => <div key={i} className="h-2 rounded-sm" style={{ background: tema.titulo, opacity: 0.3 }} />)}</div>
           <div className="mt-auto">{barra("w-1/3", tema.botao)}</div>
-        </div>
-      )}
-      {estilo === "vibrante" && (
-        <div className="flex h-full flex-col gap-1">
-          <div className={cn("h-2/5 rounded-b-[40%]", foto)} />
-          <div className="mx-auto">{barra("w-12", tema.titulo)}</div>
-          <div className="h-1/4 rounded-t-[30%]" style={{ background: tema.fundoBloco }} />
-          <div className="mx-auto mt-auto">{barra("w-10", tema.botao, "h-2.5 rounded-full")}</div>
-        </div>
-      )}
-      {estilo === "clean" && (
-        <div className="flex h-full flex-col gap-1">
-          {barra("w-2/3", tema.titulo)}
-          <div className="grid flex-1 grid-cols-4 grid-rows-2 gap-0.5">
-            <div className={cn("col-span-2 row-span-2 rounded-sm", foto)} />
-            {[0, 1, 2, 3].map((i) => <div key={i} className="rounded-sm bg-slate-300" />)}
-          </div>
-          <div className="grid grid-cols-[1fr_35%] gap-1"><div className="space-y-1">{barra("w-full", "#e5e7eb")}{barra("w-3/4", "#e5e7eb")}</div><div className="h-5 rounded border border-slate-200">{barra("mx-auto mt-1.5 w-3/4", tema.botao, "h-1.5")}</div></div>
         </div>
       )}
       {estilo === "luxo" && (
@@ -525,6 +549,19 @@ function Editor({ dados, actionData }: { dados: DadosEditor; actionData: Route.C
   const [tema, setTema] = useState<TemaLP>(dados.tema);
   const [estiloBotao, setEstiloBotao] = useState<EstiloBotao>(dados.estiloBotao);
   const [avisoPaleta, setAvisoPaleta] = useState("");
+  const [coresLogo, setCoresLogo] = useState<string[]>([]);
+  useEffect(() => {
+    let vivo = true;
+    if (dados.logo) coresDaImagem(dados.logo).then((c) => vivo && setCoresLogo(c)).catch(() => {});
+    return () => { vivo = false; };
+  }, [dados.logo]);
+  const usarCoresDaLogo = () => {
+    const novo = temaDaLogo(tema, coresLogo);
+    if (!novo) return;
+    setTema(novo);
+    setAvisoPaleta("Cores da logo aplicadas em botões, linhas, ícones e rótulos (e nos fundos escuros). Personalize abaixo se quiser.");
+    marcar();
+  };
 
   const ocultasIniciais = new Set<SecaoLP>(dados.ocultas);
   const [estrutura, setEstrutura] = useState<Estrutura[]>(dados.ordem.map((chave) => ({ chave, oculta: ocultasIniciais.has(chave) })));
@@ -660,7 +697,7 @@ function Editor({ dados, actionData }: { dados: DadosEditor; actionData: Route.C
     },
     galeria: {
       titulo: "Galeria de fotos",
-      ajuda: "Fotos do carro em grade (ou carrossel, no estilo Vibrante).",
+      ajuda: "Fotos do carro em grade.",
       corpo: <p className="text-sm text-suave">{fotos.length} foto{fotos.length === 1 ? "" : "s"} no cadastro do carro. <Link to={`/admin/veiculos/${v.id}`} target="_blank" className="font-semibold text-marca-700 underline">Gerenciar fotos</Link></p>,
     },
     faixa: {
@@ -668,7 +705,7 @@ function Editor({ dados, actionData }: { dados: DadosEditor; actionData: Route.C
       ajuda: "Uma foto grande com uma segunda frase de destaque.",
       corpo: (
         <div className="grid gap-4">
-          <SeletorFoto nome="secao2Imagem" rotulo="Foto da faixa" fotos={fotos} valor={lp?.secao2Imagem ?? ""} upload={uploadFaixa} dica="Automático usa a 2ª foto do carro." />
+          <SeletorFoto nome="secao2Imagem" rotulo="Foto da faixa" fotos={fotos} valor={lp?.secao2Imagem ?? ""} upload={uploadFaixa} aoMudar={marcar} dica="Automático usa a 2ª foto do carro." />
           <ArquivoImagem campo="secao2ImagemArquivo" rotulo="Ou envie uma imagem própria" url={null} aceita="image/jpeg,image/png,image/webp" largo reduzirPara={2000} aoMudar={marcar} erro={erros.secao2ImagemArquivo} dica="Substitui a foto escolhida acima. JPG, PNG ou WebP." />
           {texto("secao2Titulo", "Frase de impacto", { maxLength: 120 })}
           {texto("secao2Texto", "Parágrafo", { area: true })}
@@ -841,7 +878,7 @@ function Editor({ dados, actionData }: { dados: DadosEditor; actionData: Route.C
                 </div>
               </fieldset>
               {modoTopo === "video" && <CampoTexto id="videoTopo" rotulo="Link do vídeo de fundo" defaultValue={lp?.videoTopo ?? ""} placeholder="https://www.youtube.com/watch?v=…" erro={erros.videoTopo} dica="YouTube, Vimeo ou .mp4. Toca sem som, em loop; a foto abaixo aparece enquanto carrega." inputMode="url" />}
-              <SeletorFoto nome="imagemTopo" rotulo={modoTopo === "video" ? "Capa (enquanto o vídeo carrega)" : "Foto de fundo"} fotos={fotos} valor={lp?.imagemTopo ?? ""} upload={uploadTopo} dica="Automático usa a capa do carro." />
+              <SeletorFoto nome="imagemTopo" rotulo={modoTopo === "video" ? "Capa (enquanto o vídeo carrega)" : "Foto de fundo"} fotos={fotos} valor={lp?.imagemTopo ?? ""} upload={uploadTopo} aoMudar={marcar} dica="Automático usa a capa do carro." />
               <ArquivoImagem campo="imagemTopoArquivo" rotulo="Ou envie uma imagem própria" url={null} aceita="image/jpeg,image/png,image/webp" largo reduzirPara={2400} aoMudar={marcar} erro={erros.imagemTopoArquivo} dica="Substitui a foto escolhida acima. Ideal: 1920×1080." />
               <div>
                 <label htmlFor="veuTopo" className="rotulo">Intensidade do véu escuro: <span className="numeros">{veu}%</span></label>
@@ -904,10 +941,9 @@ function Editor({ dados, actionData }: { dados: DadosEditor; actionData: Route.C
           <div className="grid grid-cols-[minmax(0,1fr)] gap-4 rounded-xl border border-linha bg-white p-5 xl:sticky xl:top-4 xl:max-h-[calc(100dvh-7rem)] xl:overflow-y-auto">
             <h2 className="font-bold text-tinta">Publicação</h2>
             {lp && (
-              <CampoSelecao id="anuncioId" rotulo="Carro da página" value={anuncioId} onChange={(e) => setAnuncioId(e.target.value)}
-                dica={anuncioId !== v.id ? "Salve para carregar as fotos e a ficha do novo carro. Depois use “Preencher textos” para trocar os textos." : "Fotos, preço, ficha e vendedor vêm deste carro."}>
-                {veiculos.map((x) => <option key={x.id} value={x.id}>{codigoVeiculo(x.codigo)} · {x.marca} {x.modelo} {x.versao} {x.anoModelo}{x.status !== "ativo" ? ` (${x.status})` : ""}</option>)}
-              </CampoSelecao>
+              <SeletorBusca id="anuncioId" rotulo="Carro da página" valor={anuncioId} aoMudar={(x) => { setAnuncioId(x); marcar(); }}
+                opcoes={opcoesVeiculo(veiculos.filter((x) => x.status === "ativo" || x.id === v.id))} placeholder="Busque o carro"
+                dica={anuncioId !== v.id ? "Salve para carregar as fotos e a ficha do novo carro. Depois use “Preencher textos” para trocar os textos." : "Fotos, preço, ficha e vendedor vêm deste carro."} />
             )}
             <CampoTexto id="titulo" rotulo="Nome interno" defaultValue={lp?.titulo ?? tituloPadrao} maxLength={100} erro={erros.titulo} dica="Só aparece no painel." />
             <CampoSelecao id="status" rotulo="Status" defaultValue={lp?.status ?? "rascunho"}>
@@ -942,10 +978,16 @@ function Editor({ dados, actionData }: { dados: DadosEditor; actionData: Route.C
               </div>
             </fieldset>
             <div className="grid gap-3 border-t border-linha pt-4">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="text-sm font-semibold text-tinta">Cores</span>
                 <button type="button" onClick={() => { setTema(infoEstilo(estilo).tema); setEstiloBotao(infoEstilo(estilo).botao); marcar(); }} className="botao-fantasma h-9 px-2 text-xs"><Sparkles className="size-3.5" /> Paleta do estilo</button>
               </div>
+              {coresLogo.length > 0 && (
+                <button type="button" onClick={usarCoresDaLogo} className="botao-secundario h-10 justify-start gap-2 px-3 text-sm">
+                  <Sparkles className="size-4" aria-hidden="true" /> Usar cores da logo
+                  <span className="ml-auto flex" aria-hidden="true">{coresLogo.slice(0, 4).map((c) => <span key={c} className="-ml-1.5 size-5 rounded-full border-2 border-white first:ml-0" style={{ background: c }} />)}</span>
+                </button>
+              )}
               {GRUPOS_TEMA.map((grupo) => (
                 <div key={grupo} className="grid gap-2">
                   <p className="text-[11px] font-semibold uppercase tracking-wide text-suave">{grupo}</p>

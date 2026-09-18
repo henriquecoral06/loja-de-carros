@@ -140,9 +140,18 @@ export async function salvarArquivoLoja(prefixo: "logo" | "logo-claro" | "banner
 }
 
 /** Apaga imagens guardadas. Fotos de exemplo apontam para URL externa e são ignoradas. */
+/**
+ * Cache da borda para `/imagens/...`. A chave não depende do domínio (o site
+ * pode abrir por mais de um), para a exclusão conseguir limpar a cópia.
+ */
+export const cacheImagens = () => (globalThis as { caches?: { default?: Cache } }).caches?.default;
+export const chaveCacheImagem = (chave: string) => new Request(`https://imagens.interno/${chave}`, { method: "GET" });
+
 export async function removerObjetos(chaves: string[]) {
   const nossas = chaves.filter((c) => c && !/^https?:\/\//.test(c));
   if (!nossas.length) return;
+  const cache = cacheImagens();
+  if (cache) await Promise.all(nossas.map((c) => cache.delete(chaveCacheImagem(c)).catch(() => false)));
   const bucket = r2();
   if (bucket) await bucket.delete(nossas);
   // Sempre limpa o D1 também: cobre imagens enviadas antes de ativar o R2.

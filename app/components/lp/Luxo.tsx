@@ -3,9 +3,7 @@ import type { ReactNode } from "react";
 import { IconeWhatsApp } from "~/components/WhatsApp";
 import { cn } from "~/lib/ui";
 import {
-  Ampliacao, BlocoDepoimentos, BlocoEtapas, BlocoNumeros, Botao, BotaoCta, BotaoMaterial, BotaoWa, CardsNavegacao, CartaoVendedor, FichaTecnica,
-  FormularioLP, IconeDestaque, ListaFaq, ListaOpcionais, LogoTopo, Mapa, Menu, MidiaTopo, Ordenadas, precoDe, Rodape, V, Video, WhatsFlutuante,
-  type LP, type Partes,
+  Ampliacao, BlocoDepoimentos, BlocoEtapas, BlocoNumeros, Botao, BotaoCta, BotaoMaterial, BotaoWa, CardsNavegacao, CartaoVendedor, colunasDestaques, colunasGaleria, FichaTecnica, FormularioLP, IconeDestaque, ListaFaq, ListaOpcionais, LogoTopo, Mapa, Menu, MidiaTopo, Ordenadas, precoDe, Rodape, type LP, type Partes, V, Video, WhatsFlutuante,
 } from "./base";
 
 /* Estilo Luxo: off-white, serifa, dourado e discreto. */
@@ -74,9 +72,9 @@ export function Luxo(d: LP) {
     ),
     destaques: destaques.length > 0 && (
       <Secao id="diferenciais" rotulo="Diferenciais" titulo="O que torna este carro único.">
-        <ol className="grid border-l border-t sm:grid-cols-2 lg:grid-cols-4" style={{ borderColor: V.linha }}>
+        <ol className={cn("grid grid-cols-2 border-l border-t", colunasDestaques(destaques.length))} style={{ borderColor: V.linha }}>
           {destaques.map((h, i) => (
-            <li key={h.rotulo + i} className="border-b border-r p-6" style={{ borderColor: V.linha }}>
+            <li key={h.rotulo + i} className="border-b border-r p-4 sm:p-6" style={{ borderColor: V.linha }}>
               <p className="text-2xl" style={{ fontFamily: V.fonte, color: V.destaque }}>{ROMANOS[i] ?? i + 1}.</p>
               <span className="mt-4 block" style={{ color: V.titulo }}><IconeDestaque nome={h.icone} className="size-7" /></span>
               <p className="mt-3 font-medium" style={{ color: V.titulo }}>{h.rotulo}</p>
@@ -96,7 +94,7 @@ export function Luxo(d: LP) {
     galeria: galeria.length > 0 && (
       <Secao id="fotos" rotulo="Galeria" titulo="Cada detalhe, de perto."
         direita={fotos.length > 6 && <Botao href="#fotos" onClick={() => setAberta(0)} variante="contorno">Ver todas as fotos ({fotos.length})</Botao>}>
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className={cn("grid gap-5", colunasGaleria(Math.min(fotos.length, 6)))}>
           {fotos.slice(0, 6).map((src, i) => (
             <button key={src + i} type="button" onClick={() => setAberta(i)} className="group text-left" aria-label={`Ampliar foto ${i + 1}`}>
               <Cartao className="overflow-hidden">
@@ -164,8 +162,9 @@ export function Luxo(d: LP) {
     faq: faq.length > 0 && (
       <Secao id="faq" rotulo="Dúvidas" titulo="Perguntas de quem está decidindo.">
         <div className="grid gap-x-12 lg:grid-cols-2">
-          <ListaFaq faq={faq.filter((_, i) => i % 2 === 0)} />
-          <ListaFaq faq={faq.filter((_, i) => i % 2 === 1)} />
+          {/* Metade em cada coluna: no celular as colunas empilham e a ordem continua a mesma. */}
+          <ListaFaq faq={faq.slice(0, Math.ceil(faq.length / 2))} />
+          <ListaFaq faq={faq.slice(Math.ceil(faq.length / 2))} />
         </div>
       </Secao>
     ),

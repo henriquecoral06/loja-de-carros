@@ -1,5 +1,5 @@
 import { waitUntil } from "cloudflare:workers";
-import { lerArquivo } from "~/.server/imagens";
+import { cacheImagens, chaveCacheImagem, lerArquivo } from "~/.server/imagens";
 import type { Route } from "./+types/imagens";
 
 /**
@@ -15,8 +15,8 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     return new Response("Não encontrado", { status: 404 });
   }
 
-  const cache = (globalThis as { caches?: { default?: Cache } }).caches?.default;
-  const chaveCache = new Request(new URL(request.url).toString(), { method: "GET" });
+  const cache = cacheImagens();
+  const chaveCache = chaveCacheImagem(chave);
   const emCache = await cache?.match(chaveCache);
   if (emCache) return emCache;
 

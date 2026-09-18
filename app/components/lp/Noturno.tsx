@@ -3,9 +3,7 @@ import type { ReactNode } from "react";
 import { IconeWhatsApp } from "~/components/WhatsApp";
 import { cn } from "~/lib/ui";
 import {
-  Ampliacao, BlocoDepoimentos, BlocoEtapas, BlocoNumeros, Botao, BotaoCta, BotaoMaterial, BotaoWa, CardsNavegacao, CartaoVendedor, FaixaRolante,
-  FichaTecnica, FormularioLP, IconeDestaque, ListaFaq, ListaOpcionais, LogoTopo, Mapa, Menu, MidiaTopo, Ordenadas, precoDe, Rodape, V, Video,
-  WhatsFlutuante, type LP, type Partes,
+  Ampliacao, BlocoDepoimentos, BlocoEtapas, BlocoNumeros, Botao, BotaoCta, BotaoMaterial, BotaoWa, CardsNavegacao, CartaoVendedor, colunasDestaques, FaixaRolante, FichaTecnica, FormularioLP, IconeDestaque, ListaFaq, ListaOpcionais, LogoTopo, Mapa, Menu, MidiaTopo, Ordenadas, precoDe, Rodape, type LP, type Partes, V, Video, WhatsFlutuante,
 } from "./base";
 
 /* Estilo Noturno: fundo escuro quente, serifa itálica e formulário no topo. */
@@ -58,10 +56,10 @@ export function Noturno(d: LP) {
           <div>
             <Titulo rotulo={lp.nomeExibido || "O carro"} texto={lp.secao1Titulo || nomeCarro} />
             <p className="mt-6 whitespace-pre-line leading-relaxed" style={{ color: V.texto }}>{lp.secao1Texto || v.descricao}</p>
-            <dl className="mt-10 grid grid-cols-3 gap-6">
+            <dl className="mt-10 grid grid-cols-3 gap-4 sm:gap-6">
               {fatos.slice(0, 3).map((f) => (
                 <div key={f.rotulo}>
-                  <dd className="text-2xl sm:text-3xl" style={{ fontFamily: V.fonte, color: V.titulo }}>{f.valor}</dd>
+                  <dd className="text-xl sm:text-3xl" style={{ fontFamily: V.fonte, color: V.titulo }}>{f.valor}</dd>
                   <dt className="mt-1 text-[10px] uppercase tracking-[0.25em]" style={{ color: V.texto }}>{f.rotulo}</dt>
                 </div>
               ))}
@@ -73,9 +71,9 @@ export function Noturno(d: LP) {
     destaques: destaques.length > 0 && (
       <Secao id="diferenciais">
         <Titulo rotulo="Diferenciais" texto="Tudo o que já vem com o carro." className="mb-10" />
-        <ul className="grid border-l border-t sm:grid-cols-2 lg:grid-cols-4" style={{ borderColor: V.linha }}>
+        <ul className={cn("grid grid-cols-2 border-l border-t", colunasDestaques(destaques.length))} style={{ borderColor: V.linha }}>
           {destaques.map((h, i) => (
-            <li key={h.rotulo + i} className="border-b border-r p-6" style={{ borderColor: V.linha }}>
+            <li key={h.rotulo + i} className="border-b border-r p-4 sm:p-6" style={{ borderColor: V.linha }}>
               <span style={{ color: V.destaque }}><IconeDestaque nome={h.icone} className="size-6" /></span>
               <p className="mt-4 font-medium" style={{ color: V.titulo }}>{h.rotulo}</p>
             </li>

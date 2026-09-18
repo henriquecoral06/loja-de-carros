@@ -174,7 +174,7 @@ function Linha({ v }: { v: Veiculo }) {
   const destaque = intencao === "destaque" ? fetcher.formData?.get("valor") === "true" : v.destaque;
   const status = (intencao === "status" ? fetcher.formData?.get("status") : v.status) as StatusAnuncio;
   const titulo = `${v.marca} ${v.modelo} ${v.versao}`;
-  const botaoIcone = "grid size-9 place-items-center rounded-lg text-texto hover:bg-fundo";
+  const botaoIcone = "grid size-8 place-items-center rounded-lg text-texto hover:bg-fundo md:size-9";
 
   return (
     <tr className={cn("grid grid-cols-[64px_minmax(0,1fr)_auto] gap-x-3 gap-y-2 border-b border-linha p-4 last:border-0 md:table-row md:p-0", fetcher.state !== "idle" && "opacity-60")}>
@@ -199,7 +199,7 @@ function Linha({ v }: { v: Veiculo }) {
           <input type="hidden" name="intencao" value="status" />
           <label htmlFor={`status-${v.id}`} className="sr-only">Status de {titulo}</label>
           <select id={`status-${v.id}`} name="status" value={status} onChange={(e) => fetcher.submit(e.currentTarget.form)}
-            className={cn("h-8 w-full max-w-36 cursor-pointer rounded-full border-0 py-0 pl-3 pr-7 text-xs font-semibold md:w-auto",
+            className={cn("h-8 w-[6.5rem] cursor-pointer rounded-full border-0 py-0 pl-3 pr-6 text-xs font-semibold md:w-auto md:pr-7",
               status === "ativo" ? "bg-sucesso-fundo text-sucesso" : status === "pausado" ? "bg-alerta-fundo text-alerta" : "bg-fundo text-suave")}>
             {STATUS_ANUNCIO.map((s) => <option key={s} value={s}>{ROTULO_STATUS[s]}</option>)}
           </select>

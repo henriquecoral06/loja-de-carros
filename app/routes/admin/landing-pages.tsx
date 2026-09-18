@@ -61,7 +61,7 @@ export default function LandingPages({ loaderData }: Route.ComponentProps) {
   const { lista, origem } = loaderData;
   return (
     <div>
-      <Cabecalho titulo="Landing Pages" descricao="Páginas de campanha por veículo, com 8 estilos e seções que você escolhe e reordena.">
+      <Cabecalho titulo="Landing Pages" descricao="Páginas de campanha por veículo, com 6 estilos e seções que você escolhe e reordena.">
         <Link to="/admin/landing-pages/nova" className="botao-primario h-10 px-4 text-sm"><Plus className="size-4" aria-hidden="true" /> Nova landing page</Link>
       </Cabecalho>
 
@@ -72,9 +72,10 @@ export default function LandingPages({ loaderData }: Route.ComponentProps) {
           <Link to="/admin/landing-pages/nova" className="botao-primario mt-5">Criar a primeira</Link>
         </div>
       ) : (
-        <div className={cn(t.caixa, "overflow-x-auto")}>
-          <table className="w-full min-w-[900px]">
-            <thead>
+        <div className={t.caixa}>
+          {/* No celular cada linha vira um cartão; a tabela volta a partir do md. */}
+          <table className="w-full">
+            <thead className="hidden md:table-header-group">
               <tr>{["Landing page", "Veículo", "Estilo", "Status", "Visitas", "Atualizada", ""].map((h, i) => <th key={i} className={t.th}>{h}</th>)}</tr>
             </thead>
             <tbody>{lista.map((l) => <Linha key={l.id} l={l} origem={origem} />)}</tbody>
@@ -91,27 +92,29 @@ function Linha({ l, origem }: { l: Route.ComponentProps["loaderData"]["lista"][n
   if (fetcher.formData?.get("intencao") === "excluir") return null;
   const icone = "grid size-9 place-items-center rounded-lg text-texto hover:bg-fundo";
   const url = `${origem}/lp/${l.slug}`;
+  const md = "md:border-b md:border-linha md:px-4 md:py-3.5 md:align-middle md:text-sm";
 
   return (
-    <tr className={cn(fetcher.state !== "idle" && "opacity-60")}>
-      <td className={t.td}>
+    <tr className={cn("grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 border-b border-linha p-4 last:border-0 md:table-row md:p-0", fetcher.state !== "idle" && "opacity-60")}>
+      <td className={cn(md, "col-span-2 min-w-0")}>
         <Link to={`/admin/landing-pages/${l.id}`} className="font-semibold text-tinta hover:underline">{l.titulo}</Link>
         <p className="mt-0.5 text-xs text-suave">/lp/{l.slug}</p>
       </td>
-      <td className={cn(t.td, "max-w-[280px] text-suave")}>
+      <td className={cn(md, "col-span-2 min-w-0 text-sm text-suave md:max-w-[280px]")}>
         <p className="truncate">{codigoVeiculo(l.codigo)} · {l.marca} {l.modelo} {l.versao} {l.anoModelo}</p>
         {l.statusVeiculo !== "ativo" && <p className="text-xs font-medium text-alerta">Veículo {l.statusVeiculo}: visitantes não veem a página</p>}
       </td>
-      <td className={cn(t.td, "text-suave")}>{ROTULO_ESTILO_LP[l.estilo]}</td>
-      <td className={t.td}>
+      <td className={cn(md, "hidden text-suave md:table-cell")}>{ROTULO_ESTILO_LP[l.estilo]}</td>
+      <td className={cn(md, "col-span-2 mt-1 text-xs text-suave md:text-sm")}>
         <span className={cn("rounded-full px-2.5 py-0.5 text-xs font-semibold", l.status === "ativa" ? "bg-sucesso-fundo text-sucesso" : "bg-alerta-fundo text-alerta")}>
           {l.status === "ativa" ? "Ativa" : "Rascunho"}
         </span>
+        <span className="numeros md:hidden"> · {ROTULO_ESTILO_LP[l.estilo]} · {l.visitas} {l.visitas === 1 ? "visita" : "visitas"}</span>
       </td>
-      <td className={cn(t.td, "numeros text-suave")}>{l.visitas}</td>
-      <td className={cn(t.td, "numeros whitespace-nowrap text-suave")}>{formatarData(l.atualizadoEm)}</td>
-      <td className={t.td}>
-        <div className="flex items-center justify-end gap-0.5">
+      <td className={cn(md, "numeros hidden text-suave md:table-cell")}>{l.visitas}</td>
+      <td className={cn(md, "numeros hidden whitespace-nowrap text-suave md:table-cell")}>{formatarData(l.atualizadoEm)}</td>
+      <td className={cn(md, "col-span-2 -mx-2 md:mx-0")}>
+        <div className="flex items-center gap-0.5 md:justify-end">
           <fetcher.Form method="post">
             <input type="hidden" name="id" value={l.id} />
             <button name="intencao" value="duplicar" className={icone} title="Duplicar" aria-label={`Duplicar ${l.titulo}`}><CopyPlus className="size-[18px]" /></button>

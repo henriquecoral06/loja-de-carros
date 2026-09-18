@@ -1,3 +1,5 @@
+import { contraste, misturar } from "~/lib/cores";
+
 /**
  * Tema de cores, estilo dos botões e fontes das landing pages.
  * Compartilhado entre o editor do painel e a página pública.
@@ -64,8 +66,6 @@ const INTER = "Inter, ui-sans-serif, system-ui, sans-serif";
 /** Fontes por estilo (Google Fonts): títulos (`titulos`) e corpo (`corpo`). */
 export const FONTES_ESTILO: Record<string, { titulos: string; corpo: string; href: string }> = {
   editorial: { titulos: "'Playfair Display', Georgia, serif", corpo: INTER, href: "https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&display=swap" },
-  vibrante: { titulos: "'Nunito', Inter, sans-serif", corpo: INTER, href: "https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" },
-  clean: { titulos: INTER, corpo: INTER, href: "" },
   luxo: { titulos: "'Instrument Serif', Georgia, serif", corpo: INTER, href: "https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap" },
   noturno: { titulos: "'Playfair Display', Georgia, serif", corpo: "'DM Sans', Inter, sans-serif", href: "https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400;1,500&family=DM+Sans:wght@300;400;500;600&display=swap" },
   tech: { titulos: INTER, corpo: INTER, href: "" },
@@ -85,7 +85,7 @@ export function fundoEscuro(hex: string) {
 export function varsTema(tema: TemaLP, estiloBotao: string, estilo: string): Record<string, string> {
   const escuro = fundoEscuro(tema.fundo);
   const botao = ESTILOS_BOTAO.find((b) => b.valor === estiloBotao) ?? ESTILOS_BOTAO[1];
-  const fonte = FONTES_ESTILO[estilo] ?? FONTES_ESTILO.clean;
+  const fonte = FONTES_ESTILO[estilo] ?? FONTES_ESTILO.tech;
   return {
     "--lp-linha": escuro ? "rgba(255,255,255,.14)" : "rgba(0,0,0,.08)",
     "--lp-card": escuro ? "rgba(255,255,255,.05)" : "#ffffff",
@@ -107,4 +107,44 @@ export function varsTema(tema: TemaLP, estiloBotao: string, estilo: string): Rec
     "--lp-fundo-menu": tema.fundoMenu,
     "--lp-texto-menu": tema.textoMenu,
   };
+}
+
+const BRANCO = "#ffffff";
+const GRAFITE = "#1b1d26";
+
+/** Clareia ou escurece `cor` até ter contraste mínimo sobre `fundo`. */
+function legivelSobre(cor: string, fundo: string, alvo = 3) {
+  const para = fundoEscuro(fundo) ? BRANCO : "#000000";
+  let t = 0;
+  let nova = cor;
+  while (contraste(nova, fundo) < alvo && t < 1) {
+    t += 0.08;
+    nova = misturar(cor, para, t);
+  }
+  return nova;
+}
+
+/**
+ * Aplica as cores de uma logo (de `coresDaImagem`) sobre o tema atual:
+ * a cor forte vai para botões, linhas, ícones e rótulos; a escura, para os
+ * fundos que já são escuros no estilo. Fundos claros continuam claros.
+ */
+export function temaDaLogo(atual: TemaLP, cores: string[]): TemaLP | null {
+  const principal = cores.find((c) => contraste(c, "#000000") > 2.2 && contraste(c, BRANCO) > 2.5) ?? cores[0];
+  if (!principal) return null;
+  const escura = cores.find((c) => c !== principal && contraste(c, BRANCO) >= 12);
+  const sobre = (c: string) => (contraste(c, BRANCO) >= contraste(c, GRAFITE) ? BRANCO : GRAFITE);
+
+  const tema = { ...atual };
+  if (escura) {
+    if (fundoEscuro(tema.fundo)) tema.fundo = escura;
+    if (fundoEscuro(tema.fundoBloco)) tema.fundoBloco = escura;
+    if (fundoEscuro(tema.fundoMenu)) tema.fundoMenu = escura;
+  }
+  tema.botao = principal;
+  tema.textoBotao = sobre(principal);
+  tema.destaque = legivelSobre(principal, tema.fundo);
+  tema.rotulo = legivelSobre(principal, tema.fundo, 4.5);
+  tema.rotuloBloco = legivelSobre(principal, tema.fundoBloco, 4.5);
+  return tema;
 }

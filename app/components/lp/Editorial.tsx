@@ -3,9 +3,7 @@ import type { ReactNode } from "react";
 import { IconeWhatsApp } from "~/components/WhatsApp";
 import { cn } from "~/lib/ui";
 import {
-  Ampliacao, BlocoDepoimentos, BlocoEtapas, BlocoNumeros, Botao, BotaoCta, BotaoMaterial, BotaoWa, CardsNavegacao, CartaoVendedor,
-  FichaTecnica, FormularioLP, IconeDestaque, ListaFaq, ListaOpcionais, LogoTopo, Mapa, Menu, MidiaTopo, mosaico, Ordenadas, Rodape, Rotulo, V, Video,
-  WhatsFlutuante, type LP, type Partes,
+  Ampliacao, BlocoDepoimentos, BlocoEtapas, BlocoNumeros, Botao, BotaoCta, BotaoMaterial, BotaoWa, CardsNavegacao, CartaoVendedor, colunasDestaques, FichaTecnica, FormularioLP, IconeDestaque, ListaFaq, ListaOpcionais, LogoTopo, Mapa, Menu, MidiaTopo, mosaico, Ordenadas, Rodape, Rotulo, type LP, type Partes, V, Video, WhatsFlutuante,
 } from "./base";
 
 /* Estilo Editorial: largura total, fotos grandes, serifa. */
@@ -54,7 +52,7 @@ export function Editorial(d: LP) {
     destaques: (
       <>
         <section style={{ background: V.bloco }}>
-          <div className="conteiner grid grid-cols-2 gap-y-2 py-10 sm:grid-cols-3 lg:grid-cols-5">
+          <div className="conteiner grid grid-cols-2 gap-y-2 py-10 sm:grid-cols-3 lg:grid-cols-5 max-sm:[&>*:last-child:nth-child(odd)]:col-span-2">
             {fatos.map((f) => (
               <div key={f.rotulo} className="px-4 py-4 text-center">
                 <p className="text-2xl font-medium sm:text-3xl" style={{ fontFamily: V.fonte, color: V.tituloBloco }}>{f.valor}</p>
@@ -67,7 +65,7 @@ export function Editorial(d: LP) {
           <section id="diferenciais" className="conteiner py-20 lg:py-28">
             <Rotulo centro>Diferenciais</Rotulo>
             <Display className="mx-auto max-w-2xl text-center text-3xl sm:text-4xl">Cada detalhe conta na hora de escolher</Display>
-            <ul className="mx-auto mt-14 grid max-w-5xl grid-cols-2 overflow-hidden border-l border-t sm:grid-cols-3 lg:grid-cols-4" style={{ borderColor: BORDA, borderRadius: V.card }}>
+            <ul className={cn("mx-auto mt-14 grid max-w-5xl grid-cols-2 overflow-hidden border-l border-t", colunasDestaques(destaques.length))} style={{ borderColor: BORDA, borderRadius: V.card }}>
               {destaques.map((h, i) => (
                 <li key={h.rotulo + i} className="flex flex-col items-center gap-4 border-b border-r px-4 py-8 text-center" style={{ borderColor: BORDA }}>
                   <span style={{ color: V.destaque }}><IconeDestaque nome={h.icone} className="size-8" /></span>
