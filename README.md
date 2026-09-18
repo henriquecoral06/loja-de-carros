@@ -59,11 +59,13 @@ continua abrindo com aviso — links compartilhados não quebram).
 npm install
 cp .dev.vars.example .dev.vars   # gere um SESSION_SECRET aleatório
 npm run db:migrate               # cria as tabelas no D1 local
-npm run db:seed                  # loja, 32 carros, 2 vendedores, 5 leads e 1 landing page de exemplo
+npm run db:seed                  # catálogo de marcas/modelos, dados da loja, 1 carro e 1 lead de exemplo
 npm run dev                      # http://localhost:5173
 ```
 
-Painel: http://localhost:5173/admin — `admin@loja.com` / `demo12345`.
+Painel: http://localhost:5173/admin. **Primeiro acesso:** enquanto não existe nenhuma conta, a tela de login vira
+“Crie seu acesso” — quem abrir primeiro cria a própria conta e vira o administrador. Depois disso, novos acessos só
+são criados por quem já entrou (Configurações → Acessos).
 
 D1 e R2 são emulados pelo `@cloudflare/vite-plugin`, com os dados em
 `.wrangler/state`. `npm run db:reset` apaga o banco local e recria do zero.
@@ -77,20 +79,20 @@ npx wrangler login
 npx wrangler d1 create loja-de-carros          # copie o database_id para o wrangler.jsonc
 npx wrangler secret put SESSION_SECRET         # valor aleatório longo
 npm run db:migrate:remote
-npm run acesso -- voce@sualoja.com.br "Seu nome" --remote   # primeiro acesso ao painel
+npm run db:seed:remote           # opcional: catálogo, dados da loja, 1 carro e 1 lead de exemplo
 npm run deploy
 ```
 
-Depois, entre em `/admin/loja` e preencha os dados da loja. O mesmo
-`npm run acesso` redefine a senha de quem esqueceu (e derruba as sessões
-abertas dessa pessoa).
+Depois, abra `/admin`: quem entrar primeiro cria a própria conta e vira o administrador, e cai direto em
+Configurações para preencher os dados da loja. Para redefinir a senha de quem esqueceu (e derrubar as sessões
+abertas dessa pessoa): `npm run acesso -- email@loja.com "Nome" --remote`.
 
 ---
 
 ## Testar antes de publicar
 
 ```bash
-npm run test:e2e                                                  # local (conta demo do seed)
+npm run test:e2e                                                  # local (cria admin@loja.com / demo12345 se o banco não tiver conta)
 BASE=https://sua-loja.workers.dev EMAIL=voce@loja.com SENHA=... npm run test:e2e   # produção
 ```
 

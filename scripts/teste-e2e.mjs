@@ -1,7 +1,7 @@
 /**
  * Teste ponta a ponta do site e do painel num Chrome real.
  *
- *   npm run test:e2e                                     # local, conta demo do seed
+ *   npm run test:e2e                                     # local (banco sem conta: cria admin@loja.com pelo primeiro acesso)
  *   BASE=https://sua-loja.workers.dev EMAIL=... SENHA=... npm run test:e2e
  *
  * Cria e apaga carros, leads, landing page, vendedor e acesso com o prefixo
@@ -18,11 +18,16 @@ const COOKIE = process.env.COOKIE ?? await entrar(process.env.EMAIL ?? "admin@lo
 /** Faz login por HTTP e devolve o valor do cookie de sessão. */
 async function entrar(email, senha) {
   if (!senha) return undefined;
-  const r = await fetch(`${BASE}/admin/entrar`, {
+  const postar = (campos) => fetch(`${BASE}/admin/entrar`, {
     method: "POST", redirect: "manual",
     headers: { Origin: BASE, "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({ email, senha }),
+    body: new URLSearchParams(campos),
   });
+  let r = await postar({ email, senha });
+  // Banco local recém-criado não tem conta: a de teste entra pelo primeiro acesso.
+  if (!r.headers.get("set-cookie")?.includes("sessao=") && BASE.includes("localhost")) {
+    r = await postar({ intencao: "primeiro-acesso", nome: "Administrador", email, senha, confirmar: senha });
+  }
   const valor = r.headers.get("set-cookie")?.match(/sessao=([^;]+)/)?.[1];
   if (!valor) console.warn(`Login falhou (HTTP ${r.status}): o painel não será testado.`);
   return valor;
@@ -41,6 +46,7 @@ const PROD = BASE.startsWith("https://");
 const TAG = `E2E${Date.now().toString().slice(-6)}`;
 const falhas = [];
 const passos = [];
+let lpPublicaPulada = false; // banco sem a LP de exemplo: um lead a menos no fim
 
 const CHROME = process.env.CHROME ?? {
   darwin: "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
@@ -176,7 +182,7 @@ async function ir(page, caminho) {
   await passo("landing page", async () => {
     const lp = process.env.LP ?? "toyota-hilux-srx-2022";
     const resp = await page.goto(`${BASE}/lp/${lp}`, { waitUntil: "networkidle" });
-    if (resp.status() === 404) { passos.push(`info  landing page /lp/${lp} não existe: passo pulado (defina LP=slug)`); return; }
+    if (resp.status() === 404) { lpPublicaPulada = true; passos.push(`info  landing page /lp/${lp} não existe: passo pulado (defina LP=slug)`); return; }
     await semErroNaTela(page);
     await page.fill("#lp-nome", `${TAG} LP`);
     await page.fill("#lp-telefone", "31988887770");
@@ -283,7 +289,8 @@ else {
       if (r.status() !== 200 || !(r.headers()["content-type"] ?? "").startsWith("image/")) throw new Error(`foto ${f} respondeu ${r.status()}`);
     }
     await page.fill("#preco", "118000");
-    await page.selectOption("#vendedorId", { index: 1 });
+    // Banco novo não tem vendedor: só troca se houver algum cadastrado.
+    if ((await page.locator("#vendedorId option").count()) > 1) await page.selectOption("#vendedorId", { index: 1 });
     await page.check("input[name=opcionais][value='Airbag']");
     await Promise.all([page.waitForURL(/salvo=/, { timeout: 20000 }), page.click("button:has-text('Salvar alterações')")]);
   });
@@ -352,16 +359,23 @@ else {
     await publico.close();
 
     // Trocar o carro da página: aviso de textos de outro carro e "Preencher com os dados".
+    // Precisa de outro carro à venda; num banco novo pode só existir um.
     await page.click("#anuncioId");
-    await page.getByRole("option").nth(2).click();
-    await postar(page, () => page.click("button:has-text('Salvar alterações')"));
-    await page.getByText("Salvo às").waitFor({ timeout: 20000 });
-    const modelo = (await page.inputValue("#anuncioId")).split(" ")[1];
-    await page.click("button:has-text('Preencher com os dados do')");
-    await postar(page, () => page.click("button:has-text('Salvar alterações')"));
-    await page.getByText("Salvo às").waitFor({ timeout: 20000 });
-    const html = await (await page.request.get(`${BASE}/lp/${slug}`)).text();
-    if (!html.includes(modelo)) throw new Error(`página não passou a falar do ${modelo}`);
+    const outro = page.locator("[role=option][aria-selected=false]").first();
+    if (await outro.count()) {
+      await outro.click();
+      await postar(page, () => page.click("button:has-text('Salvar alterações')"));
+      await page.getByText("Salvo às").waitFor({ timeout: 20000 });
+      const modelo = (await page.inputValue("#anuncioId")).split(" ")[1];
+      await page.click("button:has-text('Preencher com os dados do')");
+      await postar(page, () => page.click("button:has-text('Salvar alterações')"));
+      await page.getByText("Salvo às").waitFor({ timeout: 20000 });
+      const html = await (await page.request.get(`${BASE}/lp/${slug}`)).text();
+      if (!html.includes(modelo)) throw new Error(`página não passou a falar do ${modelo}`);
+    } else {
+      await page.keyboard.press("Escape");
+      console.log("info  só um carro à venda: troca de carro da landing page pulada");
+    }
 
     // Duplicar e excluir as duas.
     await ir(page, "/admin/landing-pages");
@@ -378,7 +392,9 @@ else {
     await ir(page, `/admin/leads?q=${TAG}`);
     const itens = page.locator("main li", { hasText: TAG });
     const n = await itens.count();
-    if (n < 5) throw new Error(`esperava 5 leads de teste, achei ${n}`);
+    // Contato, venda seu carro, página do carro e o material da LP criada; mais um se a LP pública existir.
+    const esperado = lpPublicaPulada ? 4 : 5;
+    if (n < esperado) throw new Error(`esperava ${esperado} leads de teste, achei ${n}`);
     await postar(page, () => itens.first().locator("select").selectOption("negociacao"));
     await itens.first().locator("textarea").fill("Anotação de teste");
     await postar(page, () => page.click("h1"));

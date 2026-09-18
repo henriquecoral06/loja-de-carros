@@ -1,7 +1,7 @@
 import { asc, count, eq } from "drizzle-orm";
 import { Check, Sparkles, Trash2, TriangleAlert } from "lucide-react";
 import { useEffect, useState } from "react";
-import { data, Form, useFetcher, useNavigation } from "react-router";
+import { data, Form, useFetcher, useNavigation, useSearchParams } from "react-router";
 import { db, schema } from "~/.server/db";
 import { removerObjetos, salvarArquivoLoja, validarLogo } from "~/.server/imagens";
 import { BANNER_PADRAO, lojaCompleta, obterLoja, salvarLoja } from "~/.server/loja";
@@ -164,6 +164,7 @@ type Resposta = {
 export default function Configuracoes({ loaderData, actionData }: Route.ComponentProps) {
   const { loja, bannerProprio, bannerPadrao, acessos, eu } = loaderData;
   const resposta = actionData as Resposta | undefined;
+  const boasVindas = useSearchParams()[0].has("bem-vindo");
   const erros = resposta?.config?.erros ?? {};
   const navigation = useNavigation();
   const salvando = navigation.state === "submitting" && navigation.formData?.get("intencao") === "salvar";
@@ -201,6 +202,9 @@ export default function Configuracoes({ loaderData, actionData }: Route.Componen
   return (
     <div className="max-w-4xl">
       <Cabecalho titulo="Configurações do site" descricao="Identidade, contatos e textos exibidos no site público." />
+      {boasVindas && !resposta && (
+        <Aviso tipo="sucesso">Seu acesso de administrador foi criado. Comece pelos dados da loja abaixo (nome, logo, cores e contatos). O carro e o lead que já aparecem no painel são exemplos: edite ou exclua quando quiser.</Aviso>
+      )}
       {resposta?.config?.ok && <Aviso tipo="sucesso">Configurações salvas. O site já foi atualizado.</Aviso>}
       {resposta?.config?.erros && <Aviso tipo="erro">Revise os campos marcados.</Aviso>}
 
